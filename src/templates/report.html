@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ad Performance Audit - {{ generated_at }}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px 60px; }
+
+    /* HEADER */
+    header {
+      background: #0f172a;
+      color: #fff;
+      padding: 32px 0;
+      margin-bottom: 32px;
+    }
+    header .container { padding-top: 0; padding-bottom: 0; }
+    .header-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
+    .header-title h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+    .header-title p { color: #94a3b8; font-size: 14px; margin-top: 4px; }
+    .platform-badges { display: flex; gap: 8px; align-items: center; }
+    .platform-badge {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #e2e8f0;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* SECTION TITLES */
+    .section { margin-bottom: 32px; }
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title .icon { font-size: 20px; }
+
+    /* EXECUTIVE SUMMARY */
+    .exec-summary {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      border-radius: 0 8px 8px 0;
+      padding: 20px 24px;
+      color: #1e3a5f;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    .exec-summary p { margin-bottom: 12px; }
+    .exec-summary p:last-child { margin-bottom: 0; }
+
+    /* KPI CARDS */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .kpi-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px 22px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .kpi-card.critical-card { border-top: 3px solid #dc2626; }
+    .kpi-card.ok-card { border-top: 3px solid #16a34a; }
+    .kpi-card.neutral-card { border-top: 3px solid #3b82f6; }
+    .kpi-value { font-size: 28px; font-weight: 700; color: #0f172a; line-height: 1.1; margin-bottom: 4px; }
+    .kpi-label { font-size: 13px; font-weight: 500; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+    /* BADGES */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-critical { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+    .badge-warning  { background: #fffbeb; color: #d97706; border: 1px solid #fcd34d; }
+    .badge-ok       { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
+
+    /* TABLES */
+    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #e2e8f0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; }
+    thead th {
+      background: #1e293b;
+      color: #e2e8f0;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 12px 14px;
+      text-align: left;
+      white-space: nowrap;
+    }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    tbody tr:hover { background: #f1f5f9; }
+    tbody td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    .campaign-name { font-weight: 500; max-width: 220px; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .roas-high { color: #16a34a; font-weight: 600; }
+    .roas-mid  { color: #d97706; font-weight: 600; }
+    .roas-low  { color: #dc2626; font-weight: 600; }
+
+    /* DELTA */
+    .delta { font-weight: 600; font-size: 13px; }
+    .delta-up   { color: #16a34a; }
+    .delta-down { color: #dc2626; }
+    .delta-flat { color: #64748b; }
+
+    /* FUNNEL WATERFALL */
+    .funnel-waterfall {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      overflow-x: auto;
+    }
+    .funnel-stage {
+      flex: 1;
+      min-width: 140px;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-right: none;
+      padding: 20px 16px;
+      position: relative;
+    }
+    .funnel-stage:first-child { border-radius: 10px 0 0 10px; }
+    .funnel-stage:last-child  { border-right: 1px solid #e2e8f0; border-radius: 0 10px 10px 0; }
+    .funnel-stage-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 6px; }
+    .funnel-stage-count { font-size: 28px; font-weight: 700; color: #0f172a; line-height: 1; margin-bottom: 4px; }
+    .funnel-stage-cost { font-size: 13px; color: #3b82f6; font-weight: 600; margin-bottom: 8px; }
+    .funnel-stage-rate {
+      font-size: 12px;
+      color: #64748b;
+      background: #f8fafc;
+      border-radius: 6px;
+      padding: 3px 8px;
+      display: inline-block;
+    }
+    .funnel-stage-arrow {
+      position: absolute;
+      right: -12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
+      background: #3b82f6;
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      z-index: 1;
+    }
+    .funnel-stage:last-child .funnel-stage-arrow { display: none; }
+    .funnel-stage.pending { background: #f8fafc; }
+    .funnel-stage.pending .funnel-stage-count { color: #cbd5e1; }
+    .funnel-stage-pending-label { font-size: 12px; color: #94a3b8; font-style: italic; }
+
+    /* FUNNEL CAMPAIGN TABLE extras */
+    .cost-pill {
+      display: inline-block;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .cost-pill.na { background: #f1f5f9; color: #94a3b8; }
+
+    /* PLATFORM COMPARISON */
+    .platform-comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .platform-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .platform-card.winner { border: 2px solid #3b82f6; }
+    .platform-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .winner-badge { background: #3b82f6; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    .platform-stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+    .platform-stat:last-child { border-bottom: none; }
+    .platform-stat-label { color: #64748b; }
+    .platform-stat-value { font-weight: 600; }
+
+    /* RECOMMENDATIONS */
+    .recommendations-list { display: flex; flex-direction: column; gap: 14px; }
+    .recommendation {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 18px 20px;
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .rec-number {
+      background: #3b82f6;
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      min-width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .rec-content strong { display: block; font-size: 15px; margin-bottom: 4px; }
+    .rec-content p { color: #475569; font-size: 14px; line-height: 1.5; }
+
+    /* MARKDOWN RENDERED CONTENT */
+    .markdown-content h2 { font-size: 17px; font-weight: 600; margin: 20px 0 10px; color: #0f172a; }
+    .markdown-content h3 { font-size: 15px; font-weight: 600; margin: 16px 0 8px; }
+    .markdown-content p { margin-bottom: 12px; color: #334155; }
+    .markdown-content ul, .markdown-content ol { padding-left: 20px; margin-bottom: 12px; }
+    .markdown-content li { margin-bottom: 6px; color: #334155; }
+    .markdown-content strong { color: #0f172a; }
+    .markdown-content code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+
+    /* UNDERPERFORMERS */
+    .underperformer-list { display: flex; flex-direction: column; gap: 10px; }
+    .underperformer {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid;
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .underperformer.critical { border-left-color: #dc2626; }
+    .underperformer.warning  { border-left-color: #d97706; }
+    .underperformer-name { font-weight: 600; font-size: 14px; }
+    .underperformer-platform { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .underperformer-metrics { display: flex; gap: 20px; }
+    .underperformer-metric { text-align: right; }
+    .underperformer-metric .val { font-size: 16px; font-weight: 700; }
+    .underperformer-metric .lbl { font-size: 11px; color: #94a3b8; text-transform: uppercase; }
+    .critical .underperformer-metric .val { color: #dc2626; }
+    .warning  .underperformer-metric .val { color: #d97706; }
+
+    /* REALLOCATION */
+    .reallocation-box {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 22px 24px;
+    }
+
+    /* COMPARISON TABLE */
+    .delta-section { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+    .delta-period-label {
+      background: #1e293b;
+      color: #e2e8f0;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* FOOTER */
+    footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 13px;
+    }
+
+    /* PRINT */
+    @media print {
+      body { background: #fff; }
+      header { background: #0f172a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      thead th { background: #1e293b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .kpi-card, .recommendation, .platform-card, .reallocation-box { box-shadow: none; }
+      .section { page-break-inside: avoid; }
+    }
+
+    @media (max-width: 640px) {
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .platform-comparison-grid { grid-template-columns: 1fr; }
+      .header-inner { flex-direction: column; }
+      .underperformer-metrics { flex-direction: column; gap: 6px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="container">
+    <div class="header-inner">
+      <div class="header-title">
+        <h1>Ad Performance Audit</h1>
+        <p>Generated {{ generated_at }}{% if compare_mode %} &nbsp;|&nbsp; Period Comparison Active{% endif %}</p>
+      </div>
+      <div class="platform-badges">
+        {% for p in platforms %}
+          <span class="platform-badge">{% if p == 'google' %}Google Ads{% else %}Meta Ads{% endif %}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- EXECUTIVE SUMMARY -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📋</span> Executive Summary</div>
+    <div class="exec-summary markdown-content">{{ executive_summary | safe }}</div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📊</span> Overall Performance</div>
+    <div class="kpi-grid">
+      {% if google %}
+      <div class="kpi-card neutral-card">
+        <div class="kpi-value">{{ google.total_spend | inr }}</div>
+        <div class="kpi-label">Google Total Spend</div>
+        <div class="kpi-sub">{{ google.campaign_count }} campaigns</div>
+      </div>
+      <div class="kpi-card {% if google.overall_roas >= 2 %}ok-card{% elif google.overall_roas >= 1 %}neutral-card{% else %}critical-card{% endif %}">
+        <div class="kpi-value">{{ google.overall_roas }}x</div>
+        <div class="kpi-label">Google ROAS</div>
+        <div class="kpi-sub">{{ google.total_conversions | int }} conversions</div>
+      </div>
+      {% endif %}
+      {% if meta %}
+      <div class="kpi-card neutral-card">
+        <div class="kpi-value">{{ meta.total_spend | inr }}</div>
+        <div class="kpi-label">Meta Total Spend</div>
+        <div class="kpi-sub">{{ meta.campaign_count }} campaigns</div>
+      </div>
+      <div class="kpi-card {% if meta.overall_roas >= 2 %}ok-card{% elif meta.overall_roas >= 1 %}neutral-card{% else %}critical-card{% endif %}">
+        <div class="kpi-value">{{ meta.overall_roas }}x</div>
+        <div class="kpi-label">Meta ROAS</div>
+        <div class="kpi-sub">{{ meta.total_conversions | int }} results</div>
+      </div>
+      {% endif %}
+      {% if cross_platform %}
+      <div class="kpi-card critical-card">
+        <div class="kpi-value">{{ cross_platform.total_wasted | inr }}</div>
+        <div class="kpi-label">Total Wasted Spend</div>
+        <div class="kpi-sub">Campaigns with ROAS &lt; 1x</div>
+      </div>
+      <div class="kpi-card neutral-card">
+        <div class="kpi-value">{{ cross_platform.total_spend | inr }}</div>
+        <div class="kpi-label">Combined Spend</div>
+        <div class="kpi-sub">Both platforms</div>
+      </div>
+      {% elif google %}
+      <div class="kpi-card critical-card">
+        <div class="kpi-value">{{ google.wasted_spend | inr }}</div>
+        <div class="kpi-label">Wasted Spend</div>
+        <div class="kpi-sub">{{ google.critical_count }} critical campaigns</div>
+      </div>
+      <div class="kpi-card neutral-card">
+        <div class="kpi-value">{{ google.overall_cac | inr }}</div>
+        <div class="kpi-label">Avg CAC</div>
+        <div class="kpi-sub">Cost per conversion</div>
+      </div>
+      {% elif meta %}
+      <div class="kpi-card critical-card">
+        <div class="kpi-value">{{ meta.wasted_spend | inr }}</div>
+        <div class="kpi-label">Wasted Spend</div>
+        <div class="kpi-sub">{{ meta.critical_count }} critical campaigns</div>
+      </div>
+      <div class="kpi-card neutral-card">
+        <div class="kpi-value">{{ meta.overall_cac | inr }}</div>
+        <div class="kpi-label">Avg CAC</div>
+        <div class="kpi-sub">Cost per result</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- FUNNEL WATERFALL -->
+  {% if funnel_summary %}
+  <div class="section">
+    <div class="section-title"><span class="icon">🔽</span> Funnel Performance</div>
+    <div class="funnel-waterfall">
+
+      {% if funnel_summary.total_leads is defined %}
+      <div class="funnel-stage">
+        <div class="funnel-stage-label">Leads</div>
+        <div class="funnel-stage-count">{{ funnel_summary.total_leads | int }}</div>
+        {% if funnel_summary.cost_per_lead %}
+        <div class="funnel-stage-cost">{{ funnel_summary.cost_per_lead | inr }} / lead</div>
+        {% endif %}
+        <div class="funnel-stage-arrow">&#8250;</div>
+      </div>
+      {% endif %}
+
+      {% if funnel_summary.total_mqls is defined %}
+      <div class="funnel-stage">
+        <div class="funnel-stage-label">MQLs</div>
+        <div class="funnel-stage-count">{{ funnel_summary.total_mqls | int }}</div>
+        {% if funnel_summary.cost_per_mql %}
+        <div class="funnel-stage-cost">{{ funnel_summary.cost_per_mql | inr }} / MQL</div>
+        {% endif %}
+        {% if funnel_summary.lead_to_mql_rate is defined %}
+        <div class="funnel-stage-rate">{{ funnel_summary.lead_to_mql_rate }}% from leads</div>
+        {% endif %}
+        <div class="funnel-stage-arrow">&#8250;</div>
+      </div>
+      {% endif %}
+
+      {% if funnel_summary.total_sqls is defined %}
+      <div class="funnel-stage">
+        <div class="funnel-stage-label">SQLs</div>
+        <div class="funnel-stage-count">{{ funnel_summary.total_sqls | int }}</div>
+        {% if funnel_summary.cost_per_sql %}
+        <div class="funnel-stage-cost">{{ funnel_summary.cost_per_sql | inr }} / SQL</div>
+        {% endif %}
+        {% if funnel_summary.mql_to_sql_rate is defined %}
+        <div class="funnel-stage-rate">{{ funnel_summary.mql_to_sql_rate }}% from MQLs</div>
+        {% endif %}
+        <div class="funnel-stage-arrow">&#8250;</div>
+      </div>
+      {% endif %}
+
+      {% if funnel_summary.total_customers is defined %}
+      <div class="funnel-stage">
+        <div class="funnel-stage-label">Customers</div>
+        <div class="funnel-stage-count">{{ funnel_summary.total_customers | int }}</div>
+        {% if funnel_summary.cost_per_customer %}
+        <div class="funnel-stage-cost">{{ funnel_summary.cost_per_customer | inr }} / customer</div>
+        {% endif %}
+        {% if funnel_summary.sql_to_customer_rate is defined %}
+        <div class="funnel-stage-rate">{{ funnel_summary.sql_to_customer_rate }}% from SQLs</div>
+        {% endif %}
+        {% if funnel_summary.overall_conversion_rate is defined %}
+        <div class="funnel-stage-rate" style="margin-top:4px;">{{ funnel_summary.overall_conversion_rate }}% overall</div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- PLATFORM COMPARISON -->
+  {% if cross_platform %}
+  <div class="section">
+    <div class="section-title"><span class="icon">⚖️</span> Platform Comparison</div>
+    <div class="platform-comparison-grid">
+      <div class="platform-card {% if cross_platform.better_platform == 'google' %}winner{% endif %}">
+        <h3>
+          Google Ads
+          {% if cross_platform.better_platform == 'google' %}<span class="winner-badge">Better ROAS</span>{% endif %}
+        </h3>
+        <div class="platform-stat"><span class="platform-stat-label">Total Spend</span><span class="platform-stat-value">{{ cross_platform.google_spend | inr }}</span></div>
+        <div class="platform-stat"><span class="platform-stat-label">ROAS</span><span class="platform-stat-value {% if cross_platform.google_roas >= 2 %}roas-high{% elif cross_platform.google_roas >= 1 %}roas-mid{% else %}roas-low{% endif %}">{{ cross_platform.google_roas }}x</span></div>
+        <div class="platform-stat"><span class="platform-stat-label">CAC</span><span class="platform-stat-value">{{ cross_platform.google_cac | inr }}</span></div>
+        <div class="platform-stat"><span class="platform-stat-label">Wasted Spend</span><span class="platform-stat-value roas-low">{{ cross_platform.google_wasted | inr }}</span></div>
+      </div>
+      <div class="platform-card {% if cross_platform.better_platform == 'meta' %}winner{% endif %}">
+        <h3>
+          Meta Ads
+          {% if cross_platform.better_platform == 'meta' %}<span class="winner-badge">Better ROAS</span>{% endif %}
+        </h3>
+        <div class="platform-stat"><span class="platform-stat-label">Total Spend</span><span class="platform-stat-value">{{ cross_platform.meta_spend | inr }}</span></div>
+        <div class="platform-stat"><span class="platform-stat-label">ROAS</span><span class="platform-stat-value {% if cross_platform.meta_roas >= 2 %}roas-high{% elif cross_platform.meta_roas >= 1 %}roas-mid{% else %}roas-low{% endif %}">{{ cross_platform.meta_roas }}x</span></div>
+        <div class="platform-stat"><span class="platform-stat-label">CAC</span><span class="platform-stat-value">{{ cross_platform.meta_cac | inr }}</span></div>
+        <div class="platform-stat"><span class="platform-stat-label">Wasted Spend</span><span class="platform-stat-value roas-low">{{ cross_platform.meta_wasted | inr }}</span></div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- CAMPAIGN PERFORMANCE TABLE - GOOGLE -->
+  {% if google %}
+  <div class="section">
+    <div class="section-title"><span class="icon">🔍</span> Google Ads - Campaign Breakdown</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campaign</th>
+            <th>Spend</th>
+            <th>ROAS</th>
+            <th>CTR</th>
+            <th>CPC</th>
+            {% if funnel_summary %}
+            <th>CPL</th>
+            <th>Cost/MQL</th>
+            <th>Cost/SQL</th>
+            <th>Cost/Cust.</th>
+            {% endif %}
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in google.campaigns %}
+          <tr>
+            <td class="campaign-name">{{ c.name }}</td>
+            <td class="num">{{ c.spend | inr }}</td>
+            <td class="num {% if c.roas >= 2 %}roas-high{% elif c.roas >= 1 %}roas-mid{% else %}roas-low{% endif %}">{{ c.roas }}x</td>
+            <td class="num">{{ c.ctr }}%</td>
+            <td class="num">{{ c.cpc | inr }}</td>
+            {% if funnel_summary %}
+            <td class="num">{% if c.cost_per_lead %}<span class="cost-pill">{{ c.cost_per_lead | inr }}</span>{% else %}<span class="cost-pill na">-</span>{% endif %}</td>
+            <td class="num">{% if c.cost_per_mql %}<span class="cost-pill">{{ c.cost_per_mql | inr }}</span>{% else %}<span class="cost-pill na">-</span>{% endif %}</td>
+            <td class="num">{% if c.cost_per_sql %}<span class="cost-pill">{{ c.cost_per_sql | inr }}</span>{% else %}<span class="cost-pill na">-</span>{% endif %}</td>
+            <td class="num">{% if c.cost_per_customer %}<span class="cost-pill">{{ c.cost_per_customer | inr }}</span>{% else %}<span class="cost-pill na">-</span>{% endif %}</td>
+            {% endif %}
+            <td><span class="badge badge-{{ c.severity }}">{{ c.severity | title }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- CAMPAIGN PERFORMANCE TABLE - META -->
+  {% if meta %}
+  <div class="section">
+    <div class="section-title"><span class="icon">🔍</span> Meta Ads - Campaign Breakdown</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campaign</th>
+            <th>Spend</th>
+            <th>ROAS</th>
+            <th>CTR</th>
+            <th>CPC</th>
+            {% if funnel_summary %}
+            <th>CPL</th>
+            <th>Cost/MQL</th>
+            <th>Cost/SQL</th>
+            <th>Cost/Cust.</th>
+            {% endif %}
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in meta.campaigns %}
+          <tr>
+            <td class="campaign-name">{{ c.name }}</td>
+            <td class="num">{{ c.spend | inr }}</td>
+            <td class="num {% if c.roas >= 2 %}roas-high{% elif c.roas >= 1 %}roas-mid{% else %}roas-low{% endif %}">{{ c.roas }}x</td>
+            <td class="num">{{ c.ctr }}%</td>
+            <td class="num">{{ c.cpc | inr }}</td>
+            {% if funnel_summary %}
+            <td class="num">{% if c.cost_per_lead %}<span class="cost-pill">{{ c.cost_per_lead | inr }}</span>{% else %}<span class="cost-pill na">-</span>{% endif %}</td>
+            <td class="num">{% if c.cost_per_mql %}<span class="cost-pill">{{ c.cost_per_mql | inr }}</span>{% else %}<span class="cost-pill na">-</span>{% endif %}</td>
+            <td class="num">{% if c.cost_per_sql %}<span class="cost-pill">{{ c.cost_per_sql | inr }}</span>{% else %}<span class="cost-pill na">-</span>{% endif %}</td>
+            <td class="num">{% if c.cost_per_customer %}<span class="cost-pill">{{ c.cost_per_customer | inr }}</span>{% else %}<span class="cost-pill na">-</span>{% endif %}</td>
+            {% endif %}
+            <td><span class="badge badge-{{ c.severity }}">{{ c.severity | title }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- GRANULARITY NOTE -->
+  {% if granularity_level and granularity_level != 'campaign' %}
+  <div class="section">
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:14px 18px;font-size:14px;color:#0369a1;">
+      <strong>Data Level Detected: {{ granularity_level | title }}</strong>
+      {% if granularity_note %} &mdash; {{ granularity_note }}{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- AD GROUP BREAKDOWN -->
+  {% if adgroup_insights %}
+  <div class="section">
+    <div class="section-title"><span class="icon">📂</span> Ad Group Performance Breakdown</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ad Group</th>
+            <th>Campaign</th>
+            <th>Spend</th>
+            <th>ROAS</th>
+            <th>CAC</th>
+            <th>CTR</th>
+            <th>Conversions</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ag in adgroup_insights %}
+          <tr>
+            <td class="campaign-name">{{ ag.adgroup }}</td>
+            <td style="font-size:13px;color:#64748b;">{{ ag.campaign }}</td>
+            <td class="num">{{ ag.spend | inr }}</td>
+            <td class="num {% if ag.roas >= 2 %}roas-high{% elif ag.roas >= 1 %}roas-mid{% else %}roas-low{% endif %}">{{ ag.roas }}x</td>
+            <td class="num">{{ ag.cac | inr }}</td>
+            <td class="num">{{ ag.ctr }}%</td>
+            <td class="num">{{ ag.conversions }}</td>
+            <td><span class="badge badge-{{ ag.severity }}">{{ ag.severity | title }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- KEYWORD BREAKDOWN -->
+  {% if keyword_insights %}
+  <div class="section">
+    <div class="section-title"><span class="icon">🔑</span> Keyword Performance Breakdown</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Keyword</th>
+            <th>Match Type</th>
+            <th>Ad Group</th>
+            <th>Spend</th>
+            <th>ROAS</th>
+            <th>CPC</th>
+            <th>CTR</th>
+            <th>QS</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for kw in keyword_insights %}
+          <tr>
+            <td class="campaign-name">{{ kw.keyword }}</td>
+            <td style="font-size:12px;color:#64748b;">{{ kw.match_type }}</td>
+            <td style="font-size:13px;color:#64748b;">{{ kw.adgroup }}</td>
+            <td class="num">{{ kw.spend | inr }}</td>
+            <td class="num {% if kw.roas >= 2 %}roas-high{% elif kw.roas >= 1 %}roas-mid{% else %}roas-low{% endif %}">{{ kw.roas }}x</td>
+            <td class="num">{{ kw.cpc | inr }}</td>
+            <td class="num">{{ kw.ctr }}%</td>
+            <td class="num" style="{% if kw.quality_score >= 7 %}color:#16a34a;{% elif kw.quality_score >= 5 %}color:#d97706;{% elif kw.quality_score > 0 %}color:#dc2626;{% endif %}font-weight:600;">
+              {% if kw.quality_score > 0 %}{{ kw.quality_score }}/10{% else %}-{% endif %}
+            </td>
+            <td><span class="badge badge-{{ kw.severity }}">{{ kw.severity | title }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- AD CREATIVE BREAKDOWN -->
+  {% if ad_insights %}
+  <div class="section">
+    <div class="section-title"><span class="icon">🎨</span> Ad Creative Performance</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ad</th>
+            <th>Type</th>
+            <th>Ad Group</th>
+            <th>Spend</th>
+            <th>ROAS</th>
+            <th>CTR</th>
+            <th>Conversions</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ad in ad_insights %}
+          <tr>
+            <td class="campaign-name">{{ ad.ad }}</td>
+            <td style="font-size:12px;color:#64748b;">{{ ad.ad_type }}</td>
+            <td style="font-size:13px;color:#64748b;">{{ ad.adgroup }}</td>
+            <td class="num">{{ ad.spend | inr }}</td>
+            <td class="num {% if ad.roas >= 2 %}roas-high{% elif ad.roas >= 1 %}roas-mid{% else %}roas-low{% endif %}">{{ ad.roas }}x</td>
+            <td class="num">{{ ad.ctr }}%</td>
+            <td class="num">{{ ad.conversions }}</td>
+            <td><span class="badge badge-{{ ad.severity }}">{{ ad.severity | title }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- PERIOD COMPARISON -->
+  {% if comparison %}
+  <div class="section">
+    <div class="section-title"><span class="icon">📈</span> Period Comparison - {{ comparison.period_label }}</div>
+    <div class="delta-section">
+      <div class="delta-period-label">{{ comparison.period_label }}</div>
+      <div class="table-wrap" style="border:none; border-radius:0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Platform</th>
+              <th>Metric</th>
+              <th>Change</th>
+              <th>Direction</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if comparison.google_spend_delta %}
+            <tr><td>Google</td><td>Total Spend</td><td class="num">{{ comparison.google_spend_delta.pct }}%</td><td><span class="delta delta-{{ comparison.google_spend_delta.direction }}">{% if comparison.google_spend_delta.direction == 'up' %}+{{ comparison.google_spend_delta.pct }}% ▲{% elif comparison.google_spend_delta.direction == 'down' %}-{{ comparison.google_spend_delta.pct }}% ▼{% else %}No change{% endif %}</span></td></tr>
+            <tr><td>Google</td><td>ROAS</td><td class="num">{{ comparison.google_roas_delta.pct }}%</td><td><span class="delta delta-{{ comparison.google_roas_delta.direction }}">{% if comparison.google_roas_delta.direction == 'up' %}+{{ comparison.google_roas_delta.pct }}% ▲{% elif comparison.google_roas_delta.direction == 'down' %}-{{ comparison.google_roas_delta.pct }}% ▼{% else %}No change{% endif %}</span></td></tr>
+            <tr><td>Google</td><td>CAC</td><td class="num">{{ comparison.google_cac_delta.pct }}%</td><td><span class="delta delta-{{ comparison.google_cac_delta.direction }}">{% if comparison.google_cac_delta.direction == 'up' %}+{{ comparison.google_cac_delta.pct }}% ▲{% elif comparison.google_cac_delta.direction == 'down' %}-{{ comparison.google_cac_delta.pct }}% ▼{% else %}No change{% endif %}</span></td></tr>
+            {% endif %}
+            {% if comparison.meta_spend_delta %}
+            <tr><td>Meta</td><td>Total Spend</td><td class="num">{{ comparison.meta_spend_delta.pct }}%</td><td><span class="delta delta-{{ comparison.meta_spend_delta.direction }}">{% if comparison.meta_spend_delta.direction == 'up' %}+{{ comparison.meta_spend_delta.pct }}% ▲{% elif comparison.meta_spend_delta.direction == 'down' %}-{{ comparison.meta_spend_delta.pct }}% ▼{% else %}No change{% endif %}</span></td></tr>
+            <tr><td>Meta</td><td>ROAS</td><td class="num">{{ comparison.meta_roas_delta.pct }}%</td><td><span class="delta delta-{{ comparison.meta_roas_delta.direction }}">{% if comparison.meta_roas_delta.direction == 'up' %}+{{ comparison.meta_roas_delta.pct }}% ▲{% elif comparison.meta_roas_delta.direction == 'down' %}-{{ comparison.meta_roas_delta.pct }}% ▼{% else %}No change{% endif %}</span></td></tr>
+            <tr><td>Meta</td><td>CAC</td><td class="num">{{ comparison.meta_cac_delta.pct }}%</td><td><span class="delta delta-{{ comparison.meta_cac_delta.direction }}">{% if comparison.meta_cac_delta.direction == 'up' %}+{{ comparison.meta_cac_delta.pct }}% ▲{% elif comparison.meta_cac_delta.direction == 'down' %}-{{ comparison.meta_cac_delta.pct }}% ▼{% else %}No change{% endif %}</span></td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- UNDERPERFORMERS -->
+  <div class="section">
+    <div class="section-title"><span class="icon">⚠️</span> Underperforming Campaigns</div>
+    <div class="underperformer-list">
+      {% for item in underperformers %}
+      <div class="underperformer {{ item.severity }}">
+        <div>
+          <div class="underperformer-name">{{ item.name }}</div>
+          <div class="underperformer-platform">{{ item.platform | title }} Ads</div>
+        </div>
+        <div class="underperformer-metrics">
+          <div class="underperformer-metric">
+            <div class="val">{{ item.roas }}x</div>
+            <div class="lbl">ROAS</div>
+          </div>
+          <div class="underperformer-metric">
+            <div class="val">{{ item.spend | inr }}</div>
+            <div class="lbl">Spend</div>
+          </div>
+          <div class="underperformer-metric">
+            <div class="val">{{ item.cac | inr }}</div>
+            <div class="lbl">CAC</div>
+          </div>
+          <div>
+            <span class="badge badge-{{ item.severity }}">{{ item.severity | title }}</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- RECOMMENDATIONS -->
+  <div class="section">
+    <div class="section-title"><span class="icon">💡</span> Recommendations</div>
+    <div class="recommendations-list">
+      {% for rec in recommendations %}
+      <div class="recommendation">
+        <div class="rec-number">{{ "%02d" % loop.index }}</div>
+        <div class="rec-content">
+          <strong>{{ rec.title }}</strong>
+          <p>{{ rec.body }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- BUDGET REALLOCATION -->
+  <div class="section">
+    <div class="section-title"><span class="icon">💰</span> Budget Reallocation</div>
+    <div class="reallocation-box markdown-content">
+      {{ reallocation | safe }}
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="container">
+    Generated by Ad Audit CLI &nbsp;|&nbsp; {{ generated_at }} &nbsp;|&nbsp; Powered by Claude
+  </div>
+</footer>
+
+</body>
+</html>

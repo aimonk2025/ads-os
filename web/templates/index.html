@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ad Audit - Performance Analyzer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --midnight: #0f172a;
+      --slate: #1e293b;
+      --blue: #3b82f6;
+      --blue-dark: #2563eb;
+      --surface: #f8fafc;
+      --white: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --critical: #dc2626;
+      --warning: #d97706;
+      --ok: #16a34a;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background: var(--midnight);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { color: #fff; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+    .logo span { color: var(--blue); }
+    .header-sub { color: #64748b; font-size: 13px; margin-top: 2px; }
+
+    /* LAYOUT */
+    .layout {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      min-height: calc(100vh - 64px);
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      background: var(--white);
+      border-right: 1px solid var(--border);
+      padding: 28px 24px;
+      overflow-y: auto;
+    }
+
+    .sidebar-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--midnight);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* FILE UPLOAD ZONES */
+    .upload-group { margin-bottom: 24px; }
+    .upload-group-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .platform-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .platform-dot.google { background: #4285f4; }
+    .platform-dot.meta   { background: #1877f2; }
+    .platform-dot.funnel { background: #7c3aed; }
+
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--surface);
+      position: relative;
+      margin-bottom: 8px;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--blue);
+      background: #eff6ff;
+    }
+    .drop-zone.has-file {
+      border-color: var(--ok);
+      background: #f0fdf4;
+    }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-zone-icon { font-size: 22px; margin-bottom: 4px; }
+    .drop-zone-label { font-size: 13px; font-weight: 500; color: var(--muted); }
+    .drop-zone-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+    .drop-zone.has-file .drop-zone-label { color: var(--ok); }
+    .file-name {
+      font-size: 12px;
+      color: var(--ok);
+      font-weight: 500;
+      margin-top: 4px;
+      word-break: break-all;
+    }
+
+    /* COMPARE TOGGLE */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+      margin: 4px 0 16px;
+    }
+    .toggle-label { font-size: 14px; font-weight: 500; }
+    .toggle-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .toggle {
+      position: relative;
+      width: 40px; height: 22px;
+      cursor: pointer;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: #cbd5e1;
+      border-radius: 22px;
+      transition: 0.2s;
+    }
+    .toggle-slider:before {
+      content: "";
+      position: absolute;
+      width: 16px; height: 16px;
+      left: 3px; top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--blue); }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(18px); }
+
+    .compare-fields { display: none; }
+    .compare-fields.visible { display: block; }
+
+    /* SAMPLE BUTTON */
+    .sample-btn {
+      width: 100%;
+      padding: 10px;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      background: transparent;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 16px;
+      font-family: inherit;
+    }
+    .sample-btn:hover { border-color: var(--blue); color: var(--blue); background: #eff6ff; }
+
+    /* ANALYZE BUTTON */
+    .analyze-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--blue);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+    }
+    .analyze-btn:hover { background: var(--blue-dark); }
+    .analyze-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+    /* DIVIDER */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+    }
+
+    /* PAST REPORTS */
+    .past-reports-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    .report-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.1s;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .report-item:hover { background: var(--surface); }
+    .report-item-name { font-weight: 500; }
+    .report-item-date { color: var(--muted); font-size: 12px; }
+
+    /* MAIN PANEL */
+    .main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    /* IDLE STATE */
+    .idle-state { text-align: center; max-width: 480px; }
+    .idle-icon { font-size: 56px; margin-bottom: 16px; }
+    .idle-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+    .idle-sub { color: var(--muted); font-size: 15px; line-height: 1.6; }
+    .flow-steps {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .flow-step {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      min-width: 120px;
+      text-align: center;
+    }
+    .flow-step .step-num {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 6px;
+    }
+
+    /* LOADING STATE */
+    .loading-state { text-align: center; max-width: 400px; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .loading-step { font-size: 14px; color: var(--muted); }
+
+    /* RESULT STATE */
+    .result-state { width: 100%; max-width: 760px; }
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .result-title { font-size: 20px; font-weight: 700; }
+    .result-actions { display: flex; gap: 10px; }
+    .btn {
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: var(--blue); color: white; border: none; }
+    .btn-primary:hover { background: var(--blue-dark); }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { background: var(--surface); }
+
+    /* STATS GRID */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .stat-card.critical { border-top: 3px solid var(--critical); }
+    .stat-card.ok       { border-top: 3px solid var(--ok); }
+    .stat-card.neutral  { border-top: 3px solid var(--blue); }
+    .stat-value { font-size: 24px; font-weight: 700; color: var(--midnight); }
+    .stat-label { font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
+
+    /* FUNNEL BAR */
+    .funnel-bar {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .funnel-bar-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .funnel-stages { display: flex; gap: 0; align-items: stretch; }
+    .funnel-stage-item {
+      flex: 1;
+      text-align: center;
+      padding: 12px 8px;
+      border-right: 1px solid var(--border);
+      position: relative;
+    }
+    .funnel-stage-item:last-child { border-right: none; }
+    .funnel-stage-name { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+    .funnel-stage-cost-val { font-size: 16px; font-weight: 700; color: var(--blue); }
+    .funnel-stage-rate-val { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .funnel-arrow { position: absolute; right: -8px; top: 50%; transform: translateY(-50%); color: var(--blue); font-size: 14px; z-index: 1; background: white; padding: 0 2px; }
+
+    /* REPORT PREVIEW */
+    .report-preview {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .report-preview-bar {
+      background: var(--slate);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .preview-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .preview-dot.red { background: #ef4444; }
+    .preview-dot.yellow { background: #f59e0b; }
+    .preview-dot.green { background: #22c55e; }
+    .preview-url { color: #94a3b8; font-size: 12px; margin-left: 8px; font-family: monospace; }
+    .report-iframe {
+      width: 100%;
+      height: 540px;
+      border: none;
+      display: block;
+    }
+
+    /* PLATFORM BADGES */
+    .platform-badge-row { display: flex; gap: 6px; margin-bottom: 6px; }
+    .p-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+    .p-badge.google { background: #eff6ff; color: #1d4ed8; }
+    .p-badge.meta   { background: #f0f4ff; color: #4338ca; }
+    .p-badge.funnel { background: #faf5ff; color: #7c3aed; }
+
+    /* CLAUDE STATUS */
+    .claude-note {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 8px;
+    }
+    .claude-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .claude-dot.live { background: var(--ok); }
+    .claude-dot.fallback { background: var(--warning); }
+
+    /* CLEANING REPORT */
+    .cleaning-report {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .cleaning-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      user-select: none;
+    }
+    .cleaning-header:hover { background: var(--surface); }
+    .cleaning-toggle-icon { font-size: 11px; }
+    .cleaning-body { padding: 0 16px 16px; }
+    .cleaning-platform { margin-top: 14px; }
+    .cleaning-platform-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--midnight);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .cleaning-summary {
+      font-size: 13px;
+      color: var(--ok);
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .cleaning-change {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 3px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .cleaning-change::before {
+      content: "•";
+      color: var(--blue);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .cleaning-no-changes {
+      font-size: 12px;
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .main { padding: 24px 16px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .funnel-stages { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">Ad <span>Audit</span></div>
+    <div class="header-sub">Performance analysis powered by Claude</div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-title">
+      Upload Files
+    </div>
+
+    <!-- GOOGLE ADS -->
+    <div class="upload-group">
+      <div class="upload-group-label">
+        <span class="platform-dot google"></span> Google Ads
+      </div>
+      <div class="drop-zone" id="zone-google" ondragover="handleDragOver(event, this)" ondragleave="handleDragLeave(this)" ondrop="handleDrop(event, 'google')">
+        <input type="file" id="file-google" accept=".csv" onchange="handleFileSelect('google', this)">
+        <div class="drop-zone-icon">📊</div>
+        <div class="drop-zone-label">Drop Google Ads CSV here</div>
+        <div class="drop-zone-sub">or click to browse</div>
+      </div>
+      <div class="file-name hidden" id="name-google"></div>
+    </div>
+
+    <!-- META ADS -->
+    <div class="upload-group">
+      <div class="upload-group-label">
+        <span class="platform-dot meta"></span> Meta Ads
+      </div>
+      <div class="drop-zone" id="zone-meta" ondragover="handleDragOver(event, this)" ondragleave="handleDragLeave(this)" ondrop="handleDrop(event, 'meta')">
+        <input type="file" id="file-meta" accept=".csv" onchange="handleFileSelect('meta', this)">
+        <div class="drop-zone-icon">📘</div>
+        <div class="drop-zone-label">Drop Meta Ads CSV here</div>
+        <div class="drop-zone-sub">or click to browse</div>
+      </div>
+      <div class="file-name hidden" id="name-meta"></div>
+    </div>
+
+    <!-- FUNNEL -->
+    <div class="upload-group">
+      <div class="upload-group-label">
+        <span class="platform-dot funnel"></span> Funnel Data (optional)
+      </div>
+      <div class="drop-zone" id="zone-funnel" ondragover="handleDragOver(event, this)" ondragleave="handleDragLeave(this)" ondrop="handleDrop(event, 'funnel')">
+        <input type="file" id="file-funnel" accept=".csv" onchange="handleFileSelect('funnel', this)">
+        <div class="drop-zone-icon">🔽</div>
+        <div class="drop-zone-label">Drop Funnel CSV here</div>
+        <div class="drop-zone-sub">MQL / SQL / Customer counts</div>
+      </div>
+      <div class="file-name hidden" id="name-funnel"></div>
+    </div>
+
+    <!-- COMPARE TOGGLE -->
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Compare periods</div>
+        <div class="toggle-sub">Current vs previous month</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="compare-toggle" onchange="toggleCompare()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="compare-fields" id="compare-fields">
+      <div class="upload-group">
+        <div class="upload-group-label">
+          <span class="platform-dot google"></span> Google Ads (previous)
+        </div>
+        <div class="drop-zone" id="zone-google_prev" ondragover="handleDragOver(event, this)" ondragleave="handleDragLeave(this)" ondrop="handleDrop(event, 'google_prev')">
+          <input type="file" id="file-google_prev" accept=".csv" onchange="handleFileSelect('google_prev', this)">
+          <div class="drop-zone-icon">📊</div>
+          <div class="drop-zone-label">Previous period Google CSV</div>
+          <div class="drop-zone-sub">or click to browse</div>
+        </div>
+        <div class="file-name hidden" id="name-google_prev"></div>
+      </div>
+
+      <div class="upload-group">
+        <div class="upload-group-label">
+          <span class="platform-dot meta"></span> Meta Ads (previous)
+        </div>
+        <div class="drop-zone" id="zone-meta_prev" ondragover="handleDragOver(event, this)" ondragleave="handleDragLeave(this)" ondrop="handleDrop(event, 'meta_prev')">
+          <input type="file" id="file-meta_prev" accept=".csv" onchange="handleFileSelect('meta_prev', this)">
+          <div class="drop-zone-icon">📘</div>
+          <div class="drop-zone-label">Previous period Meta CSV</div>
+          <div class="drop-zone-sub">or click to browse</div>
+        </div>
+        <div class="file-name hidden" id="name-meta_prev"></div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <button class="sample-btn" onclick="runSample()">
+      Try with sample data
+    </button>
+
+    <button class="analyze-btn" id="analyze-btn" onclick="runAnalysis()">
+      Analyze Campaigns
+    </button>
+
+    <hr class="divider">
+
+    <div class="past-reports-title">Recent Reports</div>
+    <div id="past-reports-list">
+      <div style="font-size:13px; color:#94a3b8;">No reports yet.</div>
+    </div>
+
+  </aside>
+
+  <!-- MAIN PANEL -->
+  <main class="main" id="main-panel">
+
+    <!-- IDLE STATE -->
+    <div class="idle-state" id="idle-state">
+      <div class="idle-icon">📈</div>
+      <div class="idle-title">Ad Performance Auditor</div>
+      <div class="idle-sub">Upload your Google Ads or Meta Ads CSV exports, optionally add funnel data, and get a client-ready audit report in under 60 seconds.</div>
+      <div class="flow-steps">
+        <div class="flow-step"><span class="step-num">1</span>Upload CSVs</div>
+        <div class="flow-step"><span class="step-num">2</span>Click Analyze</div>
+        <div class="flow-step"><span class="step-num">3</span>Get Report</div>
+      </div>
+    </div>
+
+    <!-- LOADING STATE -->
+    <div class="loading-state hidden" id="loading-state">
+      <div class="spinner"></div>
+      <div class="loading-title">Analyzing campaigns...</div>
+      <div class="loading-step" id="loading-step">Loading data...</div>
+    </div>
+
+    <!-- RESULT STATE -->
+    <div class="result-state hidden" id="result-state">
+
+      <div class="result-header">
+        <div>
+          <div class="platform-badge-row" id="result-platforms"></div>
+          <div class="result-title">Audit Complete</div>
+          <div class="claude-note" id="claude-note"></div>
+        </div>
+        <div class="result-actions">
+          <a class="btn btn-outline" id="open-btn" href="#" target="_blank">Open Full Report</a>
+          <a class="btn btn-primary" id="download-btn" href="#" download>Download HTML</a>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div class="stats-grid" id="stats-grid"></div>
+
+      <!-- CLEANING REPORT -->
+      <div class="cleaning-report hidden" id="cleaning-report">
+        <div class="cleaning-header" onclick="toggleCleaning()">
+          <span id="cleaning-title">Data Cleaning Report</span>
+          <span class="cleaning-toggle-icon" id="cleaning-toggle-icon">&#9660;</span>
+        </div>
+        <div class="cleaning-body hidden" id="cleaning-body"></div>
+      </div>
+
+      <!-- FUNNEL -->
+      <div class="funnel-bar hidden" id="funnel-bar">
+        <div class="funnel-bar-title">Funnel Cost Analysis</div>
+        <div class="funnel-stages" id="funnel-stages"></div>
+      </div>
+
+      <!-- PREVIEW -->
+      <div class="report-preview">
+        <div class="report-preview-bar">
+          <div class="preview-dot red"></div>
+          <div class="preview-dot yellow"></div>
+          <div class="preview-dot green"></div>
+          <div class="preview-url" id="preview-url"></div>
+        </div>
+        <iframe class="report-iframe" id="report-iframe" src="about:blank"></iframe>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<script>
+  const files = {};
+  let isCompare = false;
+
+  function handleDragOver(e, zone) {
+    e.preventDefault();
+    zone.classList.add("dragover");
+  }
+  function handleDragLeave(zone) {
+    zone.classList.remove("dragover");
+  }
+  function handleDrop(e, key) {
+    e.preventDefault();
+    const zone = document.getElementById("zone-" + key);
+    zone.classList.remove("dragover");
+    const file = e.dataTransfer.files[0];
+    if (file) setFile(key, file);
+  }
+  function handleFileSelect(key, input) {
+    if (input.files[0]) setFile(key, input.files[0]);
+  }
+  function setFile(key, file) {
+    files[key] = file;
+    const zone = document.getElementById("zone-" + key);
+    const nameEl = document.getElementById("name-" + key);
+    zone.classList.add("has-file");
+    zone.querySelector(".drop-zone-label").textContent = file.name;
+    nameEl.textContent = file.name;
+  }
+
+  function toggleCompare() {
+    isCompare = document.getElementById("compare-toggle").checked;
+    const fields = document.getElementById("compare-fields");
+    fields.classList.toggle("visible", isCompare);
+  }
+
+  function runSample() {
+    showLoading();
+    const fd = new FormData();
+    fd.append("use_sample", "true");
+    submitForm(fd);
+  }
+
+  function runAnalysis() {
+    if (!files.google && !files.meta) {
+      alert("Please upload at least one CSV (Google Ads or Meta Ads).");
+      return;
+    }
+    showLoading();
+    const fd = new FormData();
+    if (files.google) fd.append("google", files.google);
+    if (files.meta) fd.append("meta", files.meta);
+    if (files.funnel) fd.append("funnel", files.funnel);
+    if (isCompare) {
+      fd.append("compare", "true");
+      if (files.google_prev) fd.append("google_prev", files.google_prev);
+      if (files.meta_prev) fd.append("meta_prev", files.meta_prev);
+    }
+    submitForm(fd);
+  }
+
+  function submitForm(fd) {
+    const steps = [
+      "Loading CSV data...",
+      "Calculating metrics...",
+      "Analyzing with Claude...",
+      "Rendering report...",
+    ];
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < steps.length) {
+        document.getElementById("loading-step").textContent = steps[i++];
+      }
+    }, 1800);
+
+    fetch("/analyze", { method: "POST", body: fd })
+      .then(r => r.json())
+      .then(data => {
+        clearInterval(interval);
+        if (data.error) {
+          showIdle();
+          alert("Error: " + data.error);
+          return;
+        }
+        showResult(data);
+        loadPastReports();
+      })
+      .catch(err => {
+        clearInterval(interval);
+        showIdle();
+        alert("Request failed: " + err);
+      });
+  }
+
+  function showLoading() {
+    document.getElementById("idle-state").classList.add("hidden");
+    document.getElementById("result-state").classList.add("hidden");
+    document.getElementById("loading-state").classList.remove("hidden");
+    document.getElementById("analyze-btn").disabled = true;
+  }
+
+  function showIdle() {
+    document.getElementById("loading-state").classList.add("hidden");
+    document.getElementById("result-state").classList.add("hidden");
+    document.getElementById("idle-state").classList.remove("hidden");
+    document.getElementById("analyze-btn").disabled = false;
+  }
+
+  function fmtInr(val) {
+    if (!val && val !== 0) return "N/A";
+    const num = Math.round(val);
+    const s = num.toString();
+    if (s.length > 3) {
+      const last3 = s.slice(-3);
+      let rest = s.slice(0, -3);
+      const parts = [];
+      while (rest.length > 2) { parts.unshift(rest.slice(-2)); rest = rest.slice(0, -2); }
+      if (rest) parts.unshift(rest);
+      return "Rs " + parts.join(",") + "," + last3;
+    }
+    return "Rs " + s;
+  }
+
+  function showResult(data) {
+    document.getElementById("loading-state").classList.add("hidden");
+    document.getElementById("idle-state").classList.add("hidden");
+    document.getElementById("result-state").classList.remove("hidden");
+    document.getElementById("analyze-btn").disabled = false;
+
+    const s = data.stats;
+    const url = data.report_url;
+
+    // Platform badges
+    const platformRow = document.getElementById("result-platforms");
+    platformRow.innerHTML = (s.platforms || []).map(p =>
+      `<span class="p-badge ${p}">${p === "google" ? "Google Ads" : "Meta Ads"}</span>`
+    ).join("") + (data.funnel_stats ? '<span class="p-badge funnel">Funnel</span>' : "");
+
+    // Claude note
+    const note = document.getElementById("claude-note");
+    note.innerHTML = data.used_claude
+      ? '<span class="claude-dot live"></span> Analyzed by Claude'
+      : '<span class="claude-dot fallback"></span> Fallback analysis (Claude CLI unavailable)';
+
+    // Stats grid
+    const grid = document.getElementById("stats-grid");
+    grid.innerHTML = `
+      <div class="stat-card neutral">
+        <div class="stat-value">${fmtInr(s.total_spend)}</div>
+        <div class="stat-label">Total Spend</div>
+      </div>
+      <div class="stat-card critical">
+        <div class="stat-value">${fmtInr(s.total_wasted)}</div>
+        <div class="stat-label">Wasted Spend</div>
+      </div>
+      <div class="stat-card critical">
+        <div class="stat-value">${s.critical_count}</div>
+        <div class="stat-label">Critical Campaigns</div>
+      </div>
+      <div class="stat-card ${s.warning_count > 0 ? "neutral" : "ok"}">
+        <div class="stat-value">${s.warning_count}</div>
+        <div class="stat-label">Warning Campaigns</div>
+      </div>
+    `;
+
+    // Funnel bar
+    const funnelBar = document.getElementById("funnel-bar");
+    const funnelStages = document.getElementById("funnel-stages");
+    if (data.funnel_stats) {
+      funnelBar.classList.remove("hidden");
+      const fs = data.funnel_stats;
+      const stages = [
+        { label: "CPL", val: fs.cost_per_lead, rate: null },
+        { label: "Cost/MQL", val: fs.cost_per_mql, rate: fs.lead_to_mql_rate ? fs.lead_to_mql_rate + "% from leads" : null },
+        { label: "Cost/SQL", val: fs.cost_per_sql, rate: null },
+        { label: "Cost/Customer", val: fs.cost_per_customer, rate: fs.overall_conversion_rate ? fs.overall_conversion_rate + "% overall" : null },
+      ].filter(s => s.val !== null && s.val !== undefined);
+
+      funnelStages.innerHTML = stages.map((s, i) => `
+        <div class="funnel-stage-item">
+          <div class="funnel-stage-name">${s.label}</div>
+          <div class="funnel-stage-cost-val">${fmtInr(s.val)}</div>
+          ${s.rate ? `<div class="funnel-stage-rate-val">${s.rate}</div>` : ""}
+          ${i < stages.length - 1 ? '<span class="funnel-arrow">›</span>' : ""}
+        </div>
+      `).join("");
+    } else {
+      funnelBar.classList.add("hidden");
+    }
+
+    // Cleaning report
+    renderCleaningReports(data.cleaning_reports);
+
+    // Iframe preview
+    document.getElementById("report-iframe").src = url;
+    document.getElementById("preview-url").textContent = "localhost:5000" + url;
+    document.getElementById("open-btn").href = url;
+    document.getElementById("download-btn").href = url;
+  }
+
+  function loadPastReports() {
+    fetch("/reports")
+      .then(r => r.json())
+      .then(reports => {
+        const el = document.getElementById("past-reports-list");
+        if (!reports.length) {
+          el.innerHTML = '<div style="font-size:13px; color:#94a3b8;">No reports yet.</div>';
+          return;
+        }
+        el.innerHTML = reports.map(r => `
+          <a class="report-item" href="${r.url}" target="_blank">
+            <span class="report-item-name">${r.filename.replace("audit_report_", "").replace(".html", "")}</span>
+            <span class="report-item-date">${r.created}</span>
+          </a>
+        `).join("");
+      });
+  }
+
+  function toggleCleaning() {
+    const body = document.getElementById("cleaning-body");
+    const icon = document.getElementById("cleaning-toggle-icon");
+    body.classList.toggle("hidden");
+    icon.innerHTML = body.classList.contains("hidden") ? "&#9660;" : "&#9650;";
+  }
+
+  function renderCleaningReports(reports) {
+    const el = document.getElementById("cleaning-report");
+    const body = document.getElementById("cleaning-body");
+    const title = document.getElementById("cleaning-title");
+
+    if (!reports || !reports.length) {
+      el.classList.add("hidden");
+      return;
+    }
+
+    const totalChanges = reports.reduce((sum, r) => sum + (r.changes || []).length, 0);
+    title.textContent = `Data Cleaning Report${totalChanges > 0 ? " (" + totalChanges + " fix" + (totalChanges !== 1 ? "es" : "") + " applied)" : " - No changes needed"}`;
+    el.classList.remove("hidden");
+
+    body.innerHTML = reports.map(r => `
+      <div class="cleaning-platform">
+        <div class="cleaning-platform-name">${r.source}</div>
+        <div class="cleaning-summary">${r.summary || ""}</div>
+        ${r.changes && r.changes.length
+          ? r.changes.map(c => `<div class="cleaning-change">${c}</div>`).join("")
+          : '<div class="cleaning-no-changes">No changes needed - data was clean</div>'
+        }
+      </div>
+    `).join("");
+
+    // Auto-expand if there were changes
+    if (totalChanges > 0) {
+      document.getElementById("cleaning-body").classList.remove("hidden");
+    }
+  }
+
+  // Load past reports on start
+  loadPastReports();
+</script>
+
+</body>
+</html>
