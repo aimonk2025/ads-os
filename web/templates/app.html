@@ -163,6 +163,7 @@
   /* ---- Sections ---- */
   .section { display: none; }
   .section.active { display: block; }
+  #section-report.active { display: flex; flex-direction: column; height: 100%; padding: 0; }
 
   /* ---- Cards ---- */
   .card {
@@ -422,6 +423,12 @@
   }
 
   /* ---- Report iframe ---- */
+  #section-report .report-iframe-container {
+    border-radius: 0;
+    border: none;
+    height: 100%;
+    flex: 1;
+  }
   .report-iframe-container {
     background: var(--white);
     border: 1px solid var(--border);
@@ -849,6 +856,9 @@
       <div class="nav-item active" data-section="audit" onclick="navigate('audit')">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Audit
       </div>
+      <div class="nav-item" data-section="report" onclick="navigate('report')" id="nav-report" style="display:none;">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span> Audit Report
+      </div>
       <div class="nav-item" data-section="anomaly" onclick="navigate('anomaly')">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Anomaly Spotter
       </div>
@@ -1010,7 +1020,7 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               Upload &amp; Analyze
             </button>
-            <button class="btn btn-secondary" onclick="runSampleData()">
+            <button class="btn btn-secondary" onclick="runSampleData()" style="display:none;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               Try Sample Data
             </button>
@@ -1037,16 +1047,19 @@
           </div>
         </div>
 
-        <!-- Report Preview (shown after audit, full screen) -->
-        <div id="report-preview-wrap" style="display:none;">
+      </section>
+
+      <!-- ======== REPORT SECTION ======== -->
+      <section id="section-report" class="section">
+        <div id="report-preview-wrap">
           <div class="report-iframe-container">
             <div class="report-iframe-header">
               <div class="action-row">
-                <button class="btn btn-sm btn-secondary" onclick="showUploadScreen()">
+                <button class="btn btn-sm btn-secondary" onclick="navigate('audit')">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                  Back
+                  Back to Audit
                 </button>
-                <span>Audit Report Preview</span>
+                <span>Audit Report</span>
               </div>
               <div class="action-row">
                 <button class="btn btn-sm btn-secondary" onclick="downloadReportHtml()">
@@ -1062,7 +1075,6 @@
             <iframe id="report-iframe" src="about:blank"></iframe>
           </div>
         </div>
-
       </section>
 
       <!-- ======== ANOMALY SECTION ======== -->
@@ -1401,6 +1413,7 @@ let allClients = [];
 // Section titles
 const SECTION_TITLES = {
   audit: 'Audit',
+  report: 'Audit Report',
   anomaly: 'Anomaly Spotter',
   narrator: 'Narrator',
   budget: 'Budget Agent',
@@ -1723,20 +1736,13 @@ function showFunnel(summary) {
 }
 
 function showUploadScreen() {
-  document.getElementById('report-preview-wrap').style.display = 'none';
-  document.getElementById('upload-card').style.display = 'block';
-  if (document.getElementById('audit-stats').dataset.hasData) {
-    document.getElementById('audit-stats').style.display = 'grid';
-  }
+  navigate('audit');
 }
 
 function showReportPreview(url) {
   document.getElementById('report-iframe').src = url;
-  document.getElementById('upload-card').style.display = 'none';
-  document.getElementById('audit-stats').style.display = 'none';
-  document.getElementById('cleaning-report-wrap').style.display = 'none';
-  document.getElementById('funnel-wrap').style.display = 'none';
-  document.getElementById('report-preview-wrap').style.display = 'block';
+  document.getElementById('nav-report').style.display = '';
+  navigate('report');
 }
 
 function downloadReportHtml() {

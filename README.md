@@ -1,6 +1,15 @@
 # AdLens
 
-AI-powered ad audit platform. Upload Google Ads and Meta Ads CSV exports, get senior-level performance analysis via Claude, download client-ready HTML and PDF reports.
+AI-powered ad audit platform. Upload Google Ads, Meta Ads, and Google Analytics 4 CSV exports, get senior-level performance analysis via Claude, download client-ready HTML and PDF reports.
+
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=flat&logo=flask&logoColor=white)
+![DuckDB](https://img.shields.io/badge/DuckDB-1.5+-FFF000?style=flat&logo=duckdb&logoColor=black)
+![Pandas](https://img.shields.io/badge/Pandas-2.x-150458?style=flat&logo=pandas&logoColor=white)
+![Claude](https://img.shields.io/badge/Claude-Code_CLI-D97757?style=flat&logo=anthropic&logoColor=white)
+![Google Ads](https://img.shields.io/badge/Google_Ads-CSV-4285F4?style=flat&logo=googleads&logoColor=white)
+![Meta Ads](https://img.shields.io/badge/Meta_Ads-CSV-0866FF?style=flat&logo=meta&logoColor=white)
+![Google Analytics](https://img.shields.io/badge/GA4-CSV-E37400?style=flat&logo=googleanalytics&logoColor=white)
 
 ---
 
