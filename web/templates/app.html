@@ -682,6 +682,12 @@
   .history-card-actions { display: flex; gap: 6px; margin-top: auto; }
 
   /* ---- Settings Section ---- */
+  .context-wrap { display: grid; grid-template-columns: 1fr 380px; gap: 20px; align-items: start; }
+  .context-card { }
+  .context-hint-card { }
+  .context-hint-list { padding-left: 18px; display: flex; flex-direction: column; gap: 10px; }
+  .context-hint-list li { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .context-hint-list li strong { color: var(--text); }
   .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   .client-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
   .client-row {
@@ -869,6 +875,9 @@
       </div>
       <div class="nav-item" data-section="budget" onclick="navigate('budget')">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Budget Agent
+      </div>
+      <div class="nav-item" data-section="context" onclick="navigate('context')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Context
       </div>
       <div class="nav-item" data-section="history" onclick="navigate('history')">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> History
@@ -1283,6 +1292,96 @@
 
       </section>
 
+      <!-- ======== CONTEXT SECTION ======== -->
+      <section id="section-context" class="section">
+        <div class="context-wrap">
+
+          <div class="card context-card">
+            <div class="card-title">Client Business Context</div>
+            <p class="text-muted text-sm" style="margin-bottom:20px;">
+              Tell Claude about this client's business so it interprets campaigns correctly. Context is injected into every analysis automatically.
+            </p>
+
+            <div id="context-no-client" style="display:none;">
+              <p class="text-muted text-sm">Select a client from the header to configure their context.</p>
+            </div>
+
+            <div id="context-form" style="display:none;">
+
+              <div class="form-group">
+                <label class="form-label">Business Type</label>
+                <select class="form-input" id="ctx-business-type" onchange="onContextTypeChange()">
+                  <option value="ecommerce">E-commerce / D2C</option>
+                  <option value="b2b_saas">B2B SaaS</option>
+                  <option value="lead_gen">Lead Generation</option>
+                  <option value="app">Mobile App</option>
+                  <option value="local">Local / Brick-and-Mortar</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div class="form-group" id="ctx-field-goal">
+                <label class="form-label">Primary Goal</label>
+                <input type="text" class="form-input" id="ctx-goal" placeholder="e.g. Drive purchases, Generate leads, App installs" oninput="updateContextPreview()">
+              </div>
+
+              <div class="form-group" id="ctx-field-audience">
+                <label class="form-label">Target Audience</label>
+                <input type="text" class="form-input" id="ctx-audience" placeholder="e.g. SME owners in Mumbai, 25-45 women interested in fashion" oninput="updateContextPreview()">
+              </div>
+
+              <div class="form-group" id="ctx-field-sales-cycle" style="display:none;">
+                <label class="form-label">Sales Cycle (weeks)</label>
+                <input type="number" class="form-input" id="ctx-sales-cycle-weeks" placeholder="e.g. 8" min="1" max="52" oninput="updateContextPreview()">
+              </div>
+
+              <div class="form-group" id="ctx-field-aov" style="display:none;">
+                <label class="form-label">Average Order Value</label>
+                <input type="text" class="form-input" id="ctx-avg-order-value" placeholder="e.g. Rs 1,200 or $45" oninput="updateContextPreview()">
+              </div>
+
+              <div class="form-group" id="ctx-field-seasonal">
+                <label class="form-label">Seasonal Context <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+                <input type="text" class="form-input" id="ctx-seasonal" placeholder="e.g. Peak season Oct-Dec, Diwali campaign active, Q1 brand push" oninput="updateContextPreview()">
+              </div>
+
+              <div class="form-group" id="ctx-field-campaign-notes">
+                <label class="form-label">Campaign Notes <span style="font-weight:400;color:var(--muted)">(critical - helps Claude avoid flagging intentional campaigns)</span></label>
+                <textarea class="form-input" id="ctx-campaign-notes" rows="4" placeholder="Explain specific campaigns that might look bad on metrics but have a purpose. E.g. 'Brand Awareness - Mumbai is top-of-funnel, not meant to convert. Competitor - Defence campaign, intentionally high CPL.'" oninput="updateContextPreview()"></textarea>
+              </div>
+
+              <div class="form-group" id="ctx-field-budget-notes">
+                <label class="form-label">Budget Constraints <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+                <textarea class="form-input" id="ctx-budget-notes" rows="2" placeholder="e.g. Fixed monthly budget Rs 2L, cannot shift more than 20% from Meta, Q4 budget locked" oninput="updateContextPreview()"></textarea>
+              </div>
+
+              <div style="display:flex;gap:10px;margin-top:8px;">
+                <button class="btn btn-primary" onclick="saveContext()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                  Save Context
+                </button>
+                <button class="btn btn-ghost" onclick="clearContext()">Clear</button>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="card context-hint-card">
+            <div class="card-title">What context does</div>
+            <ul class="context-hint-list">
+              <li><strong>Audit:</strong> Claude won't flag brand awareness campaigns as wasted spend if you've explained their purpose.</li>
+              <li><strong>Narrator:</strong> Weekly narrative is written with the right business lens (e.g. lead quality over volume for B2B SaaS).</li>
+              <li><strong>Budget Agent:</strong> Recommendations respect your stated constraints and business type priorities.</li>
+            </ul>
+            <div id="ctx-preview-wrap" style="display:none;margin-top:16px;">
+              <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Preview injected into Claude</div>
+              <pre id="ctx-preview" style="font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;white-space:pre-wrap;color:#475569;max-height:240px;overflow-y:auto;"></pre>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
       <!-- ======== SETTINGS SECTION ======== -->
       <section id="section-settings" class="section">
         <div class="settings-grid">
@@ -1412,6 +1511,9 @@ let historyFilter = '';
 // Settings state
 let allClients = [];
 
+// Context state
+let contextProfiles = {};
+
 // Section titles
 const SECTION_TITLES = {
   audit: 'Audit',
@@ -1419,6 +1521,7 @@ const SECTION_TITLES = {
   anomaly: 'Anomaly Spotter',
   narrator: 'Narrator',
   budget: 'Budget Agent',
+  context: 'Client Context',
   history: 'History',
   settings: 'Settings'
 };
@@ -1440,6 +1543,7 @@ function navigate(section) {
     loadUploadsForSelector('budget-upload-select');
     loadBudgetRulesIntoForm();
   }
+  if (section === 'context') loadContext();
   if (section === 'history' && currentClientId) loadHistory();
   if (section === 'settings') loadSettingsClients();
 }
@@ -1484,6 +1588,7 @@ function onClientChange() {
   if (activeSection === 'anomaly') loadAnomalies();
   if (activeSection === 'narrator') loadUploadsForSelector('narrator-upload-select');
   if (activeSection === 'budget') { loadUploadsForSelector('budget-upload-select'); loadBudgetRulesIntoForm(); }
+  if (activeSection === 'context') loadContext();
   if (activeSection === 'history') loadHistory();
   if (activeSection === 'settings') loadSettingsClients();
 }
@@ -2144,6 +2249,149 @@ async function deleteReport(reportId) {
 }
 
 // ============================================================
+// CONTEXT
+// ============================================================
+// Fields shown per business type (must match BUSINESS_TYPE_PROFILES show_fields)
+const CTX_FIELD_MAP = {
+  ecommerce: ['goal', 'audience', 'seasonal', 'avg_order_value', 'campaign_notes', 'budget_notes'],
+  b2b_saas:  ['goal', 'audience', 'sales_cycle_weeks', 'seasonal', 'campaign_notes', 'budget_notes'],
+  lead_gen:  ['goal', 'audience', 'sales_cycle_weeks', 'seasonal', 'campaign_notes', 'budget_notes'],
+  app:       ['goal', 'audience', 'seasonal', 'campaign_notes', 'budget_notes'],
+  local:     ['goal', 'audience', 'seasonal', 'campaign_notes', 'budget_notes'],
+  other:     ['goal', 'audience', 'sales_cycle_weeks', 'seasonal', 'campaign_notes', 'budget_notes'],
+};
+
+const CTX_ALL_FIELDS = ['goal', 'audience', 'sales_cycle_weeks', 'avg_order_value', 'seasonal', 'campaign_notes', 'budget_notes'];
+
+function onContextTypeChange() {
+  const type = document.getElementById('ctx-business-type').value;
+  const visible = CTX_FIELD_MAP[type] || CTX_ALL_FIELDS;
+  document.getElementById('ctx-field-sales-cycle').style.display = visible.includes('sales_cycle_weeks') ? '' : 'none';
+  document.getElementById('ctx-field-aov').style.display = visible.includes('avg_order_value') ? '' : 'none';
+  updateContextPreview();
+}
+
+async function loadContext() {
+  if (!currentClientId) {
+    document.getElementById('context-no-client').style.display = '';
+    document.getElementById('context-form').style.display = 'none';
+    return;
+  }
+  document.getElementById('context-no-client').style.display = 'none';
+  document.getElementById('context-form').style.display = '';
+
+  try {
+    const res = await fetch(`/api/context/${currentClientId}`);
+    const data = await res.json();
+    const ctx = data.context || {};
+    contextProfiles = data.business_type_profiles || {};
+
+    document.getElementById('ctx-business-type').value = ctx.business_type || 'ecommerce';
+    document.getElementById('ctx-goal').value = ctx.goal || '';
+    document.getElementById('ctx-audience').value = ctx.audience || '';
+    document.getElementById('ctx-sales-cycle-weeks').value = ctx.sales_cycle_weeks || '';
+    document.getElementById('ctx-avg-order-value').value = ctx.avg_order_value || '';
+    document.getElementById('ctx-seasonal').value = ctx.seasonal || '';
+    document.getElementById('ctx-campaign-notes').value = ctx.campaign_notes || '';
+    document.getElementById('ctx-budget-notes').value = ctx.budget_notes || '';
+
+    onContextTypeChange();
+    updateContextPreview();
+  } catch(e) {
+    showToast('Failed to load context', 'error');
+  }
+}
+
+function updateContextPreview() {
+  const type = document.getElementById('ctx-business-type').value;
+  const visible = CTX_FIELD_MAP[type] || CTX_ALL_FIELDS;
+  const ctx = {
+    business_type: type,
+    goal: document.getElementById('ctx-goal').value.trim(),
+    audience: document.getElementById('ctx-audience').value.trim(),
+    sales_cycle_weeks: visible.includes('sales_cycle_weeks') ? document.getElementById('ctx-sales-cycle-weeks').value.trim() : null,
+    avg_order_value: visible.includes('avg_order_value') ? document.getElementById('ctx-avg-order-value').value.trim() : null,
+    seasonal: document.getElementById('ctx-seasonal').value.trim(),
+    campaign_notes: document.getElementById('ctx-campaign-notes').value.trim(),
+    budget_notes: document.getElementById('ctx-budget-notes').value.trim(),
+  };
+
+  // Remove empty fields for display
+  const hasAny = ctx.goal || ctx.audience || ctx.seasonal || ctx.campaign_notes || ctx.budget_notes || ctx.sales_cycle_weeks || ctx.avg_order_value;
+  const previewWrap = document.getElementById('ctx-preview-wrap');
+  if (!hasAny) {
+    previewWrap.style.display = 'none';
+    return;
+  }
+  previewWrap.style.display = '';
+
+  const typeLabels = {
+    ecommerce: 'E-commerce / D2C',
+    b2b_saas: 'B2B SaaS',
+    lead_gen: 'Lead Generation',
+    app: 'Mobile App',
+    local: 'Local / Brick-and-Mortar',
+    other: 'Other',
+  };
+
+  let preview = `=== CLIENT BRIEFING ===\nBusiness type: ${typeLabels[type] || type}`;
+  if (ctx.goal) preview += `\nPrimary goal: ${ctx.goal}`;
+  if (ctx.audience) preview += `\nTarget audience: ${ctx.audience}`;
+  if (ctx.sales_cycle_weeks) preview += `\nSales cycle: ${ctx.sales_cycle_weeks} weeks`;
+  if (ctx.avg_order_value) preview += `\nAverage order value: ${ctx.avg_order_value}`;
+  if (ctx.seasonal) preview += `\nSeasonal context: ${ctx.seasonal}`;
+  if (ctx.campaign_notes) preview += `\nCampaign notes:\n${ctx.campaign_notes}`;
+  if (ctx.budget_notes) preview += `\nBudget constraints: ${ctx.budget_notes}`;
+  preview += `\n=== END BRIEFING ===`;
+
+  document.getElementById('ctx-preview').textContent = preview;
+}
+
+async function saveContext() {
+  if (!currentClientId) { showToast('Select a client first', 'error'); return; }
+  const type = document.getElementById('ctx-business-type').value;
+  const visible = CTX_FIELD_MAP[type] || CTX_ALL_FIELDS;
+
+  const ctx = {
+    business_type: type,
+    goal: document.getElementById('ctx-goal').value.trim(),
+    audience: document.getElementById('ctx-audience').value.trim(),
+    sales_cycle_weeks: visible.includes('sales_cycle_weeks') ? (document.getElementById('ctx-sales-cycle-weeks').value.trim() || null) : null,
+    avg_order_value: visible.includes('avg_order_value') ? (document.getElementById('ctx-avg-order-value').value.trim() || null) : null,
+    seasonal: document.getElementById('ctx-seasonal').value.trim() || null,
+    campaign_notes: document.getElementById('ctx-campaign-notes').value.trim() || null,
+    budget_notes: document.getElementById('ctx-budget-notes').value.trim() || null,
+  };
+
+  try {
+    const res = await fetch(`/api/context/${currentClientId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ctx),
+    });
+    if (!res.ok) { showToast('Failed to save context', 'error'); return; }
+    showToast('Context saved', 'success');
+    updateContextPreview();
+    await loadClients(); // Refresh so context preview in Settings reflects new value
+  } catch(e) {
+    showToast('Failed to save context', 'error');
+  }
+}
+
+async function clearContext() {
+  if (!currentClientId) return;
+  if (!confirm('Clear all context for this client?')) return;
+  document.getElementById('ctx-goal').value = '';
+  document.getElementById('ctx-audience').value = '';
+  document.getElementById('ctx-sales-cycle-weeks').value = '';
+  document.getElementById('ctx-avg-order-value').value = '';
+  document.getElementById('ctx-seasonal').value = '';
+  document.getElementById('ctx-campaign-notes').value = '';
+  document.getElementById('ctx-budget-notes').value = '';
+  await saveContext();
+}
+
+// ============================================================
 // SETTINGS
 // ============================================================
 async function loadSettingsClients() {
@@ -2177,7 +2425,7 @@ function renderSettingsClients(clients) {
       <div class="client-info">
         <div class="client-name">${escHtml(c.name)}</div>
         <div class="client-meta">${c.currency || 'INR'} &bull; Added ${fmtDate(c.created_at)}</div>
-        ${c.context ? `<div class="client-context-preview">${escHtml(c.context.slice(0, 80))}${c.context.length > 80 ? '...' : ''}</div>` : ''}
+        ${c.context ? (() => { try { const ctx = JSON.parse(c.context); const labels = {ecommerce:'E-commerce',b2b_saas:'B2B SaaS',lead_gen:'Lead Gen',app:'Mobile App',local:'Local',other:'Other'}; return `<div class="client-context-preview">${labels[ctx.business_type] || 'Context set'}${ctx.goal ? ' \u00b7 ' + escHtml(ctx.goal.slice(0,50)) : ''}</div>`; } catch(e) { return `<div class="client-context-preview">${escHtml(c.context.slice(0, 60))}</div>`; } })() : ''}
       </div>
       <div class="client-actions">
         <button class="btn btn-ghost btn-sm" onclick="startEditClient(${c.id})">Edit</button>
@@ -2194,10 +2442,6 @@ function renderSettingsClients(clients) {
           <option value="EUR" ${c.currency==='EUR'?'selected':''}>EUR</option>
           <option value="AED" ${c.currency==='AED'?'selected':''}>AED</option>
         </select>
-      </div>
-      <div class="form-group" style="margin-top:10px;">
-        <label class="form-label">Business Context <span style="font-weight:400;color:var(--muted)">(helps Claude interpret campaigns correctly)</span></label>
-        <textarea id="edit-context-${c.id}" class="form-input" rows="4" placeholder="Describe the business, campaign goals, target audience, seasonal factors, budget constraints, or anything that explains why campaigns are running. E.g. 'Brand Awareness - Mumbai is a top-of-funnel awareness campaign targeting new users, not meant to convert directly. Lead Gen - B2B targets SME decision makers in Delhi NCR with a 3-month sales cycle.'">${escHtml(c.context || '')}</textarea>
       </div>
       <div style="display:flex;gap:8px;margin-top:8px;">
         <button class="btn btn-primary btn-sm" onclick="saveEditClient(${c.id})">Save</button>
@@ -2220,13 +2464,15 @@ function cancelEditClient(id) {
 async function saveEditClient(id) {
   const name = document.getElementById('edit-name-' + id).value.trim();
   const currency = document.getElementById('edit-currency-' + id).value;
-  const context = document.getElementById('edit-context-' + id).value.trim();
   if (!name) { showToast('Name is required', 'error'); return; }
+  // Find existing context to preserve it (context is managed in the Context section)
+  const existing = allClients.find(c => c.id === id);
+  const existingContext = existing ? (existing.context || null) : null;
   try {
     const res = await fetch(`/api/clients/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, currency, context: context || null })
+      body: JSON.stringify({ name, currency, context: existingContext })
     });
     if (!res.ok) { showToast('Failed to update client', 'error'); return; }
     showToast('Client updated', 'success');

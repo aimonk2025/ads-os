@@ -31,6 +31,7 @@ from src.db import (
 from src.granularity import build_granular_insights, granularity_to_claude_context
 from src.loader import load_google_ads_with_report, load_meta_ads_with_report, load_google_ads, load_meta_ads
 from src.ga_loader import load_ga4, merge_ga4_into_campaigns, build_ga_summary
+from src.context import format_client_context, parse_context_from_json, BUSINESS_TYPE_PROFILES
 from src.calculator import calculate_google_metrics, calculate_meta_metrics, build_summary
 from src.funnel_loader import load_funnel
 from src.claude_client import analyze
@@ -130,6 +131,35 @@ def api_update_client(client_id):
 @app.delete("/api/clients/<int:client_id>")
 def api_delete_client(client_id):
     delete_client(get_db(), client_id)
+    return jsonify({"ok": True})
+
+
+# ---- Context ----
+
+@app.get("/api/context/<int:client_id>")
+def api_get_context(client_id):
+    db = get_db()
+    client = get_client(db, client_id)
+    if not client:
+        return jsonify({"error": "Client not found"}), 404
+    raw = client.get("context") or ""
+    ctx = parse_context_from_json(raw)
+    return jsonify({
+        "context": ctx,
+        "business_type_profiles": {k: {"label": v["label"], "show_fields": v["show_fields"]}
+                                    for k, v in BUSINESS_TYPE_PROFILES.items()},
+    })
+
+
+@app.post("/api/context/<int:client_id>")
+def api_save_context(client_id):
+    data = request.get_json()
+    db = get_db()
+    client = get_client(db, client_id)
+    if not client:
+        return jsonify({"error": "Client not found"}), 404
+    context_json = json.dumps(data) if data else None
+    update_client(db, client_id, client["name"], client["currency"], context_json)
     return jsonify({"ok": True})
 
 
@@ -340,6 +370,8 @@ def api_audit():
     if not upload:
         return jsonify({"error": "Upload not found"}), 404
 
+    client = get_client(db, client_id)
+
     # Rebuild analysis from DuckDB
     campaigns = get_campaigns_for_upload(db, upload_id)
     funnel_rows = get_funnel_for_upload(db, upload_id)
@@ -390,7 +422,8 @@ def api_audit():
             f"Data granularity: {gran_level} level.\n" + "\n".join(gran_context_parts)
         )
 
-    client_context = (client or {}).get("context", "") or ""
+    raw_context = (client or {}).get("context", "") or ""
+    client_context = format_client_context(parse_context_from_json(raw_context))
     claude_output, used_claude = analyze(analysis, business_context=client_context)
 
     # Build granular insights from stored rows for report template
@@ -454,7 +487,6 @@ def api_audit():
         analysis["granularity_note"]  = upload.get("granularity_level", "campaign") + " level data"
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    client = get_client(db, client_id)
     client_name = (client or {}).get("name", "client")
     html_filename = f"audit_{client_name.lower().replace(' ', '_')}_{ts}.html"
     html_path = str(REPORTS_DIR / html_filename)
@@ -660,8 +692,11 @@ def api_narrator():
         analysis   = _reconstruct_analysis(campaigns, funnel_rows, platforms, upload_id)
 
     open_anomalies = get_anomalies(db, client_id, status="open", limit=20)
+    raw_context = (client or {}).get("context", "") or ""
+    client_context = format_client_context(parse_context_from_json(raw_context))
     narrative_md, used_claude = generate_narrative(
-        analysis, open_anomalies, tone, date_range, currency
+        analysis, open_anomalies, tone, date_range, currency,
+        business_context=client_context
     )
 
     from src.renderer import markdown_to_html
@@ -768,8 +803,11 @@ def api_budget_agent():
         platforms   = json.loads(upload.get("platforms") or "[]") if upload else []
         analysis    = _reconstruct_analysis(campaigns, funnel_rows, platforms, upload_id)
 
+    raw_context = (client or {}).get("context", "") or ""
+    client_context = format_client_context(parse_context_from_json(raw_context))
     recs, explanation_md, used_claude = run_budget_agent(
-        analysis, rules, client_id, db, currency
+        analysis, rules, client_id, db, currency,
+        business_context=client_context
     )
 
     from src.renderer import markdown_to_html

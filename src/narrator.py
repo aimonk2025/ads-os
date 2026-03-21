@@ -34,9 +34,14 @@ def generate_narrative(
     tone: str = "executive",
     date_range: str = None,
     currency: str = "INR",
+    business_context: str = "",
 ) -> tuple[str, bool]:
     payload = _build_payload(analysis_data, anomalies, tone, date_range, currency)
-    prompt = f"{NARRATOR_SYSTEM_PROMPT}\n\nData:\n{json.dumps(payload, indent=2)}"
+    context_section = (
+        f"\n\nBusiness Context (use this to interpret campaign intent and tailor recommendations):\n{business_context.strip()}"
+        if business_context and business_context.strip() else ""
+    )
+    prompt = f"{NARRATOR_SYSTEM_PROMPT}\n\nData:\n{json.dumps(payload, indent=2)}{context_section}"
 
     try:
         result = subprocess.run(

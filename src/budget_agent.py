@@ -48,10 +48,15 @@ Currency: use the currency symbol provided."""
 
 def run_budget_agent(analysis_data: dict, rules: dict,
                      client_id: int, conn,
-                     currency: str = "INR") -> tuple[dict, str, bool]:
+                     currency: str = "INR",
+                     business_context: str = "") -> tuple[dict, str, bool]:
     rule_recs = _compute_rule_based(analysis_data, rules)
     payload = _build_payload(analysis_data, rules, rule_recs, currency)
-    prompt = f"{BUDGET_AGENT_PROMPT}\n\nData:\n{json.dumps(payload, indent=2)}"
+    context_section = (
+        f"\n\nBusiness Context (use this to interpret campaign intent and budget priorities):\n{business_context.strip()}"
+        if business_context and business_context.strip() else ""
+    )
+    prompt = f"{BUDGET_AGENT_PROMPT}\n\nData:\n{json.dumps(payload, indent=2)}{context_section}"
 
     try:
         result = subprocess.run(
