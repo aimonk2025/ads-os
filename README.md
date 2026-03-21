@@ -13,8 +13,15 @@ AI-powered ad audit platform. Upload Google Ads and Meta Ads CSV exports, get se
 
 Verify both are available:
 
-```bash
+**Windows (PowerShell or Command Prompt):**
+```powershell
 python --version
+claude --version
+```
+
+**Mac (Terminal):**
+```bash
+python3 --version
 claude --version
 ```
 
@@ -24,8 +31,15 @@ Claude is optional. If it is not installed, AdLens falls back to a built-in temp
 
 ### Step 1 - Clone the repo
 
+**Windows:**
+```powershell
+git clone https://github.com/aimonk2025/adlens.git
+cd adlens
+```
+
+**Mac:**
 ```bash
-git clone https://github.com/your-username/adlens.git
+git clone https://github.com/aimonk2025/adlens.git
 cd adlens
 ```
 
@@ -33,35 +47,40 @@ cd adlens
 
 ### Step 2 - Create a virtual environment
 
-```bash
+**Windows:**
+```powershell
 python -m venv venv
-```
-
-Activate it:
-
-```bash
-# Mac / Linux
-source venv/bin/activate
-
-# Windows
 venv\Scripts\activate
 ```
+
+**Mac:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+You should see `(venv)` appear at the start of your terminal line confirming it is active.
 
 ---
 
 ### Step 3 - Install dependencies
 
-```bash
+**Windows:**
+```powershell
 pip install -r requirements.txt
+```
+
+**Mac:**
+```bash
+pip3 install -r requirements.txt
 ```
 
 **WeasyPrint note (PDF export):** WeasyPrint requires system-level libraries. If the install fails:
 
 | OS | Fix |
 |----|-----|
-| Windows | Install the [GTK3 runtime](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases) first |
-| macOS | `brew install pango` |
-| Ubuntu / Debian | `sudo apt-get install libpango-1.0-0 libpangoft2-1.0-0` |
+| Windows | Install the [GTK3 runtime](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases) first, then re-run pip install |
+| macOS | Run `brew install pango` first, then re-run pip3 install |
 
 Everything works without WeasyPrint except PDF downloads. You can skip it for now.
 
@@ -69,8 +88,14 @@ Everything works without WeasyPrint except PDF downloads. You can skip it for no
 
 ### Step 4 - Start the app
 
-```bash
+**Windows:**
+```powershell
 python web/app.py
+```
+
+**Mac:**
+```bash
+python3 web/app.py
 ```
 
 Open `http://localhost:5000` in your browser.
@@ -90,14 +115,16 @@ No configuration files to edit. That is everything for setup.
 
 From the `adlens` folder each day:
 
-```bash
-# Mac / Linux
-source venv/bin/activate
-python web/app.py
-
-# Windows
+**Windows (PowerShell or Command Prompt):**
+```powershell
 venv\Scripts\activate
 python web/app.py
+```
+
+**Mac (Terminal):**
+```bash
+source venv/bin/activate
+python3 web/app.py
 ```
 
 Open `http://localhost:5000`.
