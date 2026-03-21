@@ -696,7 +696,9 @@
   .client-info { display: flex; flex-direction: column; gap: 2px; }
   .client-name { font-size: 14px; font-weight: 600; color: var(--text); }
   .client-meta { font-size: 12px; color: var(--muted); }
+  .client-context-preview { font-size: 12px; color: var(--muted); margin-top: 3px; font-style: italic; }
   .client-actions { display: flex; gap: 6px; }
+  .edit-client-expanded { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 8px; }
   .add-client-form { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
   .add-client-form .form-group { flex: 1; min-width: 120px; }
 
@@ -2175,13 +2177,14 @@ function renderSettingsClients(clients) {
       <div class="client-info">
         <div class="client-name">${escHtml(c.name)}</div>
         <div class="client-meta">${c.currency || 'INR'} &bull; Added ${fmtDate(c.created_at)}</div>
+        ${c.context ? `<div class="client-context-preview">${escHtml(c.context.slice(0, 80))}${c.context.length > 80 ? '...' : ''}</div>` : ''}
       </div>
       <div class="client-actions">
-        <button class="btn btn-ghost btn-sm" onclick="startEditClient(${c.id}, '${escHtml(c.name)}', '${c.currency || 'INR'}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="startEditClient(${c.id})">Edit</button>
         <button class="btn btn-danger btn-sm" onclick="deleteClient(${c.id})">Delete</button>
       </div>
     </div>
-    <div id="edit-row-${c.id}" style="display:none;">
+    <div id="edit-row-${c.id}" style="display:none;" class="edit-client-expanded">
       <div class="edit-client-row">
         <input type="text" id="edit-name-${c.id}" value="${escHtml(c.name)}" placeholder="Name">
         <select id="edit-currency-${c.id}">
@@ -2191,6 +2194,12 @@ function renderSettingsClients(clients) {
           <option value="EUR" ${c.currency==='EUR'?'selected':''}>EUR</option>
           <option value="AED" ${c.currency==='AED'?'selected':''}>AED</option>
         </select>
+      </div>
+      <div class="form-group" style="margin-top:10px;">
+        <label class="form-label">Business Context <span style="font-weight:400;color:var(--muted)">(helps Claude interpret campaigns correctly)</span></label>
+        <textarea id="edit-context-${c.id}" class="form-input" rows="4" placeholder="Describe the business, campaign goals, target audience, seasonal factors, budget constraints, or anything that explains why campaigns are running. E.g. 'Brand Awareness - Mumbai is a top-of-funnel awareness campaign targeting new users, not meant to convert directly. Lead Gen - B2B targets SME decision makers in Delhi NCR with a 3-month sales cycle.'">${escHtml(c.context || '')}</textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
         <button class="btn btn-primary btn-sm" onclick="saveEditClient(${c.id})">Save</button>
         <button class="btn btn-ghost btn-sm" onclick="cancelEditClient(${c.id})">Cancel</button>
       </div>
@@ -2198,7 +2207,7 @@ function renderSettingsClients(clients) {
   `).join('');
 }
 
-function startEditClient(id, name, currency) {
+function startEditClient(id) {
   document.getElementById('edit-row-' + id).style.display = 'block';
   document.getElementById('client-row-' + id).style.display = 'none';
 }
@@ -2211,12 +2220,13 @@ function cancelEditClient(id) {
 async function saveEditClient(id) {
   const name = document.getElementById('edit-name-' + id).value.trim();
   const currency = document.getElementById('edit-currency-' + id).value;
+  const context = document.getElementById('edit-context-' + id).value.trim();
   if (!name) { showToast('Name is required', 'error'); return; }
   try {
     const res = await fetch(`/api/clients/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, currency })
+      body: JSON.stringify({ name, currency, context: context || null })
     });
     if (!res.ok) { showToast('Failed to update client', 'error'); return; }
     showToast('Client updated', 'success');

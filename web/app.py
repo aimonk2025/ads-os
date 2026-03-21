@@ -123,7 +123,7 @@ def api_list_clients():
 @app.patch("/api/clients/<int:client_id>")
 def api_update_client(client_id):
     data = request.get_json()
-    update_client(get_db(), client_id, data["name"], data.get("currency", "INR"))
+    update_client(get_db(), client_id, data["name"], data.get("currency", "INR"), data.get("context"))
     return jsonify({"ok": True})
 
 
@@ -390,7 +390,8 @@ def api_audit():
             f"Data granularity: {gran_level} level.\n" + "\n".join(gran_context_parts)
         )
 
-    claude_output, used_claude = analyze(analysis)
+    client_context = (client or {}).get("context", "") or ""
+    claude_output, used_claude = analyze(analysis, business_context=client_context)
 
     # Build granular insights from stored rows for report template
     all_gran_rows = get_granular_rows(db, upload_id)

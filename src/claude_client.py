@@ -15,7 +15,16 @@ When GA4 data is present, cross-reference ad performance with on-site behavior. 
 
 When funnel data is present, analyze the full funnel - not just ad metrics. Identify where the funnel leaks (high lead volume but low MQL rate, etc.).
 
-When granular breakdown context is present, include specific keyword/ad group/ad insights in your recommendations. Name specific keywords or ad groups that should be paused or scaled.
+When granular breakdown context is present, always recommend at the most granular level the data supports:
+- If keyword data is present: name specific keywords to pause, match type changes, or bid adjustments
+- If ad group / ad set data is present: name specific ad groups or Meta ad sets to restructure or pause
+- If ad-level data is present: name specific creatives that are underperforming
+- Never stay at campaign level if deeper data is available - the goal is actionable, specific recommendations
+
+When business context is provided by the marketer, use it to interpret campaign intent:
+- Do not flag brand awareness or experimental campaigns as "wasted spend" if the context explains their purpose
+- Align recommendations with the stated business goals and audience
+- Reference the context when explaining why a campaign is or is not performing as expected
 
 Your analysis must include exactly these sections in this order:
 
@@ -40,11 +49,14 @@ Specific recommendation: which campaigns to reduce budget on, which to increase,
 
 ## Recommendations
 As many as the data warrants. Each must:
-- Name the specific campaign
+- Name the most specific entity possible: keyword, ad set, ad creative, or campaign - whichever level the data supports
 - State the specific metric to improve
 - Give a concrete action to take
 - Be achievable within 2 weeks
-- If funnel data is present, include recommendations that address funnel quality (MQL rate, SQL rate, or close rate)
+- For Meta: recommend at ad set level (audience, placement, budget) when ad set data is present
+- For Google: recommend at keyword level (match type, bid, negative keywords) when keyword data is present
+- If GA4 data is present: include recommendations that address on-site behavior (bounce rate, session quality, landing page relevance)
+- If funnel data is present: include recommendations that address funnel quality (MQL rate, SQL rate, or close rate)
 
 Output format: Clean markdown only. No preamble. Start directly with ## Executive Summary."""
 
@@ -62,7 +74,7 @@ def is_claude_available() -> bool:
         return False
 
 
-def analyze(analysis_data: dict) -> tuple[str, bool]:
+def analyze(analysis_data: dict, business_context: str = "") -> tuple[str, bool]:
     """
     Call Claude CLI with the analysis data.
     Returns (output_text, used_claude) tuple.
@@ -78,11 +90,16 @@ def analyze(analysis_data: dict) -> tuple[str, bool]:
     gran_context = analysis_data.get("granular_context", "")
 
     data_json = json.dumps(payload, indent=2)
+
+    context_section = (
+        f"\n\nBusiness Context (provided by the marketer - use this to interpret campaign intent and goals):\n{business_context.strip()}"
+        if business_context and business_context.strip() else ""
+    )
     gran_section = (
-        f"\n\nGranular breakdown context (use for deeper keyword/ad group/ad level recommendations):\n{gran_context}"
+        f"\n\nGranular breakdown context (use for deeper keyword/ad group/ad set/ad level recommendations):\n{gran_context}"
         if gran_context else ""
     )
-    full_prompt = f"{SYSTEM_PROMPT}\n\nHere is the campaign performance data to analyze:\n\n{data_json}{gran_section}"
+    full_prompt = f"{SYSTEM_PROMPT}\n\nHere is the campaign performance data to analyze:\n\n{data_json}{context_section}{gran_section}"
 
     try:
         result = subprocess.run(

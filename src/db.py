@@ -27,6 +27,7 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
             id          INTEGER PRIMARY KEY DEFAULT nextval('clients_seq'),
             name        VARCHAR NOT NULL UNIQUE,
             currency    VARCHAR NOT NULL DEFAULT 'INR',
+            context     VARCHAR,
             created_at  TIMESTAMP NOT NULL DEFAULT now()
         );
 
@@ -163,6 +164,13 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
         conn.execute("ALTER TABLE uploads ADD COLUMN granularity_level VARCHAR")
         conn.commit()
 
+    existing_client_cols = {r[0] for r in conn.execute(
+        "SELECT column_name FROM information_schema.columns WHERE table_name='clients'"
+    ).fetchall()}
+    if "context" not in existing_client_cols:
+        conn.execute("ALTER TABLE clients ADD COLUMN context VARCHAR")
+        conn.commit()
+
 
 # ---- Helpers ----
 
@@ -205,10 +213,10 @@ def get_client(conn, client_id: int) -> Optional[dict]:
     return _q1(conn, "SELECT * FROM clients WHERE id = ?", [client_id])
 
 
-def update_client(conn, client_id: int, name: str, currency: str) -> None:
+def update_client(conn, client_id: int, name: str, currency: str, context: str = None) -> None:
     conn.execute(
-        "UPDATE clients SET name = ?, currency = ? WHERE id = ?",
-        [name, currency, client_id]
+        "UPDATE clients SET name = ?, currency = ?, context = ? WHERE id = ?",
+        [name, currency, context, client_id]
     )
     conn.commit()
 
