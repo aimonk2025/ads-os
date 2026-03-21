@@ -2,6 +2,8 @@
 
 AI-powered ad audit platform. Upload Google Ads, Meta Ads, and Google Analytics 4 CSV exports, get senior-level performance analysis via Claude, download client-ready HTML and PDF reports.
 
+> No API keys required. AdLens uses your local Claude Code CLI session - just authenticate once and it works.
+
 ![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat&logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=flat&logo=flask&logoColor=white)
 ![DuckDB](https://img.shields.io/badge/DuckDB-1.5+-FFF000?style=flat&logo=duckdb&logoColor=black)
