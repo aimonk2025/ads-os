@@ -75,14 +75,7 @@ pip install -r requirements.txt
 pip3 install -r requirements.txt
 ```
 
-**WeasyPrint note (PDF export):** WeasyPrint requires system-level libraries. If the install fails:
-
-| OS | Fix |
-|----|-----|
-| Windows | Install the [GTK3 runtime](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases) first, then re-run pip install |
-| macOS | Run `brew install pango` first, then re-run pip3 install |
-
-Everything works without WeasyPrint except PDF downloads. You can skip it for now.
+This installs everything: Flask, pandas, DuckDB, xhtml2pdf, and all other dependencies in one command. No separate installs needed.
 
 ---
 
@@ -203,6 +196,17 @@ Campaign, Leads, MQLs, SQLs, Customers
 ```
 AdLens auto-detects the join level (campaign, aggregate, or date) and fuzzy-matches campaign names.
 
+### Google Analytics 4 (optional)
+
+Export from GA4: Explore > Acquisition > Session campaign. Download as CSV.
+
+Useful columns (any naming variant accepted):
+```
+Session campaign name, Sessions, Engaged sessions, Bounce rate, Average session duration, Conversions, Total revenue
+```
+
+AdLens skips the metadata rows GA4 adds at the top, joins to ad campaigns by campaign name, and adds a GA4 on-site performance table to the report showing sessions, bounce rate, and cost per session per campaign. Claude uses this data to cross-reference ad performance with on-site behavior.
+
 ---
 
 ## Granularity Support
@@ -243,8 +247,6 @@ All data is stored locally in `data/adaudit.duckdb`. Nothing is sent to any exte
 **"Claude not found" warning in the report**
 Claude Code CLI is not installed or not in your PATH. Install from [claude.ai/code](https://claude.ai/code). AdLens still generates a complete report using its built-in fallback template.
 
-**WeasyPrint PDF fails**
-Missing system libraries. See the WeasyPrint note in the installation steps above. HTML reports still work.
 
 **CSV columns not recognized**
 AdLens uses fuzzy column matching and accepts 100+ column name variants. Check the cleaning report shown after upload - it lists exactly which columns were found and which were renamed.
@@ -267,4 +269,5 @@ sample_data/
   funnel_sample.csv           campaign-level funnel data
   google_ads_prev.csv         previous period for comparison
   meta_ads_prev.csv           previous period for comparison
+  ga4_sample.csv              GA4 session/bounce/conversion data by campaign
 ```

@@ -25,11 +25,12 @@ from src.db import (
     insert_funnel_data, get_funnel_for_upload,
     insert_granular_rows, get_granular_rows,
     insert_anomalies, get_anomalies, update_anomaly_status, get_anomaly_summary,
-    save_report, get_reports, get_report, update_report_pdf_path,
+    save_report, get_reports, get_report, update_report_pdf_path, delete_report,
     get_budget_rules, save_budget_rules,
 )
 from src.granularity import build_granular_insights, granularity_to_claude_context
 from src.loader import load_google_ads_with_report, load_meta_ads_with_report, load_google_ads, load_meta_ads
+from src.ga_loader import load_ga4, merge_ga4_into_campaigns, build_ga_summary
 from src.calculator import calculate_google_metrics, calculate_meta_metrics, build_summary
 from src.funnel_loader import load_funnel
 from src.claude_client import analyze
@@ -153,11 +154,12 @@ def api_upload():
                 "google_prev": str(SAMPLE_DIR / "google_ads_prev.csv"),
                 "meta_prev":   str(SAMPLE_DIR / "meta_ads_prev.csv"),
                 "funnel":      str(SAMPLE_DIR / "funnel_sample.csv"),
+                "ga":          str(SAMPLE_DIR / "ga4_sample.csv"),
             }
             compare = True
         else:
             paths = {}
-            for key in ["google", "meta", "google_prev", "meta_prev", "funnel"]:
+            for key in ["google", "meta", "google_prev", "meta_prev", "funnel", "ga"]:
                 f = request.files.get(key)
                 if f and f.filename:
                     p = _save_upload_file(f, key)
@@ -196,6 +198,16 @@ def api_upload():
             if funnel_data.get("cleaning_report"):
                 cleaning_reports.append(funnel_data["cleaning_report"])
 
+        ga_result = None
+        if paths.get("ga"):
+            try:
+                ga_result = load_ga4(paths["ga"])
+                if ga_result.get("cleaning_report"):
+                    cleaning_reports.append(ga_result["cleaning_report"])
+            except (ValueError, FileNotFoundError) as e:
+                cleaning_reports.append(f"GA4 warning: {e}")
+                ga_result = None
+
         # Build analysis
         analysis = build_summary(
             google_df=google_df, meta_df=meta_df,
@@ -203,6 +215,17 @@ def api_upload():
             prev_google_df=prev_google_df, prev_meta_df=prev_meta_df,
             funnel=funnel_data,
         )
+
+        # Enrich campaigns with GA4 data
+        if ga_result:
+            for platform in ["google", "meta"]:
+                pdata = analysis.get(platform)
+                if pdata:
+                    pdata["campaigns"] = merge_ga4_into_campaigns(pdata["campaigns"], ga_result)
+                    pdata["ga_summary"] = build_ga_summary(pdata["campaigns"])
+            analysis["has_ga"] = True
+        else:
+            analysis["has_ga"] = False
 
         # Determine overall granularity level for this upload
         gran_level = None
@@ -273,6 +296,7 @@ def api_upload():
             "platforms":        platforms,
             "compare_mode":     compare,
             "has_funnel":       bool(funnel_data),
+            "has_ga":           bool(ga_result),
             "cleaning_reports": cleaning_reports,
             "granularity_level": gran_level,
             "granularity_note":  gran_note,
@@ -833,7 +857,26 @@ def api_history(client_id):
     db = get_db()
     reports = get_reports(db, client_id, report_type, limit + offset)
     reports = reports[offset:offset + limit]
+    for r in reports:
+        if r.get("html_path"):
+            # Use replace+split to handle Windows backslash paths safely
+            r["report_url"] = "/report/" + r["html_path"].replace("\\", "/").split("/")[-1]
     return jsonify({"reports": _jsonify_dates(reports), "total": len(reports)})
+
+
+@app.delete("/api/report/<int:report_id>")
+def api_delete_report(report_id):
+    db = get_db()
+    paths = delete_report(db, report_id)
+    # Delete HTML file if it exists
+    for key in ("html_path", "pdf_path"):
+        p = paths.get(key)
+        if p:
+            try:
+                Path(p).unlink(missing_ok=True)
+            except Exception:
+                pass
+    return jsonify({"ok": True})
 
 
 # ---- Report serving ----
@@ -863,10 +906,15 @@ def generate_pdf(report_id):
         return jsonify({"error": "HTML source not found"}), 404
 
     try:
-        from weasyprint import HTML
+        from xhtml2pdf import pisa
         stem = Path(html_path).stem
         pdf_out = str(PDFS_DIR / f"{stem}.pdf")
-        HTML(filename=html_path).write_pdf(pdf_out)
+        with open(html_path, "r", encoding="utf-8") as f:
+            html_content = f.read()
+        with open(pdf_out, "wb") as f:
+            result = pisa.CreatePDF(html_content, dest=f)
+        if result.err:
+            return jsonify({"error": "PDF generation failed: xhtml2pdf reported errors"}), 500
         update_report_pdf_path(db, report_id, pdf_out)
         return send_file(pdf_out, as_attachment=True,
                         download_name=f"{stem}.pdf")

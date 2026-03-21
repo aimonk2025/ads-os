@@ -28,7 +28,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background: var(--surface);
     color: var(--text);
-    font-size: 13px;
+    font-size: 15px;
     line-height: 1.5;
     overflow: hidden;
   }
@@ -54,7 +54,7 @@
     border-bottom: 1px solid rgba(255,255,255,0.07);
   }
   #sidebar-logo span {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     color: rgba(255,255,255,0.5);
     letter-spacing: 0.3px;
@@ -71,7 +71,7 @@
     gap: 10px;
     padding: 9px 20px;
     color: #94a3b8;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     border-left: 3px solid transparent;
@@ -131,7 +131,7 @@
     padding: 6px 10px;
     border: 1px solid var(--border);
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 14px;
     background: var(--white);
     color: var(--text);
     cursor: pointer;
@@ -173,7 +173,7 @@
     margin-bottom: 20px;
   }
   .card-title {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--muted);
     text-transform: uppercase;
@@ -195,19 +195,19 @@
     padding: 20px;
   }
   .stat-card .stat-label {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted);
     font-weight: 500;
     margin-bottom: 8px;
   }
   .stat-card .stat-value {
-    font-size: 22px;
+    font-size: 26px;
     font-weight: 700;
     color: var(--text);
     line-height: 1;
   }
   .stat-card .stat-sub {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted);
     margin-top: 4px;
   }
@@ -250,11 +250,11 @@
   }
   .drop-zone .dz-icon { margin-bottom: 6px; display: flex; align-items: center; justify-content: center; }
   .drop-zone .dz-icon svg { width: 28px; height: 28px; stroke: var(--blue); fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-  .drop-zone .dz-icon img { width: 32px; height: 32px; object-fit: contain; }
-  .drop-zone .dz-label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
-  .drop-zone .dz-hint { font-size: 11px; color: var(--muted); }
+  .drop-zone .dz-icon img { width: 120px; height: 120px; object-fit: contain; }
+  .drop-zone .dz-label { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .drop-zone .dz-hint { font-size: 12px; color: var(--muted); }
   .drop-zone .dz-filename {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--ok);
     font-weight: 600;
     margin-top: 4px;
@@ -265,7 +265,7 @@
   .drop-zones-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 18px;
   }
   .drop-zones-grid .drop-zone.full-width { grid-column: 1 / -1; }
 
@@ -305,8 +305,8 @@
   }
   .toggle-switch input:checked + .toggle-track { background: var(--blue); }
   .toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); }
-  .compare-label { font-size: 13px; font-weight: 500; color: var(--text); }
-  .compare-hint { font-size: 12px; color: var(--muted); }
+  .compare-label { font-size: 14px; font-weight: 500; color: var(--text); }
+  .compare-hint { font-size: 13px; color: var(--muted); }
 
   /* ---- Action Buttons ---- */
   .btn {
@@ -315,7 +315,7 @@
     gap: 6px;
     padding: 9px 18px;
     border-radius: 7px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     border: none;
     transition: all 0.15s;
@@ -333,6 +333,12 @@
   }
   .btn-secondary:hover { border-color: var(--blue); color: var(--blue); }
   .btn-danger {
+    background: var(--white);
+    color: #ef4444;
+    border: 1px solid #fecaca;
+  }
+  .btn-danger:hover { background: #fef2f2; border-color: #ef4444; }
+  .btn-danger {
     background: #fef2f2;
     color: var(--critical);
     border: 1px solid #fca5a5;
@@ -346,7 +352,7 @@
     font-size: 12px;
   }
   .btn-ghost:hover { background: var(--surface); border-color: var(--border); color: var(--text); }
-  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .btn-sm { padding: 5px 12px; font-size: 13px; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .action-row {
     display: flex;
@@ -369,7 +375,7 @@
     justify-content: space-between;
     padding: 12px 16px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: #92400e;
   }
@@ -377,7 +383,7 @@
   .cleaning-report-body { padding: 0 16px 16px; }
   .cleaning-report-body.collapsed { display: none; }
   .cleaning-item {
-    font-size: 12px;
+    font-size: 13px;
     color: #78350f;
     padding: 3px 0;
     border-bottom: 1px solid rgba(0,0,0,0.04);
@@ -422,6 +428,9 @@
     border-radius: 10px;
     overflow: hidden;
     margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 140px);
   }
   .report-iframe-header {
     display: flex;
@@ -430,11 +439,12 @@
     padding: 12px 16px;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
+    flex-shrink: 0;
   }
-  .report-iframe-header span { font-size: 13px; font-weight: 600; color: var(--text); }
+  .report-iframe-header span { font-size: 14px; font-weight: 600; color: var(--text); }
   .report-iframe-container iframe {
     width: 100%;
-    height: 500px;
+    flex: 1;
     border: none;
     display: block;
   }
@@ -450,8 +460,8 @@
   .morning-brief.warning { background: #fffbeb; border-color: #fcd34d; color: #78350f; }
   .morning-brief.info { background: #eff6ff; border-color: #bfdbfe; color: #1e3a5f; }
   .morning-brief.ok { background: #f0fdf4; border-color: #86efac; color: #14532d; }
-  .morning-brief-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
-  .morning-brief-text { font-size: 13px; line-height: 1.5; }
+  .morning-brief-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .morning-brief-text { font-size: 14px; line-height: 1.5; }
 
   .summary-badges { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
   .summary-badge {
@@ -467,7 +477,7 @@
   .summary-badge.critical { background: #fef2f2; border-color: #fca5a5; color: var(--critical); }
   .summary-badge.warning { background: #fffbeb; border-color: #fcd34d; color: var(--warning); }
   .summary-badge.info { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
-  .summary-badge .badge-count { font-size: 16px; font-weight: 800; }
+  .summary-badge .badge-count { font-size: 18px; font-weight: 800; }
 
   .filter-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
   .filter-tab {
@@ -496,11 +506,11 @@
   .anomaly-card.warning { border-left-color: var(--warning); }
   .anomaly-card.info { border-left-color: var(--blue); }
   .anomaly-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-  .anomaly-card-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .anomaly-card-title { font-size: 15px; font-weight: 600; color: var(--text); }
   .anomaly-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-  .anomaly-card-desc { font-size: 13px; color: #334155; line-height: 1.5; margin-bottom: 10px; }
+  .anomaly-card-desc { font-size: 14px; color: #334155; line-height: 1.5; margin-bottom: 10px; }
   .anomaly-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .anomaly-date { font-size: 11px; color: var(--muted); }
+  .anomaly-date { font-size: 12px; color: var(--muted); }
   .anomaly-actions { display: flex; gap: 6px; }
 
   /* ---- Badges ---- */
@@ -543,8 +553,8 @@
   .tone-btn .tone-icon { display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
   .tone-btn .tone-icon svg { width: 20px; height: 20px; stroke: var(--muted); fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
   .tone-btn.active .tone-icon svg { stroke: var(--blue); }
-  .tone-btn .tone-name { font-size: 13px; font-weight: 700; color: var(--text); }
-  .tone-btn .tone-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .tone-btn .tone-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .tone-btn .tone-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .tone-btn.active .tone-name { color: var(--blue); }
 
   .narrative-result {
@@ -555,12 +565,15 @@
     margin-bottom: 20px;
     line-height: 1.7;
   }
-  .narrative-result h2 { font-size: 15px; font-weight: 600; margin: 20px 0 10px; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  .narrative-result h2 { font-size: 17px; font-weight: 600; margin: 20px 0 10px; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
   .narrative-result h2:first-child { margin-top: 0; }
+  .narrative-result h3 { font-size: 15px; font-weight: 600; margin: 16px 0 8px; color: var(--text); }
   .narrative-result p { color: #334155; margin-bottom: 12px; }
   .narrative-result ul, .narrative-result ol { padding-left: 20px; margin-bottom: 12px; }
   .narrative-result li { color: #334155; margin-bottom: 4px; }
   .narrative-result strong { color: var(--text); }
+  .narrative-result hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .narrative-result .md-table-wrap { margin: 16px 0; }
 
   /* ---- Budget Agent Section ---- */
   .rules-panel {
@@ -581,17 +594,17 @@
   }
   .rules-panel-header:hover { background: var(--surface); }
   .rules-panel-header.open { border-bottom-color: var(--border); }
-  .rules-panel-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .rules-panel-title { font-size: 15px; font-weight: 600; color: var(--text); }
   .rules-panel-body { padding: 20px; }
   .rules-panel-body.collapsed { display: none; }
   .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .form-group { display: flex; flex-direction: column; gap: 5px; }
-  .form-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+  .form-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
   .form-input {
     padding: 8px 10px;
     border: 1px solid var(--border);
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 14px;
     background: var(--white);
     color: var(--text);
     outline: none;
@@ -600,7 +613,7 @@
   .form-input:focus { border-color: var(--blue); }
   .form-input[type="checkbox"] { width: auto; }
   .checkbox-row { display: flex; align-items: center; gap: 8px; }
-  .checkbox-label { font-size: 13px; color: var(--text); }
+  .checkbox-label { font-size: 14px; color: var(--text); }
 
   .budget-result { margin-bottom: 20px; }
   .budget-table-wrap {
@@ -610,13 +623,13 @@
     overflow: hidden;
     margin-bottom: 16px;
   }
-  .budget-table-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .budget-table-wrap table { width: 100%; border-collapse: collapse; font-size: 14px; }
   .budget-table-wrap th {
     background: var(--slate);
     color: #e2e8f0;
     padding: 10px 14px;
     text-align: left;
-    font-size: 11px;
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-weight: 600;
@@ -630,10 +643,18 @@
     border-radius: 10px;
     padding: 20px;
   }
-  .budget-explanation h2 { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+  .budget-explanation h2 { font-size: 16px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+  .budget-explanation h3 { font-size: 14px; font-weight: 700; margin: 16px 0 8px; color: var(--text); }
   .budget-explanation p { color: #334155; margin-bottom: 10px; line-height: 1.6; }
   .budget-explanation ul { padding-left: 20px; margin-bottom: 10px; }
   .budget-explanation li { color: #334155; margin-bottom: 4px; }
+  .budget-explanation hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .md-table-wrap { overflow-x: auto; margin: 12px 0; border-radius: 8px; border: 1px solid var(--border); }
+  .md-table-wrap table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .md-table-wrap th { background: var(--slate); color: #e2e8f0; padding: 10px 14px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; }
+  .md-table-wrap td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: var(--text); vertical-align: top; }
+  .md-table-wrap tr:last-child td { border-bottom: none; }
+  .md-table-wrap tr:nth-child(even) td { background: var(--surface); }
 
   /* ---- History Section ---- */
   .history-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
@@ -649,8 +670,8 @@
   }
   .history-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.07); }
   .history-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-  .history-card-title { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.4; }
-  .history-card-meta { font-size: 11px; color: var(--muted); }
+  .history-card-title { font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.4; }
+  .history-card-meta { font-size: 12px; color: var(--muted); }
   .history-card-actions { display: flex; gap: 6px; margin-top: auto; }
 
   /* ---- Settings Section ---- */
@@ -666,8 +687,8 @@
     border-radius: 8px;
   }
   .client-info { display: flex; flex-direction: column; gap: 2px; }
-  .client-name { font-size: 13px; font-weight: 600; color: var(--text); }
-  .client-meta { font-size: 11px; color: var(--muted); }
+  .client-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .client-meta { font-size: 12px; color: var(--muted); }
   .client-actions { display: flex; gap: 6px; }
   .add-client-form { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
   .add-client-form .form-group { flex: 1; min-width: 120px; }
@@ -680,8 +701,8 @@
   }
   .empty-state-icon { margin-bottom: 12px; display: flex; align-items: center; justify-content: center; }
   .empty-state-icon svg { width: 36px; height: 36px; stroke: #cbd5e1; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-  .empty-state-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
-  .empty-state-text { font-size: 13px; color: var(--muted); }
+  .empty-state-title { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .empty-state-text { font-size: 14px; color: var(--muted); }
 
   /* ---- Loading Spinner ---- */
   .section-loader {
@@ -729,7 +750,7 @@
   .toast {
     padding: 12px 18px;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     max-width: 320px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.15);
@@ -750,13 +771,13 @@
     gap: 10px;
     margin-bottom: 16px;
   }
-  .upload-selector label { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+  .upload-selector label { font-size: 14px; font-weight: 600; color: var(--muted); white-space: nowrap; }
   .upload-selector select {
     flex: 1;
     padding: 8px 10px;
     border: 1px solid var(--border);
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 14px;
     background: var(--white);
     color: var(--text);
     outline: none;
@@ -770,7 +791,7 @@
     justify-content: space-between;
     margin-bottom: 16px;
   }
-  .section-header h2 { font-size: 14px; font-weight: 600; color: var(--text); }
+  .section-header h2 { font-size: 16px; font-weight: 600; color: var(--text); }
 
   /* ---- Confidence badge ---- */
   .confidence-high { color: var(--ok); font-weight: 700; }
@@ -810,7 +831,7 @@
     padding: 5px 8px;
     border: 1px solid var(--border);
     border-radius: 5px;
-    font-size: 13px;
+    font-size: 14px;
     outline: none;
   }
   .edit-client-row input { flex: 1; }
@@ -908,7 +929,7 @@
                  ondragleave="handleDragLeave(event,'google')"
                  ondrop="handleDrop(event,'google')">
               <input type="file" accept=".csv,.xlsx,.xls" onchange="setFileFromInput('google',this)">
-              <div class="dz-icon"><img src="/static/google-ads.jpg" alt="Google Ads"></div>
+              <div class="dz-icon"><img src="/static/google-ads.png" alt="Google Ads"></div>
               <div class="dz-label">Google Ads</div>
               <div class="dz-hint">CSV or Excel</div>
               <div class="dz-filename" id="fn-google"></div>
@@ -923,15 +944,25 @@
               <div class="dz-hint">CSV or Excel</div>
               <div class="dz-filename" id="fn-meta"></div>
             </div>
-            <div class="drop-zone full-width" id="dz-funnel"
+            <div class="drop-zone" id="dz-funnel"
                  ondragover="handleDragOver(event,'funnel')"
                  ondragleave="handleDragLeave(event,'funnel')"
                  ondrop="handleDrop(event,'funnel')">
               <input type="file" accept=".csv,.xlsx,.xls" onchange="setFileFromInput('funnel',this)">
               <div class="dz-icon"><svg viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></div>
               <div class="dz-label">Funnel Data (Optional)</div>
-              <div class="dz-hint">Leads, MQLs, SQLs, Customers by campaign</div>
+              <div class="dz-hint">Leads, MQLs, SQLs, Customers</div>
               <div class="dz-filename" id="fn-funnel"></div>
+            </div>
+            <div class="drop-zone" id="dz-ga"
+                 ondragover="handleDragOver(event,'ga')"
+                 ondragleave="handleDragLeave(event,'ga')"
+                 ondrop="handleDrop(event,'ga')">
+              <input type="file" accept=".csv,.xlsx,.xls" onchange="setFileFromInput('ga',this)">
+              <div class="dz-icon"><img src="/static/google-analytics.png" alt="Google Analytics"></div>
+              <div class="dz-label">GA4 Report (Optional)</div>
+              <div class="dz-hint">Sessions, bounce rate, conversions</div>
+              <div class="dz-filename" id="fn-ga"></div>
             </div>
 
             <!-- Prev period zones (conditionally visible) -->
@@ -940,7 +971,7 @@
                  ondragleave="handleDragLeave(event,'google_prev')"
                  ondrop="handleDrop(event,'google_prev')">
               <input type="file" accept=".csv,.xlsx,.xls" onchange="setFileFromInput('google_prev',this)">
-              <div class="dz-icon"><img src="/static/google-ads.jpg" alt="Google Ads"></div>
+              <div class="dz-icon"><img src="/static/google-ads.png" alt="Google Ads"></div>
               <div class="dz-label">Google Ads (Prev Period)</div>
               <div class="dz-hint">For comparison</div>
               <div class="dz-filename" id="fn-google_prev"></div>
@@ -1006,11 +1037,17 @@
           </div>
         </div>
 
-        <!-- Report Preview (hidden by default) -->
+        <!-- Report Preview (shown after audit, full screen) -->
         <div id="report-preview-wrap" style="display:none;">
           <div class="report-iframe-container">
             <div class="report-iframe-header">
-              <span>Audit Report Preview</span>
+              <div class="action-row">
+                <button class="btn btn-sm btn-secondary" onclick="showUploadScreen()">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  Back
+                </button>
+                <span>Audit Report Preview</span>
+              </div>
               <div class="action-row">
                 <button class="btn btn-sm btn-secondary" onclick="downloadReportHtml()">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1533,7 +1570,7 @@ async function runUploadAndAudit() {
     fd.append('compare', document.getElementById('compare-toggle').checked ? 'true' : 'false');
     const pl = document.getElementById('period-label').value.trim();
     if (pl) fd.append('period_label', pl);
-    ['google', 'meta', 'funnel', 'google_prev', 'meta_prev'].forEach(k => {
+    ['google', 'meta', 'funnel', 'ga', 'google_prev', 'meta_prev'].forEach(k => {
       if (uploadFiles[k]) fd.append(k, uploadFiles[k]);
     });
 
@@ -1612,7 +1649,9 @@ async function runSampleData() {
 }
 
 function showAuditStats(stats) {
-  document.getElementById('audit-stats').style.display = 'grid';
+  const el = document.getElementById('audit-stats');
+  el.style.display = 'grid';
+  el.dataset.hasData = '1';
   document.getElementById('stat-total-spend').textContent = fmtCurrency(stats.total_spend || 0, currentCurrency);
   document.getElementById('stat-wasted-spend').textContent = fmtCurrency(stats.total_wasted || 0, currentCurrency);
   document.getElementById('stat-critical').textContent = stats.critical_count || 0;
@@ -1683,8 +1722,20 @@ function showFunnel(summary) {
   document.getElementById('funnel-wrap').style.display = 'block';
 }
 
+function showUploadScreen() {
+  document.getElementById('report-preview-wrap').style.display = 'none';
+  document.getElementById('upload-card').style.display = 'block';
+  if (document.getElementById('audit-stats').dataset.hasData) {
+    document.getElementById('audit-stats').style.display = 'grid';
+  }
+}
+
 function showReportPreview(url) {
   document.getElementById('report-iframe').src = url;
+  document.getElementById('upload-card').style.display = 'none';
+  document.getElementById('audit-stats').style.display = 'none';
+  document.getElementById('cleaning-report-wrap').style.display = 'none';
+  document.getElementById('funnel-wrap').style.display = 'none';
   document.getElementById('report-preview-wrap').style.display = 'block';
 }
 
@@ -2056,8 +2107,9 @@ function renderHistory(reports) {
         ${r.client_name ? ' &bull; ' + escHtml(r.client_name) : ''}
       </div>
       <div class="history-card-actions">
-        ${r.html_path ? `<button class="btn btn-sm btn-secondary" onclick="viewReport('${escHtml(r.html_path)}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</button>` : ''}
+        ${r.report_url ? `<button class="btn btn-sm btn-secondary" onclick="window.open('${escHtml(r.report_url)}','_blank')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</button>` : ''}
         <button class="btn btn-sm btn-secondary" onclick="downloadPdf(${r.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteReport(${r.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> Delete</button>
       </div>
     </div>
   `).join('');
@@ -2068,6 +2120,19 @@ function viewReport(htmlPath) {
   const parts = htmlPath.replace(/\\/g, '/').split('/');
   const filename = parts[parts.length - 1];
   window.open('/report/' + filename, '_blank');
+}
+
+async function deleteReport(reportId) {
+  if (!confirm('Delete this report? This cannot be undone.')) return;
+  try {
+    const res = await fetch(`/api/report/${reportId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed to delete', 'error'); return; }
+    showToast('Report deleted', 'success');
+    loadHistory();
+  } catch(e) {
+    showToast('Failed to delete report', 'error');
+  }
 }
 
 // ============================================================

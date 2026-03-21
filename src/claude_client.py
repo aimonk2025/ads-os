@@ -9,6 +9,9 @@ You will receive structured campaign performance data in JSON format. The data m
 - Ad platform metrics: spend, ROAS, CTR, CPC, CAC
 - Funnel metrics (when available): leads, MQLs, SQLs, customers, cost per stage
 - Granular breakdown context (when available): keyword-level, ad group-level, or ad-level performance
+- Google Analytics 4 metrics (when available): sessions, bounce rate, cost per session, engaged sessions, on-site conversions per campaign
+
+When GA4 data is present, cross-reference ad performance with on-site behavior. A campaign may have a good ROAS but terrible bounce rate - flag this. Identify campaigns where ad clicks are not translating to engaged sessions.
 
 When funnel data is present, analyze the full funnel - not just ad metrics. Identify where the funnel leaks (high lead volume but low MQL rate, etc.).
 
@@ -35,13 +38,13 @@ Ranked worst to best. For each: campaign name, the specific metric that is faili
 ## Budget Reallocation
 Specific recommendation: which campaigns to reduce budget on, which to increase, and by approximately how much. If funnel data is present, prioritize campaigns by cost per customer, not just ROAS.
 
-## 5 Recommendations
-Numbered 1 through 5. Each must:
+## Recommendations
+As many as the data warrants. Each must:
 - Name the specific campaign
 - State the specific metric to improve
 - Give a concrete action to take
 - Be achievable within 2 weeks
-- If funnel data is present, at least 2 recommendations must address funnel quality (MQL rate, SQL rate, or close rate)
+- If funnel data is present, include recommendations that address funnel quality (MQL rate, SQL rate, or close rate)
 
 Output format: Clean markdown only. No preamble. Start directly with ## Executive Summary."""
 
@@ -190,7 +193,7 @@ def fallback_template(data: dict) -> str:
         )
     lines.append("")
 
-    lines.append("## 5 Recommendations")
+    lines.append("## Recommendations")
     critical_all = []
     for platform in platforms:
         pdata = data.get(platform, {})
@@ -208,7 +211,7 @@ def fallback_template(data: dict) -> str:
     recs.append("**Tighten audience segments** - Exclude users who bounced within 5 seconds. Build lookalikes from your top 10% of converters.")
     recs.append("**A/B test ad creatives** - Run 3 ad variants per campaign. Pause underperformers after 1000 impressions.")
 
-    for i, rec in enumerate(recs[:5], 1):
+    for i, rec in enumerate(recs, 1):
         lines.append(f"{i}. {rec}")
 
     return "\n".join(lines)

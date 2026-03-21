@@ -494,6 +494,14 @@ def update_report_pdf_path(conn, report_id: int, pdf_path: str) -> None:
     conn.commit()
 
 
+def delete_report(conn, report_id: int) -> dict:
+    """Delete a report record and return its file paths for cleanup."""
+    row = _q1(conn, "SELECT html_path, pdf_path FROM reports WHERE id = ?", [report_id])
+    conn.execute("DELETE FROM reports WHERE id = ?", [report_id])
+    conn.commit()
+    return row or {}
+
+
 # ---- Budget Rules ----
 
 DEFAULT_RULES = {

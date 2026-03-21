@@ -52,51 +52,98 @@ def pct_fmt(value: float) -> str:
         return "N/A"
 
 
+def _parse_md_table(block: str) -> str:
+    """Convert a markdown table block into a styled HTML table."""
+    lines = [l.strip() for l in block.strip().split("\n") if l.strip()]
+    # filter out separator rows like |---|---|
+    rows = [l for l in lines if not re.match(r"^\|[-| :]+\|$", l)]
+    if len(rows) < 2:
+        return block
+    def parse_row(line):
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        return cells
+    header_cells = parse_row(rows[0])
+    thead = "<tr>" + "".join(f"<th>{c}</th>" for c in header_cells) + "</tr>"
+    tbody_rows = []
+    for row in rows[1:]:
+        cells = parse_row(row)
+        tbody_rows.append("<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>")
+    return (
+        '<div class="md-table-wrap">'
+        f"<table><thead>{thead}</thead><tbody>{''.join(tbody_rows)}</tbody></table>"
+        "</div>"
+    )
+
+
 def markdown_to_html(text: str) -> str:
     """Convert basic markdown to HTML."""
     if not text:
         return ""
     # Headers
-    text = re.sub(r"^## (.+)$", r"<h2>\1</h2>", text, flags=re.MULTILINE)
+    text = re.sub(r"^#### (.+)$", r"<h4>\1</h4>", text, flags=re.MULTILINE)
     text = re.sub(r"^### (.+)$", r"<h3>\1</h3>", text, flags=re.MULTILINE)
-    # Bold
+    text = re.sub(r"^## (.+)$", r"<h2>\1</h2>", text, flags=re.MULTILINE)
+    text = re.sub(r"^# (.+)$", r"<h1>\1</h1>", text, flags=re.MULTILINE)
+    # Bold / italic
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+    text = re.sub(r"\*(.+?)\*", r"<em>\1</em>", text)
+    # Horizontal rule
+    text = re.sub(r"^---+$", r"<hr>", text, flags=re.MULTILINE)
+
+    # Parse markdown tables before line-by-line processing
+    def replace_table(m):
+        return _parse_md_table(m.group(0))
+    text = re.sub(r"(\|.+\|\n(?:\|[-| :]+\|\n)(?:\|.+\|\n?)+)", replace_table, text)
+
     # Bullet lists
     lines = text.split("\n")
     result = []
-    in_list = False
+    in_ul = False
+    in_ol = False
     for line in lines:
         if re.match(r"^[-*] ", line):
-            if not in_list:
+            if in_ol:
+                result.append("</ol>")
+                in_ol = False
+            if not in_ul:
                 result.append("<ul>")
-                in_list = True
+                in_ul = True
             result.append(f"<li>{line[2:]}</li>")
         elif re.match(r"^\d+\. ", line):
-            if not in_list:
+            if in_ul:
+                result.append("</ul>")
+                in_ul = False
+            if not in_ol:
                 result.append("<ol>")
-                in_list = True
-            result.append(f"<li>{re.sub(r'^\d+\. ', '', line)}</li>")
+                in_ol = True
+            result.append(f"<li>{re.sub(r'^\d+\.\s*', '', line)}</li>")
         else:
-            if in_list:
-                result.append("</ul>" if result[-2] == "<ul>" or (len(result) > 2 and "<li>" in result[-1]) else "</ol>")
-                in_list = False
+            if in_ul:
+                result.append("</ul>")
+                in_ul = False
+            if in_ol:
+                result.append("</ol>")
+                in_ol = False
             result.append(line)
-    if in_list:
+    if in_ul:
         result.append("</ul>")
+    if in_ol:
+        result.append("</ol>")
     text = "\n".join(result)
-    # Wrap paragraphs
-    paragraphs = text.split("\n\n")
+
+    # Wrap plain text lines as paragraphs (skip lines that are already HTML)
+    paragraphs = re.split(r"\n{2,}", text)
     final = []
     for p in paragraphs:
         p = p.strip()
         if not p:
             continue
-        if p.startswith("<h") or p.startswith("<ul") or p.startswith("<ol") or p.startswith("<li"):
+        if re.match(r"^<(h[1-4]|ul|ol|li|hr|div|table|tr|thead|tbody)", p):
             final.append(p)
         else:
             lines_in_p = [l for l in p.split("\n") if l.strip()]
             for line in lines_in_p:
-                if line.startswith("<"):
+                if re.match(r"^<", line):
                     final.append(line)
                 else:
                     final.append(f"<p>{line}</p>")
@@ -151,28 +198,50 @@ def parse_claude_sections(markdown: str) -> dict:
 
 
 def parse_recommendations(raw: str) -> list:
-    """Parse numbered recommendations into list of {title, body} dicts."""
+    """Parse numbered recommendations into list of {title, bullets, prose} dicts."""
     recs = []
     if not raw:
         return recs
 
-    # Split on numbered items: "1.", "2.", etc.
-    parts = re.split(r"\n(?=\d+\.)", raw.strip())
-    for part in parts:
-        part = part.strip()
-        if not part:
+    # Split on lines that start with a number+dot (1. 2. etc.) at the beginning of the line
+    lines = raw.strip().split("\n")
+    blocks = []
+    current = []
+    for line in lines:
+        if re.match(r"^\d+\.\s+\S", line) and current:
+            blocks.append(current)
+            current = [line]
+        else:
+            current.append(line)
+    if current:
+        blocks.append(current)
+
+    for block in blocks:
+        block_lines = [l.strip() for l in block if l.strip()]
+        if not block_lines:
             continue
-        # Remove leading number
-        part = re.sub(r"^\d+\.\s*", "", part)
-        lines = part.strip().split("\n")
-        title_line = lines[0].strip()
-        # Remove bold markers from title
+        # First line is the title - strip leading number
+        title_line = re.sub(r"^\d+\.\s*", "", block_lines[0])
         title = re.sub(r"\*\*(.+?)\*\*", r"\1", title_line).strip()
-        body_lines = lines[1:] if len(lines) > 1 else []
-        body = " ".join(l.strip() for l in body_lines if l.strip())
-        body = re.sub(r"\*\*(.+?)\*\*", r"\1", body)
+
+        bullets = []
+        prose = []
+        for line in block_lines[1:]:
+            # "- Campaign: X" or "- Metric: Y" style → pill tag
+            m = re.match(r"^[-*]\s*\*?\*?([^:*\n]+?)\*?\*?:\s*(.+)$", line)
+            if m:
+                label = re.sub(r"\*\*(.+?)\*\*", r"\1", m.group(1)).strip()
+                value = re.sub(r"\*\*(.+?)\*\*", r"\1", m.group(2)).strip().rstrip("*")
+                bullets.append({"label": label, "value": value})
+            elif re.match(r"^[-*]\s+", line):
+                prose.append(re.sub(r"^[-*]\s+", "", re.sub(r"\*\*(.+?)\*\*", r"\1", line)).strip())
+            else:
+                cleaned = re.sub(r"\*\*(.+?)\*\*", r"\1", line).strip()
+                if cleaned:
+                    prose.append(cleaned)
+
         if title:
-            recs.append({"title": title, "body": body})
+            recs.append({"title": title, "bullets": bullets, "prose": prose})
 
     return recs[:5]
 
@@ -206,10 +275,20 @@ def prepare_template_context(analysis_data: dict, claude_output: str) -> dict:
     # Pull granular insights if present (injected by web/app.py audit route)
     granular_insights = analysis_data.get("granular_insights") or {}
 
+    has_ga = analysis_data.get("has_ga", False)
+    if not has_ga:
+        for platform in [google, meta]:
+            if platform:
+                for c in platform.get("campaigns", []):
+                    if c.get("ga"):
+                        has_ga = True
+                        break
+
     return {
         "generated_at": analysis_data["generated_at"],
         "platforms": analysis_data["platforms"],
         "compare_mode": analysis_data["compare_mode"],
+        "has_ga": has_ga,
         "google": google,
         "meta": meta,
         "cross_platform": analysis_data.get("cross_platform"),
@@ -223,7 +302,7 @@ def prepare_template_context(analysis_data: dict, claude_output: str) -> dict:
         "executive_summary": markdown_to_html(sections["executive_summary"] or sections.get("wasted_spend", "")),
         "reallocation": markdown_to_html(sections["reallocation"]),
         "underperformers": build_underperformers(analysis_data),
-        "recommendations": parse_recommendations(sections["recommendations_raw"]),
+        "recommendations": markdown_to_html(sections["recommendations_raw"]),
     }
 
 

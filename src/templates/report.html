@@ -215,32 +215,71 @@
     .platform-stat-value { font-weight: 600; }
 
     /* RECOMMENDATIONS */
-    .recommendations-list { display: flex; flex-direction: column; gap: 14px; }
-    .recommendation {
+    .rec-markdown ol {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      counter-reset: rec-counter;
+    }
+    .rec-markdown ol li {
+      counter-increment: rec-counter;
       background: #fff;
       border: 1px solid #e2e8f0;
       border-radius: 10px;
-      padding: 18px 20px;
-      display: flex;
-      gap: 18px;
-      align-items: flex-start;
+      overflow: hidden;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      padding: 0;
+      color: #334155;
+      font-size: 14px;
+      line-height: 1.6;
     }
-    .rec-number {
-      background: #3b82f6;
-      color: #fff;
-      font-size: 18px;
+    .rec-markdown ol li::before {
+      content: counter(rec-counter, decimal-leading-zero);
+      display: block;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 10px 16px;
+      font-size: 12px;
       font-weight: 700;
-      min-width: 44px;
-      height: 44px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
+      color: #3b82f6;
+      letter-spacing: 0.5px;
     }
-    .rec-content strong { display: block; font-size: 15px; margin-bottom: 4px; }
-    .rec-content p { color: #475569; font-size: 14px; line-height: 1.5; }
+    .rec-markdown ol > li > strong:first-child,
+    .rec-markdown ol li p:first-child strong:first-child {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      padding: 12px 16px 0;
+    }
+    .rec-markdown ol li p {
+      margin: 0;
+      padding: 8px 16px;
+      color: #475569;
+      font-size: 13px;
+    }
+    .rec-markdown ol li ul {
+      padding: 0 16px 12px 32px;
+      margin: 0;
+      list-style-type: disc;
+    }
+    .rec-markdown ol li ul li {
+      background: none;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      padding: 2px 0;
+      font-size: 13px;
+      color: #475569;
+      counter-increment: none;
+      list-style-type: disc;
+      display: list-item;
+    }
+    .rec-markdown ol li ul li::before { display: none; }
+    .rec-markdown p { margin-bottom: 10px; color: #334155; }
 
     /* MARKDOWN RENDERED CONTENT */
     .markdown-content h2 { font-size: 17px; font-weight: 600; margin: 20px 0 10px; color: #0f172a; }
@@ -250,6 +289,21 @@
     .markdown-content li { margin-bottom: 6px; color: #334155; }
     .markdown-content strong { color: #0f172a; }
     .markdown-content code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+
+    /* GA4 SECTION */
+    .ga-table-wrap { overflow-x: auto; }
+    .ga-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .ga-table th { background: #f8fafc; padding: 10px 12px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+    .ga-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+    .ga-table tr:last-child td { border-bottom: none; }
+    .ga-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .bounce-high { color: #ef4444; font-weight: 600; }
+    .bounce-mid { color: #f59e0b; font-weight: 600; }
+    .bounce-low { color: #22c55e; font-weight: 600; }
+    .ga-summary-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+    .ga-summary-stat { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px 16px; min-width: 130px; }
+    .ga-summary-stat .val { font-size: 20px; font-weight: 700; color: #0369a1; }
+    .ga-summary-stat .lbl { font-size: 11px; color: #64748b; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
 
     /* UNDERPERFORMERS */
     .underperformer-list { display: flex; flex-direction: column; gap: 10px; }
@@ -758,6 +812,81 @@
   </div>
   {% endif %}
 
+  <!-- GOOGLE ANALYTICS 4 -->
+  {% if has_ga %}
+  {% set ga_campaigns = [] %}
+  {% if google %}{% for c in google.campaigns %}{% if c.ga and c.ga.sessions %}{% set _ = ga_campaigns.append(c) %}{% endif %}{% endfor %}{% endif %}
+  {% if meta %}{% for c in meta.campaigns %}{% if c.ga and c.ga.sessions %}{% set _ = ga_campaigns.append(c) %}{% endif %}{% endfor %}{% endif %}
+  {% if ga_campaigns %}
+  <div class="section">
+    <div class="section-title"><span class="icon">📊</span> Google Analytics 4 - On-Site Performance</div>
+
+    {% set ga_sum_sessions = namespace(v=0) %}
+    {% set ga_sum_br = namespace(v=0, n=0) %}
+    {% set ga_sum_cps = namespace(v=0, n=0) %}
+    {% for c in ga_campaigns %}
+      {% set ga_sum_sessions.v = ga_sum_sessions.v + c.ga.sessions %}
+      {% if c.ga.bounce_rate is not none %}{% set ga_sum_br.v = ga_sum_br.v + c.ga.bounce_rate %}{% set ga_sum_br.n = ga_sum_br.n + 1 %}{% endif %}
+      {% if c.ga.cost_per_session is not none %}{% set ga_sum_cps.v = ga_sum_cps.v + c.ga.cost_per_session %}{% set ga_sum_cps.n = ga_sum_cps.n + 1 %}{% endif %}
+    {% endfor %}
+
+    <div class="ga-summary-bar">
+      <div class="ga-summary-stat">
+        <div class="val">{{ "{:,}".format(ga_sum_sessions.v) }}</div>
+        <div class="lbl">Total Sessions</div>
+      </div>
+      {% if ga_sum_br.n > 0 %}
+      <div class="ga-summary-stat">
+        <div class="val">{{ "%.1f"|format(ga_sum_br.v / ga_sum_br.n) }}%</div>
+        <div class="lbl">Avg Bounce Rate</div>
+      </div>
+      {% endif %}
+      {% if ga_sum_cps.n > 0 %}
+      <div class="ga-summary-stat">
+        <div class="val">{{ (ga_sum_cps.v / ga_sum_cps.n) | inr }}</div>
+        <div class="lbl">Avg Cost / Session</div>
+      </div>
+      {% endif %}
+      <div class="ga-summary-stat">
+        <div class="val">{{ ga_campaigns | length }}</div>
+        <div class="lbl">Campaigns Matched</div>
+      </div>
+    </div>
+
+    <div class="ga-table-wrap">
+      <table class="ga-table">
+        <thead>
+          <tr>
+            <th>Campaign</th>
+            <th class="num">Sessions</th>
+            <th class="num">Engaged Sessions</th>
+            <th class="num">Bounce Rate</th>
+            <th class="num">Avg Duration (s)</th>
+            <th class="num">Cost / Session</th>
+            <th class="num">GA Conversions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in ga_campaigns | sort(attribute='ga.bounce_rate', reverse=True) %}
+          <tr>
+            <td>{{ c.name }}</td>
+            <td class="num">{{ "{:,}".format(c.ga.sessions) if c.ga.sessions else "-" }}</td>
+            <td class="num">{{ "{:,}".format(c.ga.engaged_sessions) if c.ga.engaged_sessions else "-" }}</td>
+            <td class="num {% if c.ga.bounce_rate and c.ga.bounce_rate > 50 %}bounce-high{% elif c.ga.bounce_rate and c.ga.bounce_rate > 35 %}bounce-mid{% else %}bounce-low{% endif %}">
+              {{ "%.1f"|format(c.ga.bounce_rate) ~ "%" if c.ga.bounce_rate is not none else "-" }}
+            </td>
+            <td class="num">{{ "%.1f"|format(c.ga.avg_session_duration) if c.ga.avg_session_duration else "-" }}</td>
+            <td class="num">{{ c.ga.cost_per_session | inr if c.ga.cost_per_session else "-" }}</td>
+            <td class="num">{{ c.ga.ga_conversions if c.ga.ga_conversions else "-" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+
   <!-- UNDERPERFORMERS -->
   <div class="section">
     <div class="section-title"><span class="icon">⚠️</span> Underperforming Campaigns</div>
@@ -793,16 +922,8 @@
   <!-- RECOMMENDATIONS -->
   <div class="section">
     <div class="section-title"><span class="icon">💡</span> Recommendations</div>
-    <div class="recommendations-list">
-      {% for rec in recommendations %}
-      <div class="recommendation">
-        <div class="rec-number">{{ "%02d" % loop.index }}</div>
-        <div class="rec-content">
-          <strong>{{ rec.title }}</strong>
-          <p>{{ rec.body }}</p>
-        </div>
-      </div>
-      {% endfor %}
+    <div class="rec-markdown">
+      {{ recommendations | safe }}
     </div>
   </div>
 
