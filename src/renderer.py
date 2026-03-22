@@ -104,15 +104,15 @@ _SEVERITY_BADGE = {
 
 # Known UTF-8-as-Latin-1 mojibake sequences produced by Windows subprocess encoding issues
 _ENCODING_FIXES = {
-    "â‚¹": "₹",
-    "â€"": "-",
-    "â€™": "'",
-    "â€œ": '"',
-    "â€\x9d": '"',
-    "â€˜": "'",
-    "â€¦": "...",
-    "Ã©": "é",
-    "Ã ": "à",
+    "\u00e2\u201a\u00b9": "\u20b9",   # â‚¹ -> ₹
+    "\u00e2\u20ac\u201c": "-",         # â€" -> -
+    "\u00e2\u20ac\u2122": "'",         # â€™ -> '
+    "\u00e2\u20ac\u009c": '"',         # â€œ -> "
+    "\u00e2\u20ac\u009d": '"',         # â€  -> "
+    "\u00e2\u20ac\u02dc": "'",         # â€˜ -> '
+    "\u00e2\u20ac\u00a6": "...",       # â€¦ -> ...
+    "\u00c3\u00a9": "\u00e9",          # Ã© -> é
+    "\u00c3\u00a0": "\u00e0",          # Ã  -> à
 }
 
 
