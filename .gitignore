@@ -1,0 +1,27 @@
+# Environment
+venv/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Database
+data/
+
+# Uploads and generated reports
+uploads/
+reports/
+
+# Docs (internal only)
+docs/
+
+# OS
+.DS_Store
+Thumbs.db

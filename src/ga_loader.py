@@ -90,7 +90,7 @@ def _find_data_start(lines: list) -> int:
     return 0
 
 
-def load_ga4(filepath: str) -> dict:
+def load_ga4(filepath: str, pre_rename: dict = None) -> dict:
     """
     Load a GA4 CSV export.
 
@@ -102,6 +102,7 @@ def load_ga4(filepath: str) -> dict:
           "has_campaign": bool,
         }
     Raises ValueError if file is unreadable or has no usable data.
+    pre_rename: optional dict {original_col_name: canonical_col_name} applied before column mapping.
     """
     path = Path(filepath)
     if not path.exists():
@@ -133,6 +134,11 @@ def load_ga4(filepath: str) -> dict:
     if df.iloc[-1].astype(str).str.lower().str.contains("total").any():
         df = df.iloc[:-1]
         report_lines.append("Removed trailing 'Total' summary row")
+
+    # Apply manual column mapping if provided (before built-in mapping)
+    if pre_rename:
+        df = df.rename(columns=pre_rename)
+        report_lines.append(f"Applied manual column mapping: {len(pre_rename)} column(s) renamed")
 
     # Rename columns to canonical names
     rename_map = {}
@@ -179,6 +185,14 @@ def load_ga4(filepath: str) -> dict:
                 .astype(float)
             )
 
+    # Normalize any date columns
+    from src.cleaner import normalize_date_column
+    date_candidates = [c for c in df.columns if any(kw in c.lower() for kw in ["date", "day", "week", "month", "period"])]
+    for col in date_candidates:
+        df, fixed = normalize_date_column(df, col)
+        if fixed:
+            report_lines.append(f"Normalized {fixed} date(s) in '{col}' to YYYY-MM-DD")
+
     # Clean campaign name
     df[join_key] = df[join_key].astype(str).str.strip()
 
@@ -217,11 +231,14 @@ def merge_ga4_into_campaigns(campaigns: list, ga_result: dict) -> list:
 
     def _find_match(name: str) -> dict:
         name_lower = name.lower().strip()
+        # Exact match first
         if name_lower in ga_lookup:
             return ga_lookup[name_lower]
-        # Partial match fallback
+        # Substring match only when the shorter string is at least 10 chars
+        # (prevents "Brand" matching "Brand Performance" AND "Performance Brand")
         for k, v in ga_lookup.items():
-            if k in name_lower or name_lower in k:
+            short, long = (k, name_lower) if len(k) <= len(name_lower) else (name_lower, k)
+            if len(short) >= 10 and short in long:
                 return v
         return {}
 
@@ -252,16 +269,27 @@ def merge_ga4_into_campaigns(campaigns: list, ga_result: dict) -> list:
 def build_ga_summary(campaigns: list) -> dict:
     """Build aggregate GA4 metrics across all campaigns."""
     sessions = [c["ga"]["sessions"] for c in campaigns if c.get("ga") and c["ga"].get("sessions")]
-    bounce_rates = [c["ga"]["bounce_rate"] for c in campaigns if c.get("ga") and c["ga"].get("bounce_rate") is not None]
     ga_convs = [c["ga"]["ga_conversions"] for c in campaigns if c.get("ga") and c["ga"].get("ga_conversions")]
     cps_vals = [c["ga"]["cost_per_session"] for c in campaigns if c.get("ga") and c["ga"].get("cost_per_session")]
 
     if not sessions:
         return {}
 
+    # Bounce rate weighted by sessions to avoid small-campaign bias
+    weighted_bounce_num = 0.0
+    weighted_bounce_den = 0.0
+    for c in campaigns:
+        ga = c.get("ga") or {}
+        br = ga.get("bounce_rate")
+        sess = ga.get("sessions") or 0
+        if br is not None and sess:
+            weighted_bounce_num += br * sess
+            weighted_bounce_den += sess
+    avg_bounce = round(weighted_bounce_num / weighted_bounce_den, 1) if weighted_bounce_den else None
+
     return {
         "total_sessions": sum(sessions),
-        "avg_bounce_rate": round(sum(bounce_rates) / len(bounce_rates), 1) if bounce_rates else None,
+        "avg_bounce_rate": avg_bounce,
         "total_ga_conversions": sum(ga_convs) if ga_convs else None,
         "avg_cost_per_session": round(sum(cps_vals) / len(cps_vals), 2) if cps_vals else None,
         "campaigns_matched": len(sessions),

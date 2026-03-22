@@ -4,6 +4,7 @@ Single file: data/adaudit.duckdb
 """
 
 import json
+import hashlib
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional
@@ -39,6 +40,8 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
             platforms         VARCHAR NOT NULL,
             has_funnel        BOOLEAN NOT NULL DEFAULT false,
             period_label      VARCHAR,
+            period_start      DATE,
+            period_end        DATE,
             notes             VARCHAR,
             granularity_level VARCHAR
         );
@@ -151,7 +154,118 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
             meta_min_cpl        DOUBLE,
             max_shift_pct       DOUBLE NOT NULL DEFAULT 20.0,
             priority_channels   VARCHAR NOT NULL DEFAULT '["google","meta"]',
+            type_overrides      VARCHAR,
             updated_at          TIMESTAMP NOT NULL DEFAULT now()
+        );
+
+        CREATE SEQUENCE IF NOT EXISTS kpi_alerts_seq START 1;
+        CREATE TABLE IF NOT EXISTS kpi_alerts (
+            id            INTEGER PRIMARY KEY DEFAULT nextval('kpi_alerts_seq'),
+            client_id     INTEGER NOT NULL,
+            upload_id     INTEGER,
+            campaign      VARCHAR,
+            platform      VARCHAR,
+            alert_type    VARCHAR NOT NULL,
+            threshold     DOUBLE,
+            actual_value  DOUBLE,
+            deviation_pct DOUBLE,
+            severity      VARCHAR NOT NULL,
+            message       VARCHAR NOT NULL,
+            status        VARCHAR NOT NULL DEFAULT 'new',
+            created_at    TIMESTAMP NOT NULL DEFAULT now()
+        );
+
+        CREATE SEQUENCE IF NOT EXISTS competitors_seq START 1;
+        CREATE TABLE IF NOT EXISTS competitors (
+            id               INTEGER PRIMARY KEY DEFAULT nextval('competitors_seq'),
+            client_id        INTEGER NOT NULL,
+            brand_name       VARCHAR NOT NULL,
+            ad_library_url   VARCHAR,
+            last_scraped_at  VARCHAR,
+            created_at       TIMESTAMP NOT NULL DEFAULT now()
+        );
+
+        CREATE SEQUENCE IF NOT EXISTS competitor_ads_seq START 1;
+        CREATE TABLE IF NOT EXISTS competitor_ads (
+            id                   INTEGER PRIMARY KEY DEFAULT nextval('competitor_ads_seq'),
+            competitor_id        INTEGER NOT NULL,
+            ad_text              VARCHAR,
+            cta                  VARCHAR,
+            days_running         INTEGER,
+            is_active            BOOLEAN,
+            media_type           VARCHAR,
+            angle                VARCHAR,
+            offer                VARCHAR,
+            psychology_triggers  VARCHAR,
+            funnel_stage         VARCHAR,
+            persona              VARCHAR,
+            insight              VARCHAR,
+            scraped_at           VARCHAR
+        );
+
+        CREATE SEQUENCE IF NOT EXISTS pixel_health_seq START 1;
+        CREATE TABLE IF NOT EXISTS pixel_health_reports (
+            id            INTEGER PRIMARY KEY DEFAULT nextval('pixel_health_seq'),
+            client_id     INTEGER NOT NULL,
+            pixel_id      VARCHAR,
+            pixel_name    VARCHAR,
+            overall_score INTEGER,
+            health_label  VARCHAR,
+            checks_json   VARCHAR,
+            stats_json    VARCHAR,
+            run_at        VARCHAR
+        );
+
+        CREATE SEQUENCE IF NOT EXISTS structured_audits_seq START 1;
+        CREATE TABLE IF NOT EXISTS structured_audits (
+            id                   INTEGER PRIMARY KEY DEFAULT nextval('structured_audits_seq'),
+            client_id            INTEGER NOT NULL,
+            upload_id            INTEGER,
+            overall_score        INTEGER,
+            category_scores      VARCHAR,
+            checks_json          VARCHAR,
+            recommendations_json VARCHAR,
+            created_at           TIMESTAMP NOT NULL DEFAULT now()
+        );
+
+        CREATE SEQUENCE IF NOT EXISTS forecasts_seq START 1;
+        CREATE TABLE IF NOT EXISTS forecasts (
+            id               INTEGER PRIMARY KEY DEFAULT nextval('forecasts_seq'),
+            client_id        INTEGER NOT NULL,
+            horizon_days     INTEGER NOT NULL,
+            proj_spend       DOUBLE,
+            proj_revenue     DOUBLE,
+            proj_roas        DOUBLE,
+            proj_conversions DOUBLE,
+            spend_trend      VARCHAR,
+            roas_trend       VARCHAR,
+            season_factor    DOUBLE,
+            periods_used     INTEGER,
+            campaign_data    VARCHAR,
+            created_at       TIMESTAMP NOT NULL DEFAULT now()
+        );
+
+        CREATE SEQUENCE IF NOT EXISTS action_items_seq START 1;
+        CREATE TABLE IF NOT EXISTS action_items (
+            id               INTEGER PRIMARY KEY DEFAULT nextval('action_items_seq'),
+            client_id        INTEGER NOT NULL,
+            text_hash        VARCHAR NOT NULL,
+            text             VARCHAR NOT NULL,
+            source           VARCHAR NOT NULL,
+            priority         VARCHAR NOT NULL,
+            campaign         VARCHAR,
+            platform         VARCHAR,
+            status           VARCHAR NOT NULL DEFAULT 'todo',
+            done_at          TIMESTAMP,
+            notes            VARCHAR,
+            snapshot_roas    DOUBLE,
+            snapshot_cac     DOUBLE,
+            snapshot_ctr     DOUBLE,
+            snapshot_spend   DOUBLE,
+            snapshot_upload_id INTEGER,
+            created_at       TIMESTAMP NOT NULL DEFAULT now(),
+            updated_at       TIMESTAMP NOT NULL DEFAULT now(),
+            UNIQUE(client_id, text_hash)
         );
     """)
     conn.commit()
@@ -163,12 +277,192 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
     if "granularity_level" not in existing_upload_cols:
         conn.execute("ALTER TABLE uploads ADD COLUMN granularity_level VARCHAR")
         conn.commit()
+    if "period_start" not in existing_upload_cols:
+        conn.execute("ALTER TABLE uploads ADD COLUMN period_start DATE")
+        conn.commit()
+    if "period_end" not in existing_upload_cols:
+        conn.execute("ALTER TABLE uploads ADD COLUMN period_end DATE")
+        conn.commit()
 
     existing_client_cols = {r[0] for r in conn.execute(
         "SELECT column_name FROM information_schema.columns WHERE table_name='clients'"
     ).fetchall()}
     if "context" not in existing_client_cols:
         conn.execute("ALTER TABLE clients ADD COLUMN context VARCHAR")
+        conn.commit()
+    if "meta_pixel_id" not in existing_client_cols:
+        conn.execute("ALTER TABLE clients ADD COLUMN meta_pixel_id VARCHAR")
+        conn.commit()
+    if "meta_pixel_token" not in existing_client_cols:
+        conn.execute("ALTER TABLE clients ADD COLUMN meta_pixel_token VARCHAR")
+        conn.commit()
+
+    existing_rules_cols = {r[0] for r in conn.execute(
+        "SELECT column_name FROM information_schema.columns WHERE table_name='budget_rules'"
+    ).fetchall()}
+    if "type_overrides" not in existing_rules_cols:
+        conn.execute("ALTER TABLE budget_rules ADD COLUMN type_overrides VARCHAR")
+        conn.commit()
+
+    # kpi_alerts migration
+    existing_tables = {r[0] for r in conn.execute("SHOW TABLES").fetchall()}
+    if 'kpi_alerts' not in existing_tables:
+        conn.execute("""
+            CREATE SEQUENCE IF NOT EXISTS kpi_alerts_seq START 1;
+            CREATE TABLE kpi_alerts (
+                id            INTEGER PRIMARY KEY DEFAULT nextval('kpi_alerts_seq'),
+                client_id     INTEGER NOT NULL,
+                upload_id     INTEGER,
+                campaign      VARCHAR,
+                platform      VARCHAR,
+                alert_type    VARCHAR NOT NULL,
+                threshold     DOUBLE,
+                actual_value  DOUBLE,
+                deviation_pct DOUBLE,
+                severity      VARCHAR NOT NULL,
+                message       VARCHAR NOT NULL,
+                status        VARCHAR NOT NULL DEFAULT 'new',
+                created_at    TIMESTAMP NOT NULL DEFAULT now()
+            )
+        """)
+        conn.commit()
+
+    # competitors migration
+    existing_tables = {r[0] for r in conn.execute("SHOW TABLES").fetchall()}
+    if 'competitors' not in existing_tables:
+        conn.execute("""
+            CREATE SEQUENCE IF NOT EXISTS competitors_seq START 1;
+            CREATE TABLE competitors (
+                id               INTEGER PRIMARY KEY DEFAULT nextval('competitors_seq'),
+                client_id        INTEGER NOT NULL,
+                brand_name       VARCHAR NOT NULL,
+                ad_library_url   VARCHAR,
+                last_scraped_at  VARCHAR,
+                created_at       TIMESTAMP NOT NULL DEFAULT now()
+            )
+        """)
+        conn.commit()
+    if 'competitor_ads' not in existing_tables:
+        conn.execute("""
+            CREATE SEQUENCE IF NOT EXISTS competitor_ads_seq START 1;
+            CREATE TABLE competitor_ads (
+                id                   INTEGER PRIMARY KEY DEFAULT nextval('competitor_ads_seq'),
+                competitor_id        INTEGER NOT NULL,
+                ad_text              VARCHAR,
+                cta                  VARCHAR,
+                days_running         INTEGER,
+                is_active            BOOLEAN,
+                media_type           VARCHAR,
+                angle                VARCHAR,
+                offer                VARCHAR,
+                psychology_triggers  VARCHAR,
+                funnel_stage         VARCHAR,
+                persona              VARCHAR,
+                insight              VARCHAR,
+                scraped_at           VARCHAR
+            )
+        """)
+        conn.commit()
+
+    # pixel_health_reports migration
+    existing_tables = {r[0] for r in conn.execute("SHOW TABLES").fetchall()}
+    if 'pixel_health_reports' not in existing_tables:
+        conn.execute("""
+            CREATE SEQUENCE IF NOT EXISTS pixel_health_seq START 1;
+            CREATE TABLE pixel_health_reports (
+                id            INTEGER PRIMARY KEY DEFAULT nextval('pixel_health_seq'),
+                client_id     INTEGER NOT NULL,
+                pixel_id      VARCHAR,
+                pixel_name    VARCHAR,
+                overall_score INTEGER,
+                health_label  VARCHAR,
+                checks_json   VARCHAR,
+                stats_json    VARCHAR,
+                run_at        VARCHAR
+            )
+        """)
+        conn.commit()
+
+    # structured_audits migration
+    existing_tables = {r[0] for r in conn.execute("SHOW TABLES").fetchall()}
+    if 'structured_audits' not in existing_tables:
+        conn.execute("""
+            CREATE SEQUENCE IF NOT EXISTS structured_audits_seq START 1;
+            CREATE TABLE structured_audits (
+                id                   INTEGER PRIMARY KEY DEFAULT nextval('structured_audits_seq'),
+                client_id            INTEGER NOT NULL,
+                upload_id            INTEGER,
+                overall_score        INTEGER,
+                category_scores      VARCHAR,
+                checks_json          VARCHAR,
+                recommendations_json VARCHAR,
+                created_at           TIMESTAMP NOT NULL DEFAULT now()
+            )
+        """)
+        conn.commit()
+
+    # forecasts migration
+    existing_tables = {r[0] for r in conn.execute("SHOW TABLES").fetchall()}
+    if 'forecasts' not in existing_tables:
+        conn.execute("""
+            CREATE SEQUENCE IF NOT EXISTS forecasts_seq START 1;
+            CREATE TABLE forecasts (
+                id               INTEGER PRIMARY KEY DEFAULT nextval('forecasts_seq'),
+                client_id        INTEGER NOT NULL,
+                horizon_days     INTEGER NOT NULL,
+                proj_spend       DOUBLE,
+                proj_revenue     DOUBLE,
+                proj_roas        DOUBLE,
+                proj_conversions DOUBLE,
+                spend_trend      VARCHAR,
+                roas_trend       VARCHAR,
+                season_factor    DOUBLE,
+                periods_used     INTEGER,
+                campaign_data    VARCHAR,
+                created_at       TIMESTAMP NOT NULL DEFAULT now()
+            )
+        """)
+        conn.commit()
+
+    # action_items migration
+    existing_tables = {r[0] for r in conn.execute("SHOW TABLES").fetchall()}
+    if 'action_items' not in existing_tables:
+        conn.execute("""
+            CREATE SEQUENCE IF NOT EXISTS action_items_seq START 1;
+            CREATE TABLE action_items (
+                id               INTEGER PRIMARY KEY DEFAULT nextval('action_items_seq'),
+                client_id        INTEGER NOT NULL,
+                text_hash        VARCHAR NOT NULL,
+                text             VARCHAR NOT NULL,
+                source           VARCHAR NOT NULL,
+                priority         VARCHAR NOT NULL,
+                campaign         VARCHAR,
+                platform         VARCHAR,
+                status           VARCHAR NOT NULL DEFAULT 'todo',
+                done_at          TIMESTAMP,
+                notes            VARCHAR,
+                snapshot_roas    DOUBLE,
+                snapshot_cac     DOUBLE,
+                snapshot_ctr     DOUBLE,
+                snapshot_spend   DOUBLE,
+                snapshot_upload_id INTEGER,
+                created_at       TIMESTAMP NOT NULL DEFAULT now(),
+                updated_at       TIMESTAMP NOT NULL DEFAULT now(),
+                UNIQUE(client_id, text_hash)
+            )
+        """)
+        conn.commit()
+
+    # onboarding_status migration
+    existing_tables = {r[0] for r in conn.execute("SHOW TABLES").fetchall()}
+    if 'onboarding_status' not in existing_tables:
+        conn.execute("""
+            CREATE TABLE onboarding_status (
+                client_id        INTEGER PRIMARY KEY,
+                steps_completed  VARCHAR NOT NULL DEFAULT '[]',
+                completed_at     VARCHAR
+            )
+        """)
         conn.commit()
 
 
@@ -228,16 +522,97 @@ def delete_client(conn, client_id: int) -> None:
 
 # ---- Uploads ----
 
+def check_duplicate_upload(conn, client_id: int, period_start: str,
+                            period_end: str, platforms: list) -> Optional[dict]:
+    """
+    Check if an upload with the same client, period dates, and platforms already exists.
+    Returns the existing upload row if found, else None.
+    """
+    if not period_start or not period_end:
+        return None
+    platform_json = json.dumps(sorted(platforms))
+    row = _q1(conn, """
+        SELECT id, period_label, period_start, period_end, uploaded_at
+        FROM uploads
+        WHERE client_id = ?
+          AND period_start = ?
+          AND period_end = ?
+        ORDER BY uploaded_at DESC
+        LIMIT 1
+    """, [client_id, period_start, period_end])
+    return row
+
+
+def delete_upload(conn, upload_id: int) -> None:
+    """Delete an upload and all associated data (campaigns, funnel, granular rows, anomalies)."""
+    for table in ["granular_rows", "campaigns", "funnel_data", "anomalies"]:
+        conn.execute(f"DELETE FROM {table} WHERE upload_id = ?", [upload_id])
+    conn.execute("DELETE FROM uploads WHERE id = ?", [upload_id])
+    conn.commit()
+
+
 def create_upload(conn, client_id: int, platforms: list,
                   has_funnel: bool, period_label: str = None,
-                  granularity_level: str = None) -> int:
+                  granularity_level: str = None,
+                  period_start: str = None, period_end: str = None) -> int:
     conn.execute(
-        "INSERT INTO uploads (client_id, platforms, has_funnel, period_label, granularity_level) VALUES (?, ?, ?, ?, ?)",
-        [client_id, json.dumps(platforms), has_funnel, period_label, granularity_level]
+        "INSERT INTO uploads (client_id, platforms, has_funnel, period_label, granularity_level, period_start, period_end) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [client_id, json.dumps(platforms), has_funnel, period_label, granularity_level, period_start, period_end]
     )
     conn.commit()
     row = _q1(conn, "SELECT id FROM uploads WHERE client_id = ? ORDER BY uploaded_at DESC LIMIT 1", [client_id])
     return row["id"]
+
+
+def get_upload_timeline(conn, client_id: int) -> list:
+    """
+    Return all uploads for a client ordered by period_start (or uploaded_at),
+    with per-upload aggregated metrics for trend charting.
+    """
+    return _q(conn, """
+        SELECT
+            u.id            AS upload_id,
+            u.period_label,
+            u.period_start,
+            u.period_end,
+            u.uploaded_at,
+            u.platforms,
+            u.granularity_level,
+            SUM(c.spend)              AS total_spend,
+            AVG(c.roas)               AS avg_roas,
+            SUM(c.conversions)        AS total_conversions,
+            AVG(c.ctr)                AS avg_ctr,
+            SUM(c.wasted_spend)       AS total_wasted,
+            COUNT(DISTINCT c.campaign_name) AS campaign_count
+        FROM uploads u
+        JOIN campaigns c ON c.upload_id = u.id
+        WHERE u.client_id = ?
+        GROUP BY u.id, u.period_label, u.period_start, u.period_end,
+                 u.uploaded_at, u.platforms, u.granularity_level
+        ORDER BY COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) ASC
+    """, [client_id])
+
+
+def get_campaign_timeline(conn, client_id: int, campaign_name: str,
+                          platform: str) -> list:
+    """
+    Return the full history of a single campaign across all uploads,
+    ordered by period_start for trend analysis.
+    """
+    return _q(conn, """
+        SELECT
+            c.*,
+            u.period_label,
+            u.period_start,
+            u.period_end,
+            u.uploaded_at
+        FROM campaigns c
+        JOIN uploads u ON c.upload_id = u.id
+        WHERE c.client_id = ?
+          AND c.campaign_name = ?
+          AND c.platform = ?
+        ORDER BY COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) ASC
+    """, [client_id, campaign_name, platform])
 
 
 def get_uploads(conn, client_id: int, limit: int = 50) -> list:
@@ -288,14 +663,18 @@ def get_campaign_history(conn, client_id: int, campaign_name: str,
                          platform: str, days: int = 30) -> list:
     since = datetime.now() - timedelta(days=days)
     return _q(conn, """
-        SELECT c.*, u.uploaded_at as period_date
+        SELECT c.*,
+               COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) AS period_date,
+               u.period_label,
+               u.period_start,
+               u.period_end
         FROM campaigns c
         JOIN uploads u ON c.upload_id = u.id
         WHERE c.client_id = ?
           AND c.campaign_name = ?
           AND c.platform = ?
-          AND u.uploaded_at >= ?
-        ORDER BY u.uploaded_at ASC
+          AND COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) >= ?
+        ORDER BY COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) ASC
     """, [client_id, campaign_name, platform, since.isoformat()])
 
 
@@ -303,12 +682,17 @@ def get_platform_history(conn, client_id: int, platform: str,
                          days: int = 30) -> list:
     since = datetime.now() - timedelta(days=days)
     return _q(conn, """
-        SELECT c.*, u.uploaded_at as period_date
+        SELECT c.*,
+               COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) AS period_date,
+               u.period_label,
+               u.period_start,
+               u.period_end,
+               u.uploaded_at AS upload_at
         FROM campaigns c
         JOIN uploads u ON c.upload_id = u.id
         WHERE c.client_id = ? AND c.platform = ?
-          AND u.uploaded_at >= ?
-        ORDER BY u.uploaded_at ASC
+          AND COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) >= ?
+        ORDER BY COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) ASC
     """, [client_id, platform, since.isoformat()])
 
 
@@ -519,6 +903,7 @@ DEFAULT_RULES = {
     "meta_min_cpl": None,
     "max_shift_pct": 20.0,
     "priority_channels": ["google", "meta"],
+    "type_overrides": [],  # [{type, keyword, min_roas, min_cpl}]
 }
 
 
@@ -527,18 +912,21 @@ def get_budget_rules(conn, client_id: int) -> dict:
     if not row:
         return {**DEFAULT_RULES, "client_id": client_id}
     row["priority_channels"] = json.loads(row.get("priority_channels") or '["google","meta"]')
+    row["type_overrides"] = json.loads(row.get("type_overrides") or "[]")
     return row
 
 
 def save_budget_rules(conn, client_id: int, rules: dict) -> None:
     existing = _q1(conn, "SELECT id FROM budget_rules WHERE client_id = ?", [client_id])
     channels = json.dumps(rules.get("priority_channels", ["google", "meta"]))
+    overrides = json.dumps(rules.get("type_overrides", []))
     if existing:
         conn.execute("""
             UPDATE budget_rules SET
                 google_min_roas = ?, meta_min_roas = ?,
                 google_min_cpl = ?, meta_min_cpl = ?,
                 max_shift_pct = ?, priority_channels = ?,
+                type_overrides = ?,
                 updated_at = now()
             WHERE client_id = ?
         """, [
@@ -548,14 +936,15 @@ def save_budget_rules(conn, client_id: int, rules: dict) -> None:
             rules.get("meta_min_cpl"),
             rules.get("max_shift_pct", 20.0),
             channels,
+            overrides,
             client_id,
         ])
     else:
         conn.execute("""
             INSERT INTO budget_rules (
                 client_id, google_min_roas, meta_min_roas,
-                google_min_cpl, meta_min_cpl, max_shift_pct, priority_channels
-            ) VALUES (?,?,?,?,?,?,?)
+                google_min_cpl, meta_min_cpl, max_shift_pct, priority_channels, type_overrides
+            ) VALUES (?,?,?,?,?,?,?,?)
         """, [
             client_id,
             rules.get("google_min_roas", 2.0),
@@ -564,5 +953,73 @@ def save_budget_rules(conn, client_id: int, rules: dict) -> None:
             rules.get("meta_min_cpl"),
             rules.get("max_shift_pct", 20.0),
             channels,
+            overrides,
         ])
+    conn.commit()
+
+
+# ---- Action Items ----
+
+def _action_hash(client_id: int, text: str) -> str:
+    return hashlib.md5(f"{client_id}:{text[:200]}".encode()).hexdigest()
+
+
+def upsert_action_items(conn, client_id: int, actions: list) -> None:
+    """
+    Insert new action items. Existing ones (same client+text_hash) are NOT overwritten
+    so status/notes/done_at are preserved.
+    """
+    for a in actions:
+        h = _action_hash(client_id, a['text'])
+        existing = conn.execute(
+            "SELECT id FROM action_items WHERE client_id=? AND text_hash=?", [client_id, h]
+        ).fetchone()
+        if not existing:
+            conn.execute("""
+                INSERT INTO action_items (client_id, text_hash, text, source, priority, campaign, platform)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, [client_id, h, a['text'], a.get('source', 'audit'), a.get('priority', 'low'),
+                  a.get('campaign'), a.get('platform')])
+    conn.commit()
+
+
+def get_action_items(conn, client_id: int) -> list:
+    result = conn.execute("""
+        SELECT id, client_id, text, source, priority, campaign, platform,
+               status, done_at, notes,
+               snapshot_roas, snapshot_cac, snapshot_ctr, snapshot_spend,
+               snapshot_upload_id, created_at, updated_at
+        FROM action_items
+        WHERE client_id=?
+        ORDER BY
+            CASE priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END,
+            created_at ASC
+    """, [client_id])
+    return _rows_to_dicts(result.fetchall(), result.description)
+
+
+def update_action_item(conn, item_id: int, client_id: int, status: str = None,
+                       notes: str = None, done_at=None) -> bool:
+    item = conn.execute(
+        "SELECT id FROM action_items WHERE id=? AND client_id=?", [item_id, client_id]
+    ).fetchone()
+    if not item:
+        return False
+    if status is not None:
+        conn.execute("UPDATE action_items SET status=?, updated_at=now() WHERE id=?", [status, item_id])
+    if notes is not None:
+        conn.execute("UPDATE action_items SET notes=?, updated_at=now() WHERE id=?", [notes, item_id])
+    if done_at is not None:
+        conn.execute("UPDATE action_items SET done_at=?, updated_at=now() WHERE id=?", [done_at, item_id])
+    conn.commit()
+    return True
+
+
+def set_action_snapshot(conn, item_id: int, roas, cac, ctr, spend, upload_id: int) -> None:
+    conn.execute("""
+        UPDATE action_items
+        SET snapshot_roas=?, snapshot_cac=?, snapshot_ctr=?, snapshot_spend=?,
+            snapshot_upload_id=?, updated_at=now()
+        WHERE id=?
+    """, [roas, cac, ctr, spend, upload_id, item_id])
     conn.commit()

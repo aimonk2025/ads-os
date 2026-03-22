@@ -75,10 +75,64 @@ def _parse_md_table(block: str) -> str:
     )
 
 
+def _parse_tsv_table(block: str) -> str:
+    """Convert a tab-separated table block into a styled HTML table."""
+    lines = [l for l in block.strip().split("\n") if l.strip()]
+    if len(lines) < 2:
+        return block
+    def parse_row(line):
+        return [c.strip() for c in line.split("\t")]
+    header_cells = parse_row(lines[0])
+    thead = "<tr>" + "".join(f"<th>{c}</th>" for c in header_cells) + "</tr>"
+    tbody_rows = []
+    for row in lines[1:]:
+        cells = parse_row(row)
+        tbody_rows.append("<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>")
+    return (
+        '<div class="md-table-wrap">'
+        f"<table><thead>{thead}</thead><tbody>{''.join(tbody_rows)}</tbody></table>"
+        "</div>"
+    )
+
+
+_SEVERITY_BADGE = {
+    "HIGH":   '<span class="severity-badge severity-high">HIGH</span>',
+    "MEDIUM": '<span class="severity-badge severity-medium">MEDIUM</span>',
+    "LOW":    '<span class="severity-badge severity-low">LOW</span>',
+}
+
+
+# Known UTF-8-as-Latin-1 mojibake sequences produced by Windows subprocess encoding issues
+_ENCODING_FIXES = {
+    "â‚¹": "₹",
+    "â€"": "-",
+    "â€™": "'",
+    "â€œ": '"',
+    "â€\x9d": '"',
+    "â€˜": "'",
+    "â€¦": "...",
+    "Ã©": "é",
+    "Ã ": "à",
+}
+
+
+def fix_encoding_artifacts(text: str) -> str:
+    """Replace known UTF-8-as-Latin-1 mojibake sequences with correct characters."""
+    for bad, good in _ENCODING_FIXES.items():
+        text = text.replace(bad, good)
+    return text
+
+
 def markdown_to_html(text: str) -> str:
     """Convert basic markdown to HTML."""
     if not text:
         return ""
+    # Fix encoding artifacts before any other processing
+    text = fix_encoding_artifacts(text)
+    # Strip all fenced code blocks - internal data, never shown to users
+    text = re.sub(r"```[^\n]*\n[\s\S]*?```", "", text)
+    # Also strip any orphan fence lines (``` with no closing match)
+    text = re.sub(r"^```[^\n]*$", "", text, flags=re.MULTILINE)
     # Headers
     text = re.sub(r"^#### (.+)$", r"<h4>\1</h4>", text, flags=re.MULTILINE)
     text = re.sub(r"^### (.+)$", r"<h3>\1</h3>", text, flags=re.MULTILINE)
@@ -87,13 +141,24 @@ def markdown_to_html(text: str) -> str:
     # Bold / italic
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"\*(.+?)\*", r"<em>\1</em>", text)
+    # Inline code (backtick-wrapped) -> <code>
+    text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
     # Horizontal rule
     text = re.sub(r"^---+$", r"<hr>", text, flags=re.MULTILINE)
+    # Severity labels: bare line OR wrapped in <strong> -> styled badge
+    for label, badge in _SEVERITY_BADGE.items():
+        text = re.sub(rf"^{label}$", badge, text, flags=re.MULTILINE)
+        text = re.sub(rf"<strong>{label}</strong>", badge, text)
 
-    # Parse markdown tables before line-by-line processing
+    # Parse pipe markdown tables before line-by-line processing
     def replace_table(m):
         return _parse_md_table(m.group(0))
-    text = re.sub(r"(\|.+\|\n(?:\|[-| :]+\|\n)(?:\|.+\|\n?)+)", replace_table, text)
+    text = re.sub(r"(\|.+\|\n(?:\|[-| :]+\|\n)?(?:\|.+\|\n?)+)", replace_table, text)
+
+    # Parse tab-separated tables - allow optional blank line between header and rows
+    def replace_tsv_table(m):
+        return _parse_tsv_table(m.group(0))
+    text = re.sub(r"((?:[^\n<]+\t[^\n]+\n){1}(?:\n?(?:[^\n<]+\t[^\n]+\n))+)", replace_tsv_table, text)
 
     # Bullet lists
     lines = text.split("\n")
@@ -116,7 +181,7 @@ def markdown_to_html(text: str) -> str:
             if not in_ol:
                 result.append("<ol>")
                 in_ol = True
-            result.append(f"<li>{re.sub(r'^\d+\.\s*', '', line)}</li>")
+            result.append(f"<li>{re.sub(r'^\\d+\\.\\s*', '', line)}</li>")
         else:
             if in_ul:
                 result.append("</ul>")
@@ -138,7 +203,7 @@ def markdown_to_html(text: str) -> str:
         p = p.strip()
         if not p:
             continue
-        if re.match(r"^<(h[1-4]|ul|ol|li|hr|div|table|tr|thead|tbody)", p):
+        if re.match(r"^<(h[1-4]|ul|ol|li|hr|div|table|tr|thead|tbody|span)", p):
             final.append(p)
         else:
             lines_in_p = [l for l in p.split("\n") if l.strip()]
@@ -152,6 +217,7 @@ def markdown_to_html(text: str) -> str:
 
 def parse_claude_sections(markdown: str) -> dict:
     """Split Claude output into named sections."""
+    markdown = fix_encoding_artifacts(markdown)
     sections = {
         "executive_summary": "",
         "wasted_spend": "",
@@ -306,7 +372,8 @@ def prepare_template_context(analysis_data: dict, claude_output: str) -> dict:
     }
 
 
-def render_report(analysis_data: dict, claude_output: str, output_path: str) -> str:
+def render_report(analysis_data: dict, claude_output: str, output_path: str,
+                  branding: dict = None, extra: dict = None) -> str:
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
     env.filters["inr"] = format_inr
     env.filters["roas_fmt"] = roas_fmt
@@ -314,6 +381,9 @@ def render_report(analysis_data: dict, claude_output: str, output_path: str) -> 
 
     template = env.get_template("report.html")
     context = prepare_template_context(analysis_data, claude_output)
+    context["branding"] = branding or {}
+    if extra:
+        context.update(extra)
     html = template.render(**context)
 
     Path(output_path).write_text(html, encoding="utf-8")

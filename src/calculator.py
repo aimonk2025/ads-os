@@ -38,7 +38,11 @@ def calculate_google_metrics(df: pd.DataFrame) -> pd.DataFrame:
     df["cpc"] = df.apply(lambda r: safe_divide(r["cost"], r["clicks"]), axis=1)
     df["efficiency"] = df.apply(lambda r: safe_divide(r["conversions"], r["cost"]) * 1000, axis=1)
     df["severity"] = df["roas"].apply(assign_severity)
-    df["wasted"] = df.apply(lambda r: r["cost"] if r["severity"] == "critical" else 0.0, axis=1)
+    # critical = fully wasted, warning = partially wasted (50% of spend attributed to underperformance)
+    df["wasted"] = df.apply(
+        lambda r: r["cost"] if r["severity"] == "critical" else (r["cost"] * 0.5 if r["severity"] == "warning" else 0.0),
+        axis=1,
+    )
     return df
 
 
@@ -51,7 +55,10 @@ def calculate_meta_metrics(df: pd.DataFrame) -> pd.DataFrame:
     df["cpc"] = df.apply(lambda r: safe_divide(r["amount spent"], r["clicks"]), axis=1)
     df["efficiency"] = df.apply(lambda r: safe_divide(r["results"], r["amount spent"]) * 1000, axis=1)
     df["severity"] = df["roas"].apply(assign_severity)
-    df["wasted"] = df.apply(lambda r: r["amount spent"] if r["severity"] == "critical" else 0.0, axis=1)
+    df["wasted"] = df.apply(
+        lambda r: r["amount spent"] if r["severity"] == "critical" else (r["amount spent"] * 0.5 if r["severity"] == "warning" else 0.0),
+        axis=1,
+    )
     return df
 
 

@@ -4,378 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ad Performance Audit - {{ generated_at }}</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-      background: #f8fafc;
-      color: #0f172a;
-      font-size: 15px;
-      line-height: 1.6;
-    }
-
-    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px 60px; }
-
-    /* HEADER */
-    header {
-      background: #0f172a;
-      color: #fff;
-      padding: 32px 0;
-      margin-bottom: 32px;
-    }
-    header .container { padding-top: 0; padding-bottom: 0; }
-    .header-inner { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
-    .header-title h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-    .header-title p { color: #94a3b8; font-size: 14px; margin-top: 4px; }
-    .platform-badges { display: flex; gap: 8px; align-items: center; }
-    .platform-badge {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
-      color: #e2e8f0;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    /* SECTION TITLES */
-    .section { margin-bottom: 32px; }
-    .section-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #0f172a;
-      margin-bottom: 16px;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #e2e8f0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .section-title .icon { font-size: 20px; }
-
-    /* EXECUTIVE SUMMARY */
-    .exec-summary {
-      background: #eff6ff;
-      border-left: 4px solid #3b82f6;
-      border-radius: 0 8px 8px 0;
-      padding: 20px 24px;
-      color: #1e3a5f;
-      font-size: 15px;
-      line-height: 1.7;
-    }
-    .exec-summary p { margin-bottom: 12px; }
-    .exec-summary p:last-child { margin-bottom: 0; }
-
-    /* KPI CARDS */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-    }
-    .kpi-card {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 20px 22px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    .kpi-card.critical-card { border-top: 3px solid #dc2626; }
-    .kpi-card.ok-card { border-top: 3px solid #16a34a; }
-    .kpi-card.neutral-card { border-top: 3px solid #3b82f6; }
-    .kpi-value { font-size: 28px; font-weight: 700; color: #0f172a; line-height: 1.1; margin-bottom: 4px; }
-    .kpi-label { font-size: 13px; font-weight: 500; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-    .kpi-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
-
-    /* BADGES */
-    .badge {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    .badge-critical { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
-    .badge-warning  { background: #fffbeb; color: #d97706; border: 1px solid #fcd34d; }
-    .badge-ok       { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
-
-    /* TABLES */
-    .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #e2e8f0; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; }
-    thead th {
-      background: #1e293b;
-      color: #e2e8f0;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 12px 14px;
-      text-align: left;
-      white-space: nowrap;
-    }
-    tbody tr:nth-child(even) { background: #f8fafc; }
-    tbody tr:hover { background: #f1f5f9; }
-    tbody td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-    tbody tr:last-child td { border-bottom: none; }
-    .campaign-name { font-weight: 500; max-width: 220px; }
-    td.num { text-align: right; font-variant-numeric: tabular-nums; }
-    .roas-high { color: #16a34a; font-weight: 600; }
-    .roas-mid  { color: #d97706; font-weight: 600; }
-    .roas-low  { color: #dc2626; font-weight: 600; }
-
-    /* DELTA */
-    .delta { font-weight: 600; font-size: 13px; }
-    .delta-up   { color: #16a34a; }
-    .delta-down { color: #dc2626; }
-    .delta-flat { color: #64748b; }
-
-    /* FUNNEL WATERFALL */
-    .funnel-waterfall {
-      display: flex;
-      align-items: stretch;
-      gap: 0;
-      overflow-x: auto;
-    }
-    .funnel-stage {
-      flex: 1;
-      min-width: 140px;
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-right: none;
-      padding: 20px 16px;
-      position: relative;
-    }
-    .funnel-stage:first-child { border-radius: 10px 0 0 10px; }
-    .funnel-stage:last-child  { border-right: 1px solid #e2e8f0; border-radius: 0 10px 10px 0; }
-    .funnel-stage-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 6px; }
-    .funnel-stage-count { font-size: 28px; font-weight: 700; color: #0f172a; line-height: 1; margin-bottom: 4px; }
-    .funnel-stage-cost { font-size: 13px; color: #3b82f6; font-weight: 600; margin-bottom: 8px; }
-    .funnel-stage-rate {
-      font-size: 12px;
-      color: #64748b;
-      background: #f8fafc;
-      border-radius: 6px;
-      padding: 3px 8px;
-      display: inline-block;
-    }
-    .funnel-stage-arrow {
-      position: absolute;
-      right: -12px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 24px;
-      height: 24px;
-      background: #3b82f6;
-      color: #fff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      z-index: 1;
-    }
-    .funnel-stage:last-child .funnel-stage-arrow { display: none; }
-    .funnel-stage.pending { background: #f8fafc; }
-    .funnel-stage.pending .funnel-stage-count { color: #cbd5e1; }
-    .funnel-stage-pending-label { font-size: 12px; color: #94a3b8; font-style: italic; }
-
-    /* FUNNEL CAMPAIGN TABLE extras */
-    .cost-pill {
-      display: inline-block;
-      background: #eff6ff;
-      color: #1d4ed8;
-      border-radius: 6px;
-      padding: 2px 8px;
-      font-size: 12px;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    .cost-pill.na { background: #f1f5f9; color: #94a3b8; }
-
-    /* PLATFORM COMPARISON */
-    .platform-comparison-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-    .platform-card {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    .platform-card.winner { border: 2px solid #3b82f6; }
-    .platform-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-    .winner-badge { background: #3b82f6; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
-    .platform-stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
-    .platform-stat:last-child { border-bottom: none; }
-    .platform-stat-label { color: #64748b; }
-    .platform-stat-value { font-weight: 600; }
-
-    /* RECOMMENDATIONS */
-    .rec-markdown ol {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      counter-reset: rec-counter;
-    }
-    .rec-markdown ol li {
-      counter-increment: rec-counter;
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-      padding: 0;
-      color: #334155;
-      font-size: 14px;
-      line-height: 1.6;
-    }
-    .rec-markdown ol li::before {
-      content: counter(rec-counter, decimal-leading-zero);
-      display: block;
-      background: #f8fafc;
-      border-bottom: 1px solid #e2e8f0;
-      padding: 10px 16px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #3b82f6;
-      letter-spacing: 0.5px;
-    }
-    .rec-markdown ol > li > strong:first-child,
-    .rec-markdown ol li p:first-child strong:first-child {
-      display: block;
-      font-size: 14px;
-      font-weight: 700;
-      color: #0f172a;
-      padding: 12px 16px 0;
-    }
-    .rec-markdown ol li p {
-      margin: 0;
-      padding: 8px 16px;
-      color: #475569;
-      font-size: 13px;
-    }
-    .rec-markdown ol li ul {
-      padding: 0 16px 12px 32px;
-      margin: 0;
-      list-style-type: disc;
-    }
-    .rec-markdown ol li ul li {
-      background: none;
-      border: none;
-      border-radius: 0;
-      box-shadow: none;
-      padding: 2px 0;
-      font-size: 13px;
-      color: #475569;
-      counter-increment: none;
-      list-style-type: disc;
-      display: list-item;
-    }
-    .rec-markdown ol li ul li::before { display: none; }
-    .rec-markdown p { margin-bottom: 10px; color: #334155; }
-
-    /* MARKDOWN RENDERED CONTENT */
-    .markdown-content h2 { font-size: 17px; font-weight: 600; margin: 20px 0 10px; color: #0f172a; }
-    .markdown-content h3 { font-size: 15px; font-weight: 600; margin: 16px 0 8px; }
-    .markdown-content p { margin-bottom: 12px; color: #334155; }
-    .markdown-content ul, .markdown-content ol { padding-left: 20px; margin-bottom: 12px; }
-    .markdown-content li { margin-bottom: 6px; color: #334155; }
-    .markdown-content strong { color: #0f172a; }
-    .markdown-content code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
-
-    /* GA4 SECTION */
-    .ga-table-wrap { overflow-x: auto; }
-    .ga-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .ga-table th { background: #f8fafc; padding: 10px 12px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
-    .ga-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; }
-    .ga-table tr:last-child td { border-bottom: none; }
-    .ga-table .num { text-align: right; font-variant-numeric: tabular-nums; }
-    .bounce-high { color: #ef4444; font-weight: 600; }
-    .bounce-mid { color: #f59e0b; font-weight: 600; }
-    .bounce-low { color: #22c55e; font-weight: 600; }
-    .ga-summary-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
-    .ga-summary-stat { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px 16px; min-width: 130px; }
-    .ga-summary-stat .val { font-size: 20px; font-weight: 700; color: #0369a1; }
-    .ga-summary-stat .lbl { font-size: 11px; color: #64748b; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
-
-    /* UNDERPERFORMERS */
-    .underperformer-list { display: flex; flex-direction: column; gap: 10px; }
-    .underperformer {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-left: 4px solid;
-      border-radius: 0 8px 8px 0;
-      padding: 14px 18px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .underperformer.critical { border-left-color: #dc2626; }
-    .underperformer.warning  { border-left-color: #d97706; }
-    .underperformer-name { font-weight: 600; font-size: 14px; }
-    .underperformer-platform { font-size: 12px; color: #64748b; margin-top: 2px; }
-    .underperformer-metrics { display: flex; gap: 20px; }
-    .underperformer-metric { text-align: right; }
-    .underperformer-metric .val { font-size: 16px; font-weight: 700; }
-    .underperformer-metric .lbl { font-size: 11px; color: #94a3b8; text-transform: uppercase; }
-    .critical .underperformer-metric .val { color: #dc2626; }
-    .warning  .underperformer-metric .val { color: #d97706; }
-
-    /* REALLOCATION */
-    .reallocation-box {
-      background: #fff;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 22px 24px;
-    }
-
-    /* COMPARISON TABLE */
-    .delta-section { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
-    .delta-period-label {
-      background: #1e293b;
-      color: #e2e8f0;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 10px 16px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    /* FOOTER */
-    footer {
-      margin-top: 48px;
-      padding-top: 20px;
-      border-top: 1px solid #e2e8f0;
-      text-align: center;
-      color: #94a3b8;
-      font-size: 13px;
-    }
-
-    /* PRINT */
-    @media print {
-      body { background: #fff; }
-      header { background: #0f172a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      thead th { background: #1e293b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .kpi-card, .recommendation, .platform-card, .reallocation-box { box-shadow: none; }
-      .section { page-break-inside: avoid; }
-    }
-
-    @media (max-width: 640px) {
-      .kpi-grid { grid-template-columns: 1fr 1fr; }
-      .platform-comparison-grid { grid-template-columns: 1fr; }
-      .header-inner { flex-direction: column; }
-      .underperformer-metrics { flex-direction: column; gap: 6px; }
-    }
-  </style>
+  <link rel="stylesheet" href="/static/report.css">
 </head>
 <body>
 
@@ -384,8 +13,14 @@
   <div class="container">
     <div class="header-inner">
       <div class="header-title">
-        <h1>Ad Performance Audit</h1>
-        <p>Generated {{ generated_at }}{% if compare_mode %} &nbsp;|&nbsp; Period Comparison Active{% endif %}</p>
+        {% if branding and branding.agency_logo %}
+          <img src="{{ branding.agency_logo }}" alt="{{ branding.agency_name or 'Agency' }}" style="max-height:40px;max-width:160px;object-fit:contain;margin-bottom:8px;display:block;">
+        {% endif %}
+        <h1>Ad Performance Audit{% if branding and branding.client_name %} &mdash; {{ branding.client_name }}{% endif %}</h1>
+        <p>
+          {% if branding and branding.agency_name %}{{ branding.agency_name }} &nbsp;|&nbsp; {% endif %}
+          Generated {{ generated_at }}{% if compare_mode %} &nbsp;|&nbsp; Period Comparison Active{% endif %}
+        </p>
       </div>
       <div class="platform-badges">
         {% for p in platforms %}
@@ -934,6 +569,36 @@
       {{ reallocation | safe }}
     </div>
   </div>
+
+  {% if forecast_narrative %}
+  <!-- FORECAST -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📈</span> What to Expect Next</div>
+    <div class="markdown-content" style="padding:16px;">
+      {{ forecast_narrative | safe }}
+    </div>
+    {% if forecast_account %}
+    <div style="display:flex;gap:24px;flex-wrap:wrap;padding:0 16px 16px;">
+      <div style="background:var(--c-bg-2,#f8fafc);border-radius:8px;padding:12px 20px;text-align:center;min-width:120px;">
+        <div style="font-size:11px;color:var(--c-text-4,#888);text-transform:uppercase;letter-spacing:.05em;">Proj. Spend</div>
+        <div style="font-size:18px;font-weight:700;color:var(--c-text,#1a202c);">{{ forecast_sym }}{{ "{:,.0f}".format(forecast_account.proj_spend) }}</div>
+      </div>
+      <div style="background:var(--c-bg-2,#f8fafc);border-radius:8px;padding:12px 20px;text-align:center;min-width:120px;">
+        <div style="font-size:11px;color:var(--c-text-4,#888);text-transform:uppercase;letter-spacing:.05em;">Proj. ROAS</div>
+        <div style="font-size:18px;font-weight:700;color:var(--c-text,#1a202c);">{{ forecast_account.proj_roas }}x</div>
+      </div>
+      <div style="background:var(--c-bg-2,#f8fafc);border-radius:8px;padding:12px 20px;text-align:center;min-width:120px;">
+        <div style="font-size:11px;color:var(--c-text-4,#888);text-transform:uppercase;letter-spacing:.05em;">Proj. Conversions</div>
+        <div style="font-size:18px;font-weight:700;color:var(--c-text,#1a202c);">{{ "{:,.0f}".format(forecast_account.proj_conversions) }}</div>
+      </div>
+      <div style="background:var(--c-bg-2,#f8fafc);border-radius:8px;padding:12px 20px;text-align:center;min-width:120px;">
+        <div style="font-size:11px;color:var(--c-text-4,#888);text-transform:uppercase;letter-spacing:.05em;">Horizon</div>
+        <div style="font-size:18px;font-weight:700;color:var(--c-text,#1a202c);">{{ forecast_account.horizon_days }}D</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
 
 </div>
 

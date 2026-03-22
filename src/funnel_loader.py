@@ -66,7 +66,7 @@ def _to_numeric_col(df: pd.DataFrame, col: str) -> pd.Series:
     ).fillna(0)
 
 
-def load_funnel(filepath: str, return_report: bool = False) -> dict:
+def load_funnel(filepath: str, return_report: bool = False, pre_rename: dict = None) -> dict:
     """
     Load funnel CSV and return a structured dict:
     {
@@ -75,12 +75,13 @@ def load_funnel(filepath: str, return_report: bool = False) -> dict:
         "campaign_data": {campaign_name: {leads, mqls, sqls, customers}},  # if campaign-level
         "aggregate": {leads, mqls, sqls, customers},  # always present (totals)
     }
+    pre_rename: optional dict {original_col_name: canonical_col_name} applied before fuzzy matching.
     """
     path = Path(filepath)
     if not path.exists():
         raise FileNotFoundError(f"Funnel file not found: {filepath}")
 
-    df, report_lines = clean_funnel(filepath)
+    df, report_lines = clean_funnel(filepath, pre_rename=pre_rename)
     cleaning_report = format_cleaning_report(report_lines, "Funnel")
 
     join_level = _detect_join_level(df)

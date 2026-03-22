@@ -49,9 +49,10 @@ Currency: use the currency symbol provided."""
 def run_budget_agent(analysis_data: dict, rules: dict,
                      client_id: int, conn,
                      currency: str = "INR",
-                     business_context: str = "") -> tuple[dict, str, bool]:
-    rule_recs = _compute_rule_based(analysis_data, rules)
-    payload = _build_payload(analysis_data, rules, rule_recs, currency)
+                     business_context: str = "",
+                     campaign_tags: dict = None) -> tuple[dict, str, bool]:
+    rule_recs = _compute_rule_based(analysis_data, rules, campaign_tags=campaign_tags or {})
+    payload = _build_payload(analysis_data, rules, rule_recs, currency, campaign_tags=campaign_tags or {})
     context_section = (
         f"\n\nBusiness Context (use this to interpret campaign intent and budget priorities):\n{business_context.strip()}"
         if business_context and business_context.strip() else ""
@@ -61,20 +62,27 @@ def run_budget_agent(analysis_data: dict, rules: dict,
     try:
         result = subprocess.run(
             ["claude", "--print", prompt],
-            capture_output=True, text=True, timeout=90
+            capture_output=True, text=True, encoding="utf-8", timeout=90
         )
         if result.returncode == 0 and result.stdout.strip():
             parsed = _parse_claude_output(result.stdout.strip(), rule_recs)
             return parsed, result.stdout.strip(), True
-    except Exception:
-        pass
+        else:
+            import logging
+            logging.getLogger("adlens").warning(
+                "Budget agent Claude call failed (rc=%s): %s",
+                result.returncode, result.stderr.strip() if result.stderr else "no output"
+            )
+    except Exception as e:
+        import logging
+        logging.getLogger("adlens").warning("Budget agent Claude call exception: %s", e)
 
     explanation = _fallback_explanation(rule_recs, rules, currency)
     return rule_recs, explanation, False
 
 
 def _build_payload(analysis_data: dict, rules: dict,
-                   rule_recs: dict, currency: str) -> dict:
+                   rule_recs: dict, currency: str, campaign_tags: dict = None) -> dict:
     payload: dict = {
         "currency": currency,
         "rules": {
@@ -83,10 +91,12 @@ def _build_payload(analysis_data: dict, rules: dict,
             "google_min_cpl": rules.get("google_min_cpl"),
             "meta_min_cpl": rules.get("meta_min_cpl"),
             "max_shift_pct": rules.get("max_shift_pct", 20.0),
+            "type_overrides": rules.get("type_overrides", []),
         },
         "pre_computed_violations": rule_recs.get("violations", []),
         "campaigns": {},
     }
+    tags = campaign_tags or {}
     for platform in ["google", "meta"]:
         pdata = analysis_data.get(platform)
         if pdata:
@@ -99,13 +109,34 @@ def _build_payload(analysis_data: dict, rules: dict,
                     "ctr":       c["ctr"],
                     "severity":  c["severity"],
                     "wasted":    c["wasted"],
+                    "type_tag":  tags.get(c["name"].lower().strip(), ""),
                 }
                 for c in pdata.get("campaigns", [])
             ]
     return payload
 
 
-def _compute_rule_based(analysis_data: dict, rules: dict) -> dict:
+def _get_campaign_thresholds(campaign_name: str, platform: str, rules: dict) -> tuple:
+    """
+    Return (min_roas, min_cpl) for a campaign, applying type_overrides if the
+    campaign name contains a keyword matching an override entry.
+    Falls back to platform-level defaults.
+    """
+    base_roas = rules.get(f"{platform}_min_roas", 2.0)
+    base_cpl  = rules.get(f"{platform}_min_cpl")
+    name_lower = campaign_name.lower()
+
+    for override in (rules.get("type_overrides") or []):
+        keyword = (override.get("keyword") or "").strip().lower()
+        if keyword and keyword in name_lower:
+            return (
+                override.get("min_roas", base_roas),
+                override.get("min_cpl", base_cpl),
+            )
+    return base_roas, base_cpl
+
+
+def _compute_rule_based(analysis_data: dict, rules: dict, campaign_tags: dict = None) -> dict:
     violations = []
     winners = []
     recommendations = []
@@ -116,12 +147,18 @@ def _compute_rule_based(analysis_data: dict, rules: dict) -> dict:
         pdata = analysis_data.get(platform)
         if not pdata:
             continue
-        min_roas = rules.get(f"{platform}_min_roas", 2.0)
-        min_cpl  = rules.get(f"{platform}_min_cpl")
 
+        tags = campaign_tags or {}
         for c in pdata.get("campaigns", []):
+            # Skip campaigns tagged as brand/test - they have intentionally different metrics
+            tag = tags.get(c["name"].lower().strip(), "")
+            if tag in ("brand", "test"):
+                continue
+            min_roas, min_cpl = _get_campaign_thresholds(c["name"], platform, rules)
             roas_ok = c["roas"] >= min_roas
-            cpl_ok  = (min_cpl is None) or (c["cac"] <= min_cpl) or (c["cac"] == 0)
+            # cac == 0 means no conversions recorded (safe_divide result), not a good CPL
+            # Only skip the CPL check when there is genuinely no CPL threshold set
+            cpl_ok  = (min_cpl is None) or (c["cac"] > 0 and c["cac"] <= min_cpl)
 
             if not roas_ok or not cpl_ok:
                 reason_parts = []
@@ -234,7 +271,7 @@ def format_reallocation_table(recs: dict, currency: str = "INR") -> str:
         </tr>""")
 
     return f"""
-    <table class="data-table">
+    <table>
       <thead>
         <tr>
           <th>Campaign</th><th>Platform</th><th>Action</th>

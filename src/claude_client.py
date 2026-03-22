@@ -53,6 +53,10 @@ As many as the data warrants. Each must:
 - State the specific metric to improve
 - Give a concrete action to take
 - Be achievable within 2 weeks
+- Include a confidence score in brackets: [Confidence: High], [Confidence: Medium], or [Confidence: Low]
+  - High: clear data signal, direct causation, well-established best practice
+  - Medium: likely cause but requires testing to confirm, or limited data
+  - Low: hypothesis based on partial data, or multiple possible explanations
 - For Meta: recommend at ad set level (audience, placement, budget) when ad set data is present
 - For Google: recommend at keyword level (match type, bid, negative keywords) when keyword data is present
 - If GA4 data is present: include recommendations that address on-site behavior (bounce rate, session quality, landing page relevance)
@@ -67,6 +71,7 @@ def is_claude_available() -> bool:
             ["claude", "--version"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=10
         )
         return result.returncode == 0
@@ -106,6 +111,7 @@ def analyze(analysis_data: dict, business_context: str = "") -> tuple[str, bool]
             ["claude", "--print", full_prompt],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=90
         )
         if result.returncode == 0 and result.stdout.strip():
@@ -212,21 +218,46 @@ def fallback_template(data: dict) -> str:
 
     lines.append("## Recommendations")
     critical_all = []
+    warning_all = []
+    has_google = bool(data.get("google"))
+    has_meta = bool(data.get("meta"))
+    has_funnel = bool(data.get("funnel_summary") and data["funnel_summary"].get("stages_available"))
+    has_ga4 = any(
+        c.get("ga") for platform in platforms
+        for c in (data.get(platform) or {}).get("campaigns", [])
+    )
+    has_keywords = bool(data.get("granularity_level") in ("keyword", "ad_group"))
+
     for platform in platforms:
         pdata = data.get(platform, {})
         if pdata:
             for c in pdata.get("campaigns", []):
                 if c["severity"] == "critical":
                     critical_all.append((platform, c))
+                elif c["severity"] == "warning":
+                    warning_all.append((platform, c))
 
     recs = []
     if critical_all:
         c = critical_all[0][1]
-        recs.append(f"**Pause {c['name']}** - ROAS is {c['roas']}x. Pause immediately and audit audience targeting before reactivating.")
-    recs.append("**Review keyword match types** - Broad match keywords often drive irrelevant traffic. Switch to phrase or exact match on low-ROAS campaigns.")
-    recs.append("**Implement bid strategies** - Use Target ROAS bidding on campaigns with 30+ conversions/month to let the algorithm optimize.")
-    recs.append("**Tighten audience segments** - Exclude users who bounced within 5 seconds. Build lookalikes from your top 10% of converters.")
-    recs.append("**A/B test ad creatives** - Run 3 ad variants per campaign. Pause underperformers after 1000 impressions.")
+        recs.append(f"**Pause {c['name']}** ({critical_all[0][0].title()}) - ROAS is {c['roas']}x. Pause immediately and audit targeting before reactivating. [Confidence: High]")
+    if warning_all:
+        c = warning_all[0][1]
+        recs.append(f"**Reduce budget on {c['name']}** ({warning_all[0][0].title()}) - ROAS {c['roas']}x is below target. Cut spend by 25% while testing optimizations. [Confidence: High]")
+    if has_keywords:
+        recs.append("**Review keyword match types** - Switch broad match keywords on low-ROAS campaigns to phrase or exact match to reduce irrelevant traffic. [Confidence: Medium]")
+    if has_google and not has_keywords:
+        recs.append("**Upload keyword-level data** - Run a search terms report in Google Ads and upload for more specific recommendations. [Confidence: High]")
+    if has_ga4:
+        recs.append("**Address high bounce rates** - Campaigns with bounce rate above 70% likely have landing page or audience mismatch. Review and align ad copy with landing page. [Confidence: Medium]")
+    if has_funnel:
+        recs.append("**Focus on funnel leakage** - Identify the stage with the worst conversion rate and invest in fixing it before scaling spend. [Confidence: Medium]")
+    if has_google:
+        recs.append("**Enable Target ROAS bidding** - For Google campaigns with 30+ conversions/month, switch to Target ROAS to let Smart Bidding optimize toward your goal. [Confidence: Medium]")
+    if has_meta:
+        recs.append("**Test broad audience targeting** - Meta's Advantage+ Audiences often outperform narrow interest targeting. Run a 30-day test with Advantage+ enabled. [Confidence: Low]")
+    if not recs:
+        recs.append("**Upload additional data** - Connect GA4 data, keyword reports, or funnel data for more specific recommendations. [Confidence: High]")
 
     for i, rec in enumerate(recs, 1):
         lines.append(f"{i}. {rec}")

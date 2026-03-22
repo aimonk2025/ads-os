@@ -30,29 +30,30 @@ def validate_columns(df: pd.DataFrame, required: list, source: str) -> None:
         )
 
 
-def load_google_ads(filepath: str) -> pd.DataFrame:
+def load_google_ads(filepath: str, pre_rename: dict = None) -> pd.DataFrame:
     """Load and clean Google Ads CSV. Raises on unrecoverable errors."""
     path = Path(filepath)
     if not path.exists():
         raise FileNotFoundError(f"Google Ads file not found: {filepath}")
 
-    df, _ = clean_google_ads(filepath)
+    df, _ = clean_google_ads(filepath, pre_rename=pre_rename)
     validate_columns(df, GOOGLE_REQUIRED_COLUMNS, "Google Ads")
     return df
 
 
-def load_google_ads_with_report(filepath: str) -> tuple:
+def load_google_ads_with_report(filepath: str, pre_rename: dict = None) -> tuple:
     """
     Load and clean Google Ads CSV.
     Returns (campaign_df, cleaning_report, gran_result) where:
       - campaign_df is aggregated to campaign level (safe for metrics)
       - gran_result is the full granularity dict with keyword_df, adgroup_df, etc.
+    pre_rename: optional dict {original_col_name: canonical_col_name} applied before fuzzy matching.
     """
     path = Path(filepath)
     if not path.exists():
         raise FileNotFoundError(f"Google Ads file not found: {filepath}")
 
-    df, report_lines = clean_google_ads(filepath)
+    df, report_lines = clean_google_ads(filepath, pre_rename=pre_rename)
     validate_columns(df, GOOGLE_REQUIRED_COLUMNS, "Google Ads")
     cleaning_report = format_cleaning_report(report_lines, "Google Ads")
 
@@ -62,27 +63,28 @@ def load_google_ads_with_report(filepath: str) -> tuple:
     return campaign_df, cleaning_report, gran
 
 
-def load_meta_ads(filepath: str) -> pd.DataFrame:
+def load_meta_ads(filepath: str, pre_rename: dict = None) -> pd.DataFrame:
     """Load and clean Meta Ads CSV. Raises on unrecoverable errors."""
     path = Path(filepath)
     if not path.exists():
         raise FileNotFoundError(f"Meta Ads file not found: {filepath}")
 
-    df, _ = clean_meta_ads(filepath)
+    df, _ = clean_meta_ads(filepath, pre_rename=pre_rename)
     validate_columns(df, META_REQUIRED_COLUMNS, "Meta Ads")
     return df
 
 
-def load_meta_ads_with_report(filepath: str) -> tuple:
+def load_meta_ads_with_report(filepath: str, pre_rename: dict = None) -> tuple:
     """
     Load and clean Meta Ads CSV.
     Returns (campaign_df, cleaning_report, gran_result).
+    pre_rename: optional dict {original_col_name: canonical_col_name} applied before fuzzy matching.
     """
     path = Path(filepath)
     if not path.exists():
         raise FileNotFoundError(f"Meta Ads file not found: {filepath}")
 
-    df, report_lines = clean_meta_ads(filepath)
+    df, report_lines = clean_meta_ads(filepath, pre_rename=pre_rename)
     validate_columns(df, META_REQUIRED_COLUMNS, "Meta Ads")
     cleaning_report = format_cleaning_report(report_lines, "Meta Ads")
 
