@@ -1,7 +1,7 @@
-Campaign name,Impressions,Clicks,Amount spent,Results,Purchase ROAS
-Awareness - Lookalike Audience,82000,1640,51000,9,0.35
-Retargeting - Website Visitors,30000,1200,38000,48,2.94
-Conversion - Cold Traffic,55000,1650,72000,28,1.31
-Lead Gen - Free Trial,24000,720,31000,82,2.61
-Video Views - Brand Story,132000,1980,22000,6,0.54
-Catalog Sales - Top Products,38000,1520,57000,64,3.62
+Campaign name,Impressions,Reach,Frequency,Clicks,Amount spent,Results,Purchase ROAS,Purchase value
+Awareness - Lookalike Audience,82000,48000,1.71,1640,561000,99,0.35,196350
+Retargeting - Website Visitors,30000,8600,3.49,1200,418000,528,2.94,1228920
+Conversion - Cold Traffic,55000,34000,1.62,1650,792000,308,1.31,1037520
+Lead Gen - Free Trial,24000,16200,1.48,720,341000,902,2.61,890010
+Video Views - Brand Story,132000,76000,1.74,1980,242000,66,0.54,130680
+Catalog Sales - Top Products,38000,9800,3.88,1520,627000,704,3.62,2269740

@@ -245,8 +245,17 @@ def merge_ga4_into_campaigns(campaigns: list, ga_result: dict) -> list:
     enriched = []
     for c in campaigns:
         match = _find_match(c["name"])
+        users     = int(match["users"]) if "users" in match else None
+        new_users = int(match["new_users"]) if "new_users" in match else None
+        returning_users = (users - new_users) if (users is not None and new_users is not None) else None
+        pct_new = round(new_users / users * 100, 1) if (users and new_users is not None) else None
+
         ga = {
             "sessions": int(match["sessions"]) if "sessions" in match else None,
+            "users": users,
+            "new_users": new_users,
+            "returning_users": returning_users,
+            "pct_new_users": pct_new,
             "engaged_sessions": int(match["engaged_sessions"]) if "engaged_sessions" in match else None,
             "bounce_rate": round(float(match["bounce_rate"]), 1) if "bounce_rate" in match else None,
             "avg_session_duration": round(float(match["avg_session_duration"]), 1) if "avg_session_duration" in match else None,
@@ -254,12 +263,10 @@ def merge_ga4_into_campaigns(campaigns: list, ga_result: dict) -> list:
             "ga_revenue": round(float(match["revenue"]), 2) if "revenue" in match else None,
             "pages_per_session": round(float(match["pages_per_session"]), 2) if "pages_per_session" in match else None,
         }
-        # Cost per session
+        # Derived metrics
         spend = c.get("spend") or 0
-        if ga["sessions"] and spend:
-            ga["cost_per_session"] = round(spend / ga["sessions"], 2)
-        else:
-            ga["cost_per_session"] = None
+        ga["cost_per_session"] = round(spend / ga["sessions"], 2) if (ga["sessions"] and spend) else None
+        ga["cost_per_new_user"] = round(spend / new_users, 2) if (new_users and spend) else None
 
         enriched.append({**c, "ga": ga})
 

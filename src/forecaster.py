@@ -269,7 +269,9 @@ def generate_forecast_narrative(forecast: dict, client_name: str, currency: str)
             capture_output=True, text=True, encoding="utf-8", timeout=60
         )
         if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
+            import re as _re
+            cleaned = _re.sub(r"^#{1,4}\s+.+\n?", "", result.stdout.strip(), flags=_re.MULTILINE).strip()
+            return cleaned
     except Exception:
         pass
 

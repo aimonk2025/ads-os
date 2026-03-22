@@ -90,6 +90,12 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
             cpc              DOUBLE,
             severity         VARCHAR,
             wasted_spend     DOUBLE,
+            reach            DOUBLE,
+            frequency        DOUBLE,
+            new_users        DOUBLE,
+            returning_users  DOUBLE,
+            pct_new_users    DOUBLE,
+            cost_per_new_user DOUBLE,
             uploaded_at      TIMESTAMP NOT NULL DEFAULT now()
         );
 
@@ -453,6 +459,17 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
         """)
         conn.commit()
 
+    # Column migrations for campaigns table
+    existing_cols = {row[0] for row in conn.execute("DESCRIBE campaigns").fetchall()}
+    for col, dtype in [
+        ("reach", "DOUBLE"), ("frequency", "DOUBLE"),
+        ("new_users", "DOUBLE"), ("returning_users", "DOUBLE"),
+        ("pct_new_users", "DOUBLE"), ("cost_per_new_user", "DOUBLE"),
+    ]:
+        if col not in existing_cols:
+            conn.execute(f"ALTER TABLE campaigns ADD COLUMN {col} {dtype}")
+    conn.commit()
+
     # onboarding_status migration
     existing_tables = {r[0] for r in conn.execute("SHOW TABLES").fetchall()}
     if 'onboarding_status' not in existing_tables:
@@ -632,6 +649,7 @@ def insert_campaigns(conn, upload_id: int, client_id: int,
                      platform: str, campaigns: list) -> None:
     rows = []
     for c in campaigns:
+        ga = c.get("ga") or {}
         rows.append([
             upload_id, client_id, platform,
             c.get("name", ""),
@@ -641,13 +659,18 @@ def insert_campaigns(conn, upload_id: int, client_id: int,
             c.get("roas"), c.get("cac"), c.get("ctr"),
             c.get("cpc"), c.get("severity"),
             c.get("wasted", 0),
+            c.get("reach"), c.get("frequency"),
+            ga.get("new_users"), ga.get("returning_users"),
+            ga.get("pct_new_users"), ga.get("cost_per_new_user"),
         ])
     conn.executemany("""
         INSERT INTO campaigns (
             upload_id, client_id, platform, campaign_name,
             impressions, clicks, spend, conversions, conversion_value,
-            roas, cac, ctr, cpc, severity, wasted_spend
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            roas, cac, ctr, cpc, severity, wasted_spend,
+            reach, frequency, new_users, returning_users,
+            pct_new_users, cost_per_new_user
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     """, rows)
     conn.commit()
 

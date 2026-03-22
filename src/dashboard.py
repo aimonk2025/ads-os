@@ -179,6 +179,9 @@ def get_dashboard_data(conn, client_id: int, date_range: str = "30") -> dict:
     else:
         pl["gross_margin_pct"] = 0
 
+    # --- Audience Intelligence: reach, frequency, new/returning users ---
+    audience = _get_audience_signals(conn, client_id, date_filter)
+
     return {
         "kpi":            _clean(kpi),
         "deltas":         deltas,
@@ -188,6 +191,95 @@ def get_dashboard_data(conn, client_id: int, date_range: str = "30") -> dict:
         "funnel":         _clean(funnel),
         "pl":             pl,
         "date_range":     date_range,
+        "audience":       audience,
+    }
+
+
+def _get_audience_signals(conn, client_id: int, date_filter: str) -> dict:
+    """
+    Pull reach, frequency (Meta) and new/returning users (GA4) from campaigns table.
+    Returns structured signals for the Audience Intelligence panel.
+    """
+    # Meta reach & frequency per campaign
+    meta_reach = _q(conn, f"""
+        SELECT
+            campaign_name,
+            SUM(spend)       AS spend,
+            SUM(reach)       AS reach,
+            AVG(frequency)   AS frequency,
+            SUM(conversions) AS conversions,
+            CASE WHEN SUM(reach) > 0
+                 THEN SUM(impressions)::DOUBLE / SUM(reach)
+                 ELSE NULL END AS calc_frequency
+        FROM campaigns c
+        JOIN uploads u ON c.upload_id = u.id
+        WHERE c.client_id = ?
+          AND c.platform = 'meta'
+          AND c.reach IS NOT NULL
+          {date_filter}
+        GROUP BY campaign_name
+        ORDER BY frequency DESC NULLS LAST
+    """, [client_id])
+
+    # New vs returning users per campaign (GA4)
+    user_split = _q(conn, f"""
+        SELECT
+            campaign_name,
+            platform,
+            spend,
+            new_users,
+            returning_users,
+            pct_new_users,
+            cost_per_new_user
+        FROM campaigns c
+        JOIN uploads u ON c.upload_id = u.id
+        WHERE c.client_id = ?
+          AND c.new_users IS NOT NULL
+          {date_filter}
+        ORDER BY spend DESC
+        LIMIT 15
+    """, [client_id])
+
+    # Account-level new vs returning totals
+    user_totals = _q1(conn, f"""
+        SELECT
+            SUM(new_users)       AS total_new_users,
+            SUM(returning_users) AS total_returning_users,
+            SUM(spend)           AS spend_with_user_data,
+            CASE WHEN SUM(new_users) + SUM(returning_users) > 0
+                 THEN ROUND(SUM(new_users)::DOUBLE / (SUM(new_users) + SUM(returning_users)) * 100, 1)
+                 ELSE NULL END AS pct_new
+        FROM campaigns c
+        JOIN uploads u ON c.upload_id = u.id
+        WHERE c.client_id = ?
+          AND c.new_users IS NOT NULL
+          {date_filter}
+    """, [client_id]) or {}
+
+    # Frequency fatigue alerts: campaigns with frequency > 3.0
+    fatigue_alerts = [
+        {**_clean(r), "action": "Refresh creative or pause — audience has seen this ad {:.1f}x on average.".format(r.get("frequency") or r.get("calc_frequency") or 0)}
+        for r in meta_reach
+        if (r.get("frequency") or r.get("calc_frequency") or 0) >= 3.0
+    ]
+
+    # Retargeting spend masquerading as acquisition (pct_new_users < 20% but not a retargeting campaign by name)
+    misclassified = []
+    for r in user_split:
+        pct = r.get("pct_new_users") or 0
+        name = (r.get("campaign_name") or "").lower()
+        is_retargeting = any(kw in name for kw in ["retarget", "remarketing", "cart", "abandon", "returning", "existing"])
+        if pct < 20 and not is_retargeting:
+            misclassified.append({**_clean(r), "flag": "Mostly returning users ({:.0f}% new) — budget may be retargeting, not acquiring.".format(pct)})
+
+    return {
+        "meta_reach": [_clean(r) for r in meta_reach],
+        "user_split": [_clean(r) for r in user_split],
+        "user_totals": _clean(user_totals),
+        "fatigue_alerts": fatigue_alerts,
+        "misclassified_spend": misclassified,
+        "has_reach_data": len(meta_reach) > 0,
+        "has_user_data": bool(user_totals.get("total_new_users")),
     }
 
 

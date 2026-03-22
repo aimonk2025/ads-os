@@ -769,11 +769,28 @@
   }
 
   /* ---- Report iframe ---- */
+  #section-report {
+    padding: 0;
+    display: none;
+    flex-direction: column;
+    height: calc(100vh - 56px);
+  }
+  #section-report.active {
+    display: flex;
+  }
+  #section-report #report-preview-wrap {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: 100%;
+    min-height: 0;
+  }
   #section-report .report-iframe-container {
     border-radius: 0;
     border: none;
-    height: 100%;
     flex: 1;
+    height: 100%;
+    min-height: 0;
   }
   .report-iframe-container {
     background: var(--white);
@@ -798,6 +815,7 @@
   .report-iframe-container iframe {
     width: 100%;
     flex: 1;
+    min-height: 0;
     border: none;
     display: block;
   }
@@ -1790,6 +1808,58 @@
             <div id="dash-pl-waterfall"></div>
           </div>
 
+          <!-- Audience Intelligence -->
+          <div id="dash-audience-panel" style="margin-top:20px;display:none;">
+            <div class="dash-chart-title" style="margin-bottom:16px;">Audience Intelligence</div>
+
+            <!-- Signal cards row -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:20px;" id="dash-audience-signals"></div>
+
+            <!-- Frequency fatigue alerts -->
+            <div id="dash-fatigue-wrap" style="display:none;">
+              <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Creative Fatigue Alerts</div>
+              <div id="dash-fatigue-list"></div>
+            </div>
+
+            <!-- New vs Returning per campaign -->
+            <div id="dash-user-split-wrap" style="display:none;margin-top:16px;">
+              <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">New vs Returning Users — by Campaign</div>
+              <table class="data-table" id="dash-user-split-table">
+                <thead>
+                  <tr>
+                    <th>Campaign</th>
+                    <th>Platform</th>
+                    <th>Spend</th>
+                    <th>New Users</th>
+                    <th>Returning</th>
+                    <th>% New</th>
+                    <th>Cost / New User</th>
+                    <th>Signal</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-user-split-body"></tbody>
+              </table>
+            </div>
+
+            <!-- Reach & Frequency table (Meta) -->
+            <div id="dash-reach-wrap" style="display:none;margin-top:16px;">
+              <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Reach &amp; Frequency — Meta Campaigns</div>
+              <table class="data-table" id="dash-reach-table">
+                <thead>
+                  <tr>
+                    <th>Campaign</th>
+                    <th>Spend</th>
+                    <th>Reach</th>
+                    <th>Frequency</th>
+                    <th>Conversions</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="dash-reach-body"></tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- Top campaigns -->
           <div class="dash-card" style="margin-top:20px;">
             <div class="dash-chart-title">Top Campaigns by Spend</div>
@@ -1852,16 +1922,16 @@
           <div class="dash-chart-card" style="margin-top:24px;">
             <div class="dash-chart-title">Campaign Projections</div>
             <div style="overflow-x:auto;">
-              <table class="audit-table" id="forecast-campaigns-table">
+              <table id="forecast-campaigns-table" style="width:100%;border-collapse:collapse;font-size:13px;">
                 <thead>
-                  <tr>
-                    <th>Campaign</th>
-                    <th>Platform</th>
-                    <th>Proj. Spend</th>
-                    <th>Proj. ROAS</th>
-                    <th>Proj. CPA</th>
-                    <th>Trend</th>
-                    <th>Periods</th>
+                  <tr style="border-bottom:2px solid var(--border);">
+                    <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:600;letter-spacing:0.06em;color:var(--muted);text-transform:uppercase;white-space:nowrap;">Campaign</th>
+                    <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:600;letter-spacing:0.06em;color:var(--muted);text-transform:uppercase;white-space:nowrap;">Platform</th>
+                    <th style="text-align:right;padding:10px 12px;font-size:11px;font-weight:600;letter-spacing:0.06em;color:var(--muted);text-transform:uppercase;white-space:nowrap;">Proj. Spend</th>
+                    <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:600;letter-spacing:0.06em;color:var(--muted);text-transform:uppercase;white-space:nowrap;">Proj. ROAS</th>
+                    <th style="text-align:right;padding:10px 12px;font-size:11px;font-weight:600;letter-spacing:0.06em;color:var(--muted);text-transform:uppercase;white-space:nowrap;">Proj. CPA</th>
+                    <th style="text-align:center;padding:10px 12px;font-size:11px;font-weight:600;letter-spacing:0.06em;color:var(--muted);text-transform:uppercase;white-space:nowrap;">Trend</th>
+                    <th style="text-align:center;padding:10px 12px;font-size:11px;font-weight:600;letter-spacing:0.06em;color:var(--muted);text-transform:uppercase;white-space:nowrap;">Periods</th>
                   </tr>
                 </thead>
                 <tbody id="forecast-campaigns-body"></tbody>
@@ -3393,6 +3463,7 @@ function navigate(section) {
   if (section === 'settings') loadSettingsClients();
   if (section === 'overview') loadOverview();
   if (section === 'actions') loadActionPlan();
+  if (section === 'report') loadLatestReport();
 }
 
 // ============================================================
@@ -4513,9 +4584,27 @@ function showUploadScreen() {
 }
 
 function showReportPreview(url) {
+  currentReportUrl = url;
   document.getElementById('report-iframe').src = url;
   document.getElementById('nav-report').style.display = '';
   navigate('report');
+}
+
+async function loadLatestReport() {
+  if (!currentClientId) return;
+  // If already loaded, don't reload
+  const iframe = document.getElementById('report-iframe');
+  if (iframe.src && iframe.src !== 'about:blank' && iframe.src !== window.location.href) return;
+  try {
+    const res = await fetch(`/api/history/${currentClientId}?limit=1`);
+    const data = await res.json();
+    const latest = data.reports?.[0];
+    if (latest?.report_url) {
+      currentReportUrl = latest.report_url;
+      iframe.src = latest.report_url;
+      document.getElementById('nav-report').style.display = '';
+    }
+  } catch(e) { /* no report yet */ }
 }
 
 function downloadReportHtml() {
@@ -6601,13 +6690,14 @@ async function loadDashboard() {
     }
 
     renderDashKPIs(data);
-    renderDashTrendSVG(data.trend);
     renderDashChannelBars(data.channel_split);
     renderDashPlatformTable(data.channel_split);
     renderDashPL(data.pl, data.kpi);
+    renderDashAudience(data.audience);
     renderDashCampaigns(data.top_campaigns);
 
     document.getElementById('dash-content').style.display = '';
+    requestAnimationFrame(() => renderDashTrendSVG(data.trend));
   } catch(e) {
     console.error('Dashboard error', e);
     document.getElementById('dash-no-data').style.display = '';
@@ -6647,10 +6737,9 @@ function renderDashKPIs(data) {
   }).join('');
 }
 
-function dashSVGLine(points, W, H, PAD, color, fillColor) {
-  const vals = points.map(p => p.v);
-  const minV = Math.min(...vals);
-  const maxV = Math.max(...vals);
+function dashSVGLine(points, W, H, PAD, color, fillColor, sharedMin, sharedMax) {
+  const minV = sharedMin !== undefined ? sharedMin : Math.min(...points.map(p => p.v));
+  const maxV = sharedMax !== undefined ? sharedMax : Math.max(...points.map(p => p.v));
   const range = maxV - minV || 1;
   const cW = W - PAD.l - PAD.r;
   const cH = H - PAD.t - PAD.b;
@@ -6666,27 +6755,40 @@ function renderDashTrendSVG(trend) {
   wrap.innerHTML = '';
   if (!trend || trend.length < 2) { wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px 0;">Not enough data points to render trend.</div>'; return; }
 
-  const W = wrap.clientWidth || 500;
-  const H = 200;
-  const PAD = { l: 60, r: 16, t: 16, b: 36 };
+  const W = wrap.getBoundingClientRect().width || wrap.offsetWidth || 800;
+  const H = 260;
+  const PAD = { l: 60, r: 24, t: 16, b: 36 };
 
   const spendPoints = trend.map(t => ({ v: t.spend || 0, label: t.label || t.period_date || '' }));
   const revPoints   = trend.map(t => ({ v: t.revenue || 0, label: t.label || '' }));
 
-  const s = dashSVGLine(spendPoints, W, H, PAD, '#3b82f6', 'rgba(59,130,246,0.08)');
-  const r = dashSVGLine(revPoints, W, H, PAD, '#16a34a', 'rgba(22,163,74,0.08)');
+  // Shared Y scale across both series so lines are comparable
+  const allVals = [...spendPoints.map(p => p.v), ...revPoints.map(p => p.v)];
+  const sharedMin = 0;
+  const sharedMax = Math.max(...allVals) || 1;
 
+  const s = dashSVGLine(spendPoints, W, H, PAD, '#3b82f6', 'rgba(59,130,246,0.08)', sharedMin, sharedMax);
+  const r = dashSVGLine(revPoints, W, H, PAD, '#16a34a', 'rgba(22,163,74,0.08)', sharedMin, sharedMax);
+
+  // Show at most 6 evenly-spaced labels to avoid crowding
+  const maxLabels = 6;
+  const step = Math.max(1, Math.ceil(spendPoints.length / maxLabels));
   const xLabels = spendPoints.map((p, i) => {
+    if (i % step !== 0 && i !== spendPoints.length - 1) return '';
     const x = PAD.l + (i / Math.max(spendPoints.length - 1, 1)) * (W - PAD.l - PAD.r);
-    return `<text x="${x}" y="${H - 8}" text-anchor="middle" font-size="10" fill="#94a3b8">${p.label}</text>`;
+    // Shorten label: if it's a date string like "2026-03-21" show "Mar 21"
+    let lbl = p.label;
+    const dateMatch = String(lbl).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (dateMatch) {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      lbl = months[parseInt(dateMatch[2]) - 1] + ' ' + parseInt(dateMatch[3]);
+    }
+    return `<text x="${x}" y="${H - 8}" text-anchor="middle" font-size="10" fill="#94a3b8">${lbl}</text>`;
   }).join('');
 
   const sym = getCurrencySymbol();
   const yVals = [0, 1, 2, 3].map(i => {
-    const combined = [...spendPoints.map(p => p.v), ...revPoints.map(p => p.v)];
-    const minAll = Math.min(...combined);
-    const maxAll = Math.max(...combined);
-    const v = minAll + (maxAll - minAll) * (i / 3);
+    const v = sharedMin + (sharedMax - sharedMin) * (i / 3);
     const y = PAD.t + (1 - i / 3) * (H - PAD.t - PAD.b);
     return `<text x="${PAD.l - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="#94a3b8">${sym}${fmtNum(v)}</text>
             <line x1="${PAD.l}" y1="${y}" x2="${W - PAD.r}" y2="${y}" stroke="#e2e8f0" stroke-width="1"/>`;
@@ -6706,6 +6808,163 @@ function renderDashTrendSVG(trend) {
     <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:3px;background:#3b82f6;display:inline-block;border-radius:2px;"></span>Spend</span>
     <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:3px;background:#16a34a;display:inline-block;border-radius:2px;"></span>Revenue</span>
   </div>`;
+}
+
+function renderDashAudience(audience) {
+  const panel = document.getElementById('dash-audience-panel');
+  if (!audience || (!audience.has_reach_data && !audience.has_user_data)) {
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = '';
+  const sym = getCurrencySymbol();
+
+  // --- Signal summary cards ---
+  const signals = [];
+
+  if (audience.has_user_data) {
+    const t = audience.user_totals || {};
+    const pctNew = t.pct_new || 0;
+    const pctRet = 100 - pctNew;
+    const newColor = pctNew >= 50 ? '#16a34a' : pctNew >= 30 ? '#f59e0b' : '#ef4444';
+    signals.push(`
+      <div class="dash-card" style="padding:20px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Audience Composition</div>
+        <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;">
+          <div style="font-size:2rem;font-weight:700;color:${newColor};line-height:1;">${pctNew.toFixed(0)}%</div>
+          <div style="font-size:13px;color:var(--muted);padding-bottom:4px;">New Users</div>
+        </div>
+        <div style="height:8px;background:var(--surface);border-radius:4px;overflow:hidden;margin-bottom:8px;">
+          <div style="height:100%;width:${pctNew}%;background:${newColor};border-radius:4px;transition:width .4s;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);">
+          <span>🟢 New: ${fmtNum(t.total_new_users || 0)}</span>
+          <span>🔁 Returning: ${fmtNum(t.total_returning_users || 0)}</span>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--muted);line-height:1.5;">
+          ${pctNew >= 50 ? '✅ Healthy acquisition mix. More than half your traffic is new.' :
+            pctNew >= 30 ? '⚠️ Acquisition is below 50%. Check if budget is weighted towards retargeting.' :
+            '🔴 Under 30% new users. Most spend is hitting existing customers — re-evaluate budget split.'}
+        </div>
+      </div>`);
+  }
+
+  if (audience.has_reach_data) {
+    const totalReach = audience.meta_reach.reduce((s, r) => s + (r.reach || 0), 0);
+    const avgFreq = audience.meta_reach.length
+      ? (audience.meta_reach.reduce((s, r) => s + (r.frequency || 0), 0) / audience.meta_reach.length)
+      : 0;
+    const fatigueCount = (audience.fatigue_alerts || []).length;
+    const freqColor = avgFreq < 2.5 ? '#16a34a' : avgFreq < 3.5 ? '#f59e0b' : '#ef4444';
+    signals.push(`
+      <div class="dash-card" style="padding:20px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Meta Audience Saturation</div>
+        <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;">
+          <div style="font-size:2rem;font-weight:700;color:${freqColor};line-height:1;">${avgFreq.toFixed(1)}x</div>
+          <div style="font-size:13px;color:var(--muted);padding-bottom:4px;">Avg Frequency</div>
+        </div>
+        <div style="font-size:13px;margin-bottom:6px;">Total Reach: <strong>${fmtNum(totalReach)}</strong> unique accounts</div>
+        ${fatigueCount > 0
+          ? `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px 12px;font-size:12px;color:#ef4444;margin-top:8px;">⚠️ ${fatigueCount} campaign${fatigueCount>1?'s':''} showing creative fatigue (freq ≥ 3.0)</div>`
+          : `<div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:8px 12px;font-size:12px;color:#16a34a;margin-top:8px;">✅ No frequency fatigue detected across Meta campaigns</div>`
+        }
+      </div>`);
+  }
+
+  if (audience.misclassified_spend && audience.misclassified_spend.length > 0) {
+    const totalMisSpend = audience.misclassified_spend.reduce((s, r) => s + (r.spend || 0), 0);
+    signals.push(`
+      <div class="dash-card" style="padding:20px;border-left:3px solid #f59e0b;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Budget Allocation Flag</div>
+        <div style="font-size:2rem;font-weight:700;color:#f59e0b;line-height:1;margin-bottom:6px;">${audience.misclassified_spend.length}</div>
+        <div style="font-size:13px;margin-bottom:8px;">campaign${audience.misclassified_spend.length>1?'s':''} flagged as possible retargeting spend</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5;">
+          ${sym}${fmtNum(totalMisSpend)} is going to audiences that are mostly existing users — not net new acquisition.
+        </div>
+        <div style="margin-top:10px;font-size:12px;font-weight:600;color:#f59e0b;">Action: Review campaign objectives and audience targeting.</div>
+      </div>`);
+  }
+
+  document.getElementById('dash-audience-signals').innerHTML = signals.join('');
+
+  // --- Creative Fatigue Alert rows ---
+  const fatigueWrap = document.getElementById('dash-fatigue-wrap');
+  const fatigueList = document.getElementById('dash-fatigue-list');
+  if (audience.fatigue_alerts && audience.fatigue_alerts.length > 0) {
+    fatigueWrap.style.display = '';
+    fatigueList.innerHTML = audience.fatigue_alerts.map(a => `
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);border-radius:8px;margin-bottom:8px;">
+        <div style="font-size:18px;flex-shrink:0;">🔴</div>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:2px;">${a.campaign_name}</div>
+          <div style="font-size:12px;color:var(--muted);">Frequency: <strong style="color:#ef4444;">${(a.frequency||0).toFixed(1)}x</strong> · Reach: ${fmtNum(a.reach||0)} · Spend: ${sym}${fmtNum(a.spend||0)}</div>
+          <div style="font-size:12px;margin-top:4px;color:#ef4444;">Action: Refresh creative or rotate to a new audience to reduce fatigue.</div>
+        </div>
+      </div>`).join('');
+  } else {
+    fatigueWrap.style.display = 'none';
+  }
+
+  // --- New vs Returning table ---
+  const userWrap = document.getElementById('dash-user-split-wrap');
+  const userBody = document.getElementById('dash-user-split-body');
+  if (audience.user_split && audience.user_split.length > 0) {
+    userWrap.style.display = '';
+    userBody.innerHTML = audience.user_split.map(r => {
+      const pct = r.pct_new_users || 0;
+      const barColor = pct >= 50 ? '#16a34a' : pct >= 30 ? '#f59e0b' : '#ef4444';
+      const isMis = (audience.misclassified_spend || []).some(m => m.campaign_name === r.campaign_name);
+      const signal = isMis
+        ? `<span style="color:#f59e0b;font-size:11px;font-weight:600;">⚠️ Mostly returning</span>`
+        : pct >= 60 ? `<span style="color:#16a34a;font-size:11px;font-weight:600;">✅ Strong acquisition</span>`
+        : `<span style="color:var(--muted);font-size:11px;">–</span>`;
+      return `<tr>
+        <td style="font-size:13px;">${r.campaign_name}</td>
+        <td style="text-transform:capitalize;">${r.platform||'–'}</td>
+        <td>${sym}${fmtNum(r.spend||0)}</td>
+        <td>${fmtNum(r.new_users||0)}</td>
+        <td>${fmtNum(r.returning_users||0)}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:48px;height:5px;background:var(--surface);border-radius:3px;flex-shrink:0;">
+              <div style="height:100%;width:${Math.min(pct,100)}%;background:${barColor};border-radius:3px;"></div>
+            </div>
+            <span style="font-size:12px;color:${barColor};font-weight:600;">${pct.toFixed(0)}%</span>
+          </div>
+        </td>
+        <td>${r.cost_per_new_user ? sym + fmtNum(r.cost_per_new_user) : '–'}</td>
+        <td>${signal}</td>
+      </tr>`;
+    }).join('');
+  } else {
+    userWrap.style.display = 'none';
+  }
+
+  // --- Reach & Frequency table ---
+  const reachWrap = document.getElementById('dash-reach-wrap');
+  const reachBody = document.getElementById('dash-reach-body');
+  if (audience.meta_reach && audience.meta_reach.length > 0) {
+    reachWrap.style.display = '';
+    reachBody.innerHTML = audience.meta_reach.map(r => {
+      const freq = r.frequency || 0;
+      const freqColor = freq < 2.5 ? '#16a34a' : freq < 3.5 ? '#f59e0b' : '#ef4444';
+      const status = freq >= 3.5
+        ? `<span style="color:#ef4444;font-weight:600;font-size:12px;">🔴 Fatigue — Refresh Creative</span>`
+        : freq >= 2.5
+        ? `<span style="color:#f59e0b;font-weight:600;font-size:12px;">🟡 Watch — Nearing Saturation</span>`
+        : `<span style="color:#16a34a;font-weight:600;font-size:12px;">🟢 Healthy</span>`;
+      return `<tr>
+        <td style="font-size:13px;">${r.campaign_name}</td>
+        <td>${sym}${fmtNum(r.spend||0)}</td>
+        <td>${fmtNum(r.reach||0)}</td>
+        <td style="color:${freqColor};font-weight:600;">${freq.toFixed(2)}x</td>
+        <td>${fmtNum(r.conversions||0)}</td>
+        <td>${status}</td>
+      </tr>`;
+    }).join('');
+  } else {
+    reachWrap.style.display = 'none';
+  }
 }
 
 function renderDashChannelBars(channels) {
@@ -6829,10 +7088,10 @@ async function loadForecast() {
       return;
     }
     renderForecastKPIs(data);
-    renderForecastChart(data);
     renderForecastNarrative(data);
     renderForecastCampaigns(data);
     document.getElementById('forecast-content').style.display = '';
+    requestAnimationFrame(() => renderForecastChart(data));
   } catch(e) {
     document.getElementById('forecast-error').textContent = 'Network error: ' + e.message;
     document.getElementById('forecast-error').style.display = '';
@@ -6865,79 +7124,204 @@ function renderForecastKPIs(data) {
 
 function renderForecastChart(data) {
   const history = data.history || [];
-  if (!history.length) { document.getElementById('forecast-chart').innerHTML = '<p style="color:var(--muted);padding:16px;">No historical data</p>'; return; }
-  const w = 480, h = 180, pad = { top: 20, right: 20, bottom: 30, left: 48 };
+  const el = document.getElementById('forecast-chart');
+  if (!history.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px;">No historical data</p>'; return; }
+  // Measure after layout is visible; fall back to section width minus sidebar
+  const measured = el.getBoundingClientRect().width || el.closest('.dash-chart-card')?.getBoundingClientRect().width - 40 || (window.innerWidth - 200) * 0.65;
+  const w = measured || 700;
+  const h = 220, pad = { top: 28, right: 24, bottom: 36, left: 56 };
   const spends = history.map(r => r.spend);
   const revs   = history.map(r => r.revenue);
-  const allVals = [...spends, ...revs, data.account.proj_spend, data.account.proj_revenue];
+  const allVals = [...spends, ...revs, data.account.proj_spend, data.account.proj_revenue].filter(v => v != null);
   const maxV = Math.max(...allVals) || 1;
-  const xStep = (w - pad.left - pad.right) / Math.max(history.length, 1);
-  const yScale = v => pad.top + (h - pad.top - pad.bottom) * (1 - v / maxV);
+  const minV = 0;
+  const innerW = w - pad.left - pad.right;
+  const innerH = h - pad.top - pad.bottom;
+  // Reserve last 12% of x for projection
+  const histW = innerW * 0.85;
+  const xStep = histW / Math.max(history.length, 1);
+  const yScale = v => pad.top + innerH * (1 - (v - minV) / (maxV - minV));
   const xAt = i => pad.left + i * xStep + xStep / 2;
   const pts = (arr) => arr.map((v, i) => `${xAt(i)},${yScale(v)}`).join(' ');
   const sym = getCurrencySymbol();
-  let svg = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;max-height:180px;">`;
-  // Y axis
-  svg += `<line x1="${pad.left}" y1="${pad.top}" x2="${pad.left}" y2="${h - pad.bottom}" stroke="var(--border)" stroke-width="1"/>`;
-  // Spend line
-  svg += `<polyline points="${pts(spends)}" fill="none" stroke="#667eea" stroke-width="2" stroke-linejoin="round"/>`;
-  // Revenue line
-  svg += `<polyline points="${pts(revs)}" fill="none" stroke="#48bb78" stroke-width="2" stroke-linejoin="round"/>`;
-  // Projected spend dot (extrapolated)
-  const projX = xAt(history.length - 1) + xStep * 0.7;
+  // Y grid lines + labels
+  const yTicks = 4;
+  let svg = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px;display:block;">`;
+  for (let t = 0; t <= yTicks; t++) {
+    const val = maxV * (t / yTicks);
+    const y = yScale(val);
+    svg += `<line x1="${pad.left}" y1="${y}" x2="${w - pad.right}" y2="${y}" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="3,3"/>`;
+    const lbl = val >= 1e5 ? (val/1e5).toFixed(1)+'L' : val >= 1e3 ? (val/1e3).toFixed(0)+'K' : val.toFixed(0);
+    svg += `<text x="${pad.left - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="var(--muted)">${lbl}</text>`;
+  }
+  // Area fills
+  const spendPts = spends.map((v, i) => `${xAt(i)},${yScale(v)}`).join(' ');
+  const revPts   = revs.map((v, i) => `${xAt(i)},${yScale(v)}`).join(' ');
+  svg += `<polygon points="${pad.left + xStep/2},${yScale(0)} ${spendPts} ${xAt(spends.length-1)},${yScale(0)}" fill="#667eea" fill-opacity="0.08"/>`;
+  svg += `<polygon points="${pad.left + xStep/2},${yScale(0)} ${revPts} ${xAt(revs.length-1)},${yScale(0)}" fill="#48bb78" fill-opacity="0.08"/>`;
+  // Lines
+  svg += `<polyline points="${pts(spends)}" fill="none" stroke="#667eea" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  svg += `<polyline points="${pts(revs)}" fill="none" stroke="#48bb78" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  // Data point dots
+  spends.forEach((v, i) => { svg += `<circle cx="${xAt(i)}" cy="${yScale(v)}" r="3" fill="#667eea"/>`; });
+  revs.forEach((v, i)   => { svg += `<circle cx="${xAt(i)}" cy="${yScale(v)}" r="3" fill="#48bb78"/>`; });
+  // Projection dashes
+  const projX = pad.left + innerW;
   const projSpendY = yScale(data.account.proj_spend);
   const projRevY   = yScale(data.account.proj_revenue);
-  svg += `<line x1="${xAt(history.length-1)}" y1="${yScale(spends[spends.length-1])}" x2="${projX}" y2="${projSpendY}" stroke="#667eea" stroke-width="2" stroke-dasharray="4,3"/>`;
-  svg += `<line x1="${xAt(history.length-1)}" y1="${yScale(revs[revs.length-1])}" x2="${projX}" y2="${projRevY}" stroke="#48bb78" stroke-width="2" stroke-dasharray="4,3"/>`;
-  svg += `<circle cx="${projX}" cy="${projSpendY}" r="4" fill="#667eea"/>`;
-  svg += `<circle cx="${projX}" cy="${projRevY}" r="4" fill="#48bb78"/>`;
-  // X labels
+  svg += `<line x1="${xAt(history.length-1)}" y1="${yScale(spends[spends.length-1])}" x2="${projX}" y2="${projSpendY}" stroke="#667eea" stroke-width="2" stroke-dasharray="5,4"/>`;
+  svg += `<line x1="${xAt(history.length-1)}" y1="${yScale(revs[revs.length-1])}" x2="${projX}" y2="${projRevY}" stroke="#48bb78" stroke-width="2" stroke-dasharray="5,4"/>`;
+  svg += `<circle cx="${projX}" cy="${projSpendY}" r="5" fill="#667eea" stroke="white" stroke-width="1.5"/>`;
+  svg += `<circle cx="${projX}" cy="${projRevY}" r="5" fill="#48bb78" stroke="white" stroke-width="1.5"/>`;
+  // X labels — limit to 6 evenly spaced
+  const maxLabels = 6;
+  const step = Math.max(1, Math.ceil(history.length / maxLabels));
   history.forEach((r, i) => {
-    const lbl = (r.label || '').slice(0, 6);
-    svg += `<text x="${xAt(i)}" y="${h - 8}" text-anchor="middle" font-size="9" fill="var(--muted)">${lbl}</text>`;
+    if (i % step !== 0 && i !== history.length - 1) return;
+    const raw = r.label || '';
+    const parts = raw.split(' ');
+    const lbl = parts.length >= 2 ? parts[0].slice(0,3) + ' ' + parts[1] : raw.slice(0, 8);
+    svg += `<text x="${xAt(i)}" y="${h - 10}" text-anchor="middle" font-size="10" fill="var(--muted)">${lbl}</text>`;
   });
-  svg += `<text x="${projX}" y="${h - 8}" text-anchor="middle" font-size="9" fill="var(--muted)">Proj.</text>`;
+  svg += `<text x="${projX}" y="${h - 10}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--muted)">Proj.</text>`;
+  // Vertical separator before projection
+  svg += `<line x1="${xAt(history.length-1) + xStep*0.2}" y1="${pad.top}" x2="${xAt(history.length-1) + xStep*0.2}" y2="${h - pad.bottom}" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>`;
   // Legend
-  svg += `<circle cx="${pad.left + 10}" cy="${pad.top - 6}" r="4" fill="#667eea"/>`;
-  svg += `<text x="${pad.left + 18}" y="${pad.top - 2}" font-size="9" fill="var(--text-secondary)">Spend</text>`;
-  svg += `<circle cx="${pad.left + 70}" cy="${pad.top - 6}" r="4" fill="#48bb78"/>`;
-  svg += `<text x="${pad.left + 78}" y="${pad.top - 2}" font-size="9" fill="var(--text-secondary)">Revenue</text>`;
+  svg += `<circle cx="${pad.left}" cy="14" r="5" fill="#667eea"/>`;
+  svg += `<text x="${pad.left + 10}" y="18" font-size="11" fill="var(--text-secondary)">Spend</text>`;
+  svg += `<circle cx="${pad.left + 65}" cy="14" r="5" fill="#48bb78"/>`;
+  svg += `<text x="${pad.left + 75}" y="18" font-size="11" fill="var(--text-secondary)">Revenue</text>`;
   svg += '</svg>';
-  document.getElementById('forecast-chart').innerHTML = svg;
+  el.innerHTML = svg;
 }
 
 function renderForecastNarrative(data) {
   const el = document.getElementById('forecast-narrative');
+  const acc = data.account;
+  const sym = getCurrencySymbol();
+
+  const boldify = s => (s || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+  let html = '';
+
   if (data.narrative) {
-    const rendered = data.narrative
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/`(.+?)`/g, '<code>$1</code>')
-      .replace(/\n/g, '<br>');
-    el.innerHTML = rendered;
+    const raw = data.narrative
+      .replace(/^#{1,4}\s+.+\n?/gm, '')
+      .replace(/\r\n/g, '\n')
+      .trim();
+
+    // Split into paragraphs, then lines
+    const allLines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+
+    const actionItems = [];
+    const proseLines = [];
+
+    allLines.forEach(l => {
+      if (/^\d+\.\s+/.test(l)) {
+        actionItems.push(l.replace(/^\d+\.\s*/, ''));
+      } else {
+        proseLines.push(l);
+      }
+    });
+
+    // Merge prose lines into paragraphs (split on blank lines already removed, so group runs)
+    // Show all prose — collapsed into compact paragraphs
+    if (proseLines.length) {
+      // Group into max 2 sentences per block for readability
+      const sentences = proseLines.join(' ').split(/(?<=\.)\s+/);
+      const chunks = [];
+      for (let i = 0; i < sentences.length; i += 2) {
+        chunks.push(sentences.slice(i, i + 2).join(' '));
+      }
+      // Show only first 2 chunks to keep it tight, rest collapsed if >2
+      const visible = chunks.slice(0, 2);
+      const hidden  = chunks.slice(2);
+      html += visible.map(c =>
+        `<p style="margin:0 0 8px;font-size:12.5px;line-height:1.6;color:var(--text-secondary);">${boldify(c)}</p>`
+      ).join('');
+      if (hidden.length) {
+        const hiddenId = 'fn-more-' + Date.now();
+        html += `<p style="margin:0 0 8px;font-size:12.5px;line-height:1.6;color:var(--text-secondary);display:none;" id="${hiddenId}">` +
+          hidden.map(boldify).join(' ') + `</p>`;
+        html += `<button onclick="document.getElementById('${hiddenId}').style.display='';this.style.display='none';" ` +
+          `style="background:none;border:none;color:#3b82f6;font-size:12px;cursor:pointer;padding:0;margin-bottom:10px;">Show more &darr;</button>`;
+      }
+    }
+
+    // Action items as numbered cards
+    if (actionItems.length) {
+      html += `<div style="margin:10px 0 6px;font-size:11px;font-weight:600;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;">Actions before period starts</div>`;
+      html += actionItems.map((text, i) => {
+        const m = text.match(/^\*\*(.+?)\*\*\.?\s*(.*)/s);
+        const title = m ? `<div style="font-weight:600;color:var(--text);margin-bottom:2px;">${boldify('**' + m[1] + '**')}</div>` : '';
+        const body  = boldify(m ? m[2] : text);
+        return `<div style="display:flex;gap:10px;padding:10px 12px;border-radius:8px;background:rgba(59,130,246,0.04);border:1px solid rgba(59,130,246,0.12);margin-bottom:7px;">
+          <div style="width:20px;height:20px;border-radius:50%;background:#3b82f6;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${i+1}</div>
+          <div style="font-size:12.5px;line-height:1.55;color:var(--text-secondary);">${title}${body}</div>
+        </div>`;
+      }).join('');
+    }
+
+    if (!proseLines.length && !actionItems.length) {
+      html = `<p style="font-size:12.5px;line-height:1.6;color:var(--text-secondary);">${boldify(raw)}</p>`;
+    }
   } else {
-    const acc = data.account;
-    const sym = getCurrencySymbol();
-    el.innerHTML = `<p>Based on <strong>${acc.periods_used}</strong> periods, projected spend is <strong>${sym}${fmtNum(acc.proj_spend)}</strong> with blended ROAS of <strong>${acc.proj_roas}x</strong> and <strong>${fmtNum(acc.proj_conversions)}</strong> conversions. Seasonality factor: <strong>${acc.season_factor}x</strong>.</p>`;
+    // Fallback: structured from data
+    const roasOk = acc.proj_roas >= 2;
+    const signal = roasOk ? '&#9989; ROAS on track' : '&#9888; ROAS below 2x — review spend mix';
+    html = `
+      <p style="margin:0 0 10px;font-size:12.5px;line-height:1.6;color:var(--text-secondary);">
+        Projected <strong>${sym}${fmtNum(acc.proj_spend)}</strong> spend over ${acc.horizon_days} days
+        at <strong>${acc.proj_roas}x</strong> blended ROAS —
+        <strong>${fmtNum(acc.proj_conversions)}</strong> conversions expected.
+      </p>
+      <div style="font-size:12px;color:var(--text-secondary);padding:8px 12px;border-radius:7px;background:rgba(0,0,0,0.04);border:1px solid var(--border);">${signal}</div>
+    `;
   }
+
+  el.innerHTML = html;
 }
 
 function renderForecastCampaigns(data) {
   const sym = getCurrencySymbol();
-  const trendIcon = t => t === 'up' ? '<span style="color:#48bb78">&#8593;</span>' : t === 'down' ? '<span style="color:#e53e3e">&#8595;</span>' : '<span style="color:var(--muted)">&#8594;</span>';
+  const trendBadge = t => {
+    if (t === 'up')   return '<span style="display:inline-flex;align-items:center;gap:3px;background:#dcfce7;color:#16a34a;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;">&#8593; Up</span>';
+    if (t === 'down') return '<span style="display:inline-flex;align-items:center;gap:3px;background:#fee2e2;color:#dc2626;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;">&#8595; Down</span>';
+    return '<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(100,100,100,0.08);color:var(--muted);padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;">&#8594; Flat</span>';
+  };
+  const roasColor = r => r >= 3 ? '#16a34a' : r >= 2 ? '#ca8a04' : '#dc2626';
+  const roasBar = r => {
+    const pct = Math.min(r / 5 * 100, 100);
+    const color = roasColor(r);
+    return `<div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-weight:700;color:${color};min-width:38px;">${r}x</span>
+      <div style="flex:1;height:5px;background:var(--border);border-radius:9999px;min-width:60px;">
+        <div style="width:${pct}%;height:100%;background:${color};border-radius:9999px;"></div>
+      </div>
+    </div>`;
+  };
+  const tdBase = 'padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle;';
   const tbody = document.getElementById('forecast-campaigns-body');
-  tbody.innerHTML = (data.campaigns || []).map(c => `
-    <tr>
-      <td>${c.campaign_name}</td>
-      <td><span class="badge badge-${(c.platform||'').toLowerCase()}">${c.platform}</span></td>
-      <td>${sym}${fmtNum(c.proj_spend)}</td>
-      <td>${c.proj_roas}x</td>
-      <td>${c.proj_cpa ? sym + fmtNum(c.proj_cpa) : '-'}</td>
-      <td>${trendIcon(c.trend)}</td>
-      <td style="color:var(--muted)">${c.periods_used}</td>
+  const rows = (data.campaigns || []);
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="${tdBase}text-align:center;color:var(--muted);padding:32px;">No campaign data</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map((c, i) => `
+    <tr style="${i % 2 === 1 ? 'background:rgba(0,0,0,0.015);' : ''}">
+      <td style="${tdBase}max-width:260px;">
+        <span style="font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:260px;" title="${c.campaign_name}">${c.campaign_name}</span>
+      </td>
+      <td style="${tdBase}"><span class="badge badge-${(c.platform||'').toLowerCase()}">${c.platform}</span></td>
+      <td style="${tdBase}text-align:right;font-weight:600;color:var(--text);white-space:nowrap;">${sym}${fmtNum(c.proj_spend)}</td>
+      <td style="${tdBase}min-width:120px;">${roasBar(c.proj_roas)}</td>
+      <td style="${tdBase}text-align:right;color:var(--text-secondary);white-space:nowrap;">${c.proj_cpa ? sym + fmtNum(c.proj_cpa) : '<span style="color:var(--muted)">-</span>'}</td>
+      <td style="${tdBase}text-align:center;">${trendBadge(c.trend)}</td>
+      <td style="${tdBase}text-align:center;color:var(--muted);font-size:12px;">${c.periods_used}</td>
     </tr>
-  `).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted)">No campaign data</td></tr>';
+  `).join('');
 }
 
 // ============================================================

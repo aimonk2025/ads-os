@@ -368,6 +368,10 @@ META_COLUMN_VARIANTS = {
     "results":        ["results", "conversions", "leads", "purchases", "actions", "outcomes"],
     "purchase roas":  ["purchase roas", "roas", "website purchase roas", "return on ad spend",
                        "purchase return on ad spend", "ad set roas"],
+    "purchase value": ["purchase value", "conversion value", "conv. value", "revenue",
+                       "total value", "website purchase value", "value"],
+    "reach":          ["reach", "unique reach", "estimated reach", "people reached"],
+    "frequency":      ["frequency", "avg. frequency", "average frequency", "ad frequency"],
 }
 
 FUNNEL_COLUMN_VARIANTS = {
@@ -640,7 +644,7 @@ def clean_meta_ads(filepath: str, pre_rename: dict = None) -> tuple[pd.DataFrame
             report.append(f"Dropped {zero_dropped} inactive campaign(s) with zero spend")
 
     # Clean numeric columns
-    for col in ["impressions", "clicks", "amount spent", "results", "purchase roas"]:
+    for col in ["impressions", "reach", "frequency", "clicks", "amount spent", "results", "purchase roas", "purchase value"]:
         if col in df.columns:
             df, fixed = _clean_numeric_column(df, col)
             if fixed:

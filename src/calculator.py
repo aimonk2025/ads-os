@@ -65,6 +65,8 @@ def calculate_meta_metrics(df: pd.DataFrame) -> pd.DataFrame:
 def _campaigns_to_list(df: pd.DataFrame, name_col: str, spend_col: str, revenue_col: Optional[str]) -> list:
     rows = []
     for _, row in df.iterrows():
+        reach     = float(row["reach"]) if "reach" in df.columns and not pd.isna(row.get("reach", float("nan"))) else None
+        frequency = float(row["frequency"]) if "frequency" in df.columns and not pd.isna(row.get("frequency", float("nan"))) else None
         rows.append({
             "name": str(row[name_col]),
             "spend": float(row[spend_col]),
@@ -77,6 +79,8 @@ def _campaigns_to_list(df: pd.DataFrame, name_col: str, spend_col: str, revenue_
             "conversions": int(row.get("conversions", row.get("results", 0))),
             "severity": row["severity"],
             "wasted": float(row["wasted"]),
+            "reach": reach,
+            "frequency": round(frequency, 2) if frequency else None,
         })
     return sorted(rows, key=lambda x: x["roas"])
 
@@ -136,8 +140,9 @@ def build_summary(
 
     if meta_df is not None:
         result["platforms"].append("meta")
+        meta_rev_col = "purchase value" if "purchase value" in meta_df.columns else None
         result["meta"] = _platform_summary(
-            meta_df, "amount spent", None, "results", "campaign name"
+            meta_df, "amount spent", meta_rev_col, "results", "campaign name"
         )
 
     # Funnel enrichment
@@ -194,7 +199,8 @@ def build_summary(
             comparison["google_conversions_delta"] = calculate_delta(g["total_conversions"], prev_g["total_conversions"])
         if meta_df is not None and prev_meta_df is not None:
             prev_meta_df = calculate_meta_metrics(prev_meta_df)
-            prev_m = _platform_summary(prev_meta_df, "amount spent", None, "results", "campaign name")
+            prev_meta_rev_col = "purchase value" if "purchase value" in prev_meta_df.columns else None
+            prev_m = _platform_summary(prev_meta_df, "amount spent", prev_meta_rev_col, "results", "campaign name")
             m = result["meta"]
             comparison["meta_spend_delta"] = calculate_delta(m["total_spend"], prev_m["total_spend"])
             comparison["meta_roas_delta"] = calculate_delta(m["overall_roas"], prev_m["overall_roas"])

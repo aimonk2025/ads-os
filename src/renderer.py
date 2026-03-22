@@ -160,12 +160,14 @@ def markdown_to_html(text: str) -> str:
         return _parse_tsv_table(m.group(0))
     text = re.sub(r"((?:[^\n<]+\t[^\n]+\n){1}(?:\n?(?:[^\n<]+\t[^\n]+\n))+)", replace_tsv_table, text)
 
-    # Bullet lists
+    # Bullet and ordered lists — continuation lines are merged into the same <li>
     lines = text.split("\n")
     result = []
     in_ul = False
     in_ol = False
-    for line in lines:
+    i = 0
+    while i < len(lines):
+        line = lines[i]
         if re.match(r"^[-*] ", line):
             if in_ol:
                 result.append("</ol>")
@@ -173,7 +175,15 @@ def markdown_to_html(text: str) -> str:
             if not in_ul:
                 result.append("<ul>")
                 in_ul = True
-            result.append(f"<li>{line[2:]}</li>")
+            content = line[2:]
+            # Absorb continuation lines into this <li>
+            while i + 1 < len(lines):
+                nxt = lines[i + 1]
+                if nxt.strip() == "" or re.match(r"^[-*] ", nxt) or re.match(r"^\d+\. ", nxt) or nxt.strip().startswith("<"):
+                    break
+                i += 1
+                content += " " + lines[i].strip()
+            result.append(f"<li>{content}</li>")
         elif re.match(r"^\d+\. ", line):
             if in_ul:
                 result.append("</ul>")
@@ -181,7 +191,15 @@ def markdown_to_html(text: str) -> str:
             if not in_ol:
                 result.append("<ol>")
                 in_ol = True
-            result.append(f"<li>{re.sub(r'^\\d+\\.\\s*', '', line)}</li>")
+            content = re.sub(r"^\d+\.\s*", "", line)
+            # Absorb continuation lines into this <li>
+            while i + 1 < len(lines):
+                nxt = lines[i + 1]
+                if nxt.strip() == "" or re.match(r"^[-*] ", nxt) or re.match(r"^\d+\. ", nxt) or nxt.strip().startswith("<"):
+                    break
+                i += 1
+                content += " " + lines[i].strip()
+            result.append(f"<li>{content}</li>")
         else:
             if in_ul:
                 result.append("</ul>")
@@ -190,6 +208,7 @@ def markdown_to_html(text: str) -> str:
                 result.append("</ol>")
                 in_ol = False
             result.append(line)
+        i += 1
     if in_ul:
         result.append("</ul>")
     if in_ol:
