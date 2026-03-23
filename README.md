@@ -72,7 +72,7 @@ You should see `(venv)` at the start of your terminal line.
 pip install -r requirements.txt
 ```
 
-This installs everything: Flask, pandas, DuckDB, xhtml2pdf, requests, BeautifulSoup, and all other dependencies.
+This installs everything: Flask, pandas, DuckDB, xhtml2pdf, requests, and all other dependencies.
 
 ---
 
@@ -102,7 +102,6 @@ No configuration files to edit.
 | **Revenue Forecast** | WMA-based forward projection per campaign. Projected spend, ROAS, conversions, trend direction. Claude narrative. Seasonality adjustment. 7 / 30 / 60 day windows. |
 | **Structured Audit** | 50+ checkpoints across 6 categories (Tracking, Architecture, Ad Set Config, Creative, Cost Diagnostics, Account Health). Scored 0-100. Action items auto-pushed to Action Plan. Claude executive summary. |
 | **Pixel Health** | Meta Pixel and CAPI health monitor via Meta Graph API. 11 checks: event tracking, deduplication ratio, event match quality, CAPI freshness. Scored 0-100. |
-| **Competitor Intel** | Scrapes Meta Ad Library per competitor. Claude analyzes each ad: angle, offer, psychology triggers, funnel stage, persona. Pattern summary across all active ads. |
 | **Audit** | Upload CSVs, run AI-powered audit, download HTML or PDF report. Supports Google Ads, Meta Ads, GA4, Funnel data, and compare periods. |
 | **Anomaly Spotter** | Flags CPL spikes, ROAS drops, CTR drops, spend pacing anomalies vs rolling median baseline. Open / Acknowledged / Resolved status tracking. |
 | **Narrator** | Executive narrative in three tones: Executive, Detailed, or Urgent. |
@@ -244,29 +243,6 @@ Available as a sub-section of Structured Audit. Requires Meta Pixel ID and acces
 Each check: **Good / Warning / Critical** + reason + score
 
 **Overall pixel health score:** 0-100 with label (Healthy / Warning / Critical)
-
----
-
-## Competitor Intelligence
-
-Available under **Competitors** in the sidebar.
-
-1. Add competitor brand names per client
-2. Click **Scrape Now** - Ads OS scrapes the Meta Ad Library for that brand
-3. Claude analyzes each ad found:
-
-| Analysis field | What Claude identifies |
-|---------------|----------------------|
-| Angle | The hook or positioning the ad uses |
-| Offer | What is being promoted |
-| Psychology triggers | FOMO, social proof, urgency, scarcity, etc. |
-| Funnel stage | ToFu / MoFu / BoFu |
-| Target persona | Who the ad is aimed at |
-| Key insight | Main takeaway for your strategy |
-
-4. Pattern summary: Claude generates a "What this competitor is testing" summary across all their active ads
-
-Scrape history is stored per competitor. You can re-scrape at any time to track what is changing.
 
 ---
 
@@ -535,24 +511,6 @@ Average session duration, Conversions, Total revenue
 
 ---
 
-## Sample Files
-
-```
-sample_data/
-  google_ads_sample.csv       campaign level
-  google_adgroup_sample.csv   ad group level
-  google_keyword_sample.csv   keyword level with Quality Score
-  google_ad_sample.csv        ad level with Ad Type
-  meta_ads_sample.csv         campaign level
-  meta_adset_sample.csv       ad set level
-  funnel_sample.csv           campaign-level funnel data
-  google_ads_prev.csv         previous period for comparison
-  meta_ads_prev.csv           previous period for comparison
-  ga4_sample.csv              GA4 session/bounce/conversion data by campaign
-```
-
----
-
 ## Troubleshooting
 
 **"Claude not found" warning in the report**
@@ -575,9 +533,6 @@ At least 2 historical upload periods are required. Import historical data via **
 
 **Pixel Health returns errors**
 Verify the Meta Pixel ID and access token are correctly entered in Settings for this client. The token requires `ads_read` and `pixel` permissions on the Meta app.
-
-**Competitor scrape returns no ads**
-Meta Ad Library blocks scraping periodically. Try again after a few minutes. If the brand name has special characters, try a simplified version.
 
 **Database errors on startup**
 Delete `data/adaudit.duckdb` and restart. The schema is recreated automatically. You will lose stored history and reports.
@@ -607,7 +562,6 @@ src/
   forecaster.py        WMA forecasting engine
   structured_audit.py  50+ checkpoint structured audit
   pixel_monitor.py     Meta Pixel and CAPI health monitor
-  competitor_intel.py  Meta Ad Library scraper and Claude analysis
   alert_engine.py      KPI alert threshold checks and persistence
   bulk_reporter.py     Multi-client bulk report runner
   onboarding.py        Client onboarding wizard logic and brief generation
