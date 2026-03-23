@@ -19,6 +19,9 @@ data/
 uploads/
 reports/
 
+# Sample data (local only)
+sample_data/
+
 # Docs (internal only)
 docs/
 
