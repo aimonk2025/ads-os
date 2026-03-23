@@ -69,13 +69,13 @@ def run_budget_agent(analysis_data: dict, rules: dict,
             return parsed, result.stdout.strip(), True
         else:
             import logging
-            logging.getLogger("adlens").warning(
+            logging.getLogger("ads-os").warning(
                 "Budget agent Claude call failed (rc=%s): %s",
                 result.returncode, result.stderr.strip() if result.stderr else "no output"
             )
     except Exception as e:
         import logging
-        logging.getLogger("adlens").warning("Budget agent Claude call exception: %s", e)
+        logging.getLogger("ads-os").warning("Budget agent Claude call exception: %s", e)
 
     explanation = _fallback_explanation(rule_recs, rules, currency)
     return rule_recs, explanation, False

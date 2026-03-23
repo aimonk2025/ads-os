@@ -19,7 +19,7 @@ STEPS = [
     {"id": 3, "label": "Platform Setup",       "description": "Which platforms: Google / Meta / GA4"},
     {"id": 4, "label": "Data Collection",      "description": "Which CSVs to export from each platform"},
     {"id": 5, "label": "Budget Rules",         "description": "ROAS floors and CPL ceilings for the budget agent"},
-    {"id": 6, "label": "First Upload",         "description": "Upload your first dataset to AdLens"},
+    {"id": 6, "label": "First Upload",         "description": "Upload your first dataset to Ads OS"},
 ]
 
 TOTAL_STEPS = len(STEPS)
@@ -186,7 +186,7 @@ Write a structured client brief with these sections:
 2. Campaign Objectives (bullet points with ROAS, CPL, volume targets)
 3. Platform Strategy (which platforms and why, based on their setup)
 4. KPI Benchmarks (table: Metric | Target | Alert Threshold)
-5. Tracking Setup (what AdLens will monitor for them)
+5. Tracking Setup (what Ads OS will monitor for them)
 6. Next Steps (3-4 bullet points of immediate priorities)
 
 Keep it professional, concise, and actionable. This is a document they will share with their client."""
@@ -255,10 +255,10 @@ Keep it professional, concise, and actionable. This is a document they will shar
 <body>
 <div class="header">
   <h1>Client Brief - {client['name']}</h1>
-  <p>Prepared by AdLens &bull; {now_str}</p>
+  <p>Prepared by Ads OS &bull; {now_str}</p>
 </div>
 {content_html}
-<div class="footer">Confidential &bull; AdLens &bull; {now_str}</div>
+<div class="footer">Confidential &bull; Ads OS &bull; {now_str}</div>
 </body>
 </html>"""
 

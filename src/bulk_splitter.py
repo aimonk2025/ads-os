@@ -14,7 +14,7 @@ import chardet
 import pandas as pd
 from pathlib import Path
 
-logger = logging.getLogger("adlens")
+logger = logging.getLogger("ads-os")
 
 # Column names that likely identify a client/account grouping column
 _CLIENT_COLUMN_VARIANTS = [

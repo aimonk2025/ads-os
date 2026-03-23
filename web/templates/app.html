@@ -1654,7 +1654,7 @@
   <!-- Sidebar -->
   <aside id="sidebar">
     <div id="sidebar-logo">
-      <span>AdLens</span>
+      <span>Ads OS</span>
     </div>
     <nav id="sidebar-nav">
       <div class="nav-item" data-section="dashboard" onclick="navigate('dashboard')">
@@ -3024,7 +3024,7 @@
 <div id="onboarding-overlay" class="hidden">
   <div class="onboarding-modal">
     <div class="onboarding-header">
-      <h2>Welcome to AdLens</h2>
+      <h2>Welcome to Ads OS</h2>
       <p>AI-powered ad audit in three steps. Get your first report in under 2 minutes.</p>
     </div>
 
@@ -3153,7 +3153,7 @@
       <!-- Step 1: Basic Info -->
       <div class="ob-wiz-step" id="ob-wiz-step-1">
         <h3 style="font-size:15px;font-weight:700;margin-bottom:4px;">Basic Info</h3>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Tell us about this client so AdLens can tailor its analysis.</p>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Tell us about this client so Ads OS can tailor its analysis.</p>
         <div class="form-group">
           <label class="form-label">Client Name *</label>
           <input type="text" class="form-input" id="ob1-name" placeholder="e.g. Acme Corp">
@@ -3189,7 +3189,7 @@
       <!-- Step 2: Campaign Goals -->
       <div class="ob-wiz-step" id="ob-wiz-step-2" style="display:none;">
         <h3 style="font-size:15px;font-weight:700;margin-bottom:4px;">Campaign Goals</h3>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Set performance targets. AdLens uses these to flag underperforming campaigns.</p>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Set performance targets. Ads OS uses these to flag underperforming campaigns.</p>
         <div class="form-group">
           <label class="form-label">ROAS Target (e.g. 3.5)</label>
           <input type="number" class="form-input" id="ob2-roas" placeholder="3.5" step="0.1" min="0">
@@ -6431,7 +6431,7 @@ function showOnboarding() {
 
 function dismissOnboarding() {
   document.getElementById('onboarding-overlay').classList.add('hidden');
-  localStorage.setItem('adlens_onboarded', '1');
+  localStorage.setItem('ads_os_onboarded', '1');
 }
 
 function obSetStep(n) {
@@ -6638,7 +6638,7 @@ function applyFunnelReconcile() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  applyTheme(localStorage.getItem('adlens_theme') || 'light');
+  applyTheme(localStorage.getItem('ads_os_theme') || 'light');
   await loadClients();
   // Auto-select first client if available
   const sel = document.getElementById('client-select');
@@ -6647,7 +6647,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     onClientChange();
   }
   // Show onboarding if no clients and not previously dismissed
-  if (sel.options.length <= 1 && !localStorage.getItem('adlens_onboarded')) {
+  if (sel.options.length <= 1 && !localStorage.getItem('ads_os_onboarded')) {
     showOnboarding();
   }
   // Load alert badge count
@@ -8144,7 +8144,7 @@ function toggleTheme() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const next = isDark ? 'light' : 'dark';
   applyTheme(next);
-  localStorage.setItem('adlens_theme', next);
+  localStorage.setItem('ads_os_theme', next);
 }
 function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
@@ -8200,7 +8200,7 @@ async function loadAuditActions(reportId) {
       document.getElementById('audit-actions-panel').style.display = 'none';
       return;
     }
-    const storageKey = `adlens_actions_${reportId}`;
+    const storageKey = `ads_os_actions_${reportId}`;
     const checked = JSON.parse(localStorage.getItem(storageKey) || '{}');
     const list = document.getElementById('audit-actions-list');
     list.innerHTML = items.map((text, i) => {
@@ -8219,7 +8219,7 @@ async function loadAuditActions(reportId) {
   } catch(e) { /* silent */ }
 }
 function toggleAction(reportId, index) {
-  const storageKey = `adlens_actions_${reportId}`;
+  const storageKey = `ads_os_actions_${reportId}`;
   const checked = JSON.parse(localStorage.getItem(storageKey) || '{}');
   const cb = document.getElementById(`action-cb-${index}`);
   checked[index] = cb.checked;
@@ -8309,7 +8309,7 @@ function copyActions() {
       <div id="bulk-step-1">
         <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
           Upload a single CSV or Excel file that contains data for multiple clients.
-          AdLens will detect the client column, split the data, and run a full audit for each client automatically.
+          Ads OS will detect the client column, split the data, and run a full audit for each client automatically.
         </p>
         <div id="bulk-drop-zone"
              style="border:2px dashed var(--blue);border-radius:10px;padding:32px 16px;text-align:center;cursor:pointer;background:var(--bg);transition:background .15s;margin-bottom:16px;"

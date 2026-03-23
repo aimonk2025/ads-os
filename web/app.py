@@ -16,7 +16,7 @@ from datetime import datetime
 from collections import defaultdict
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-logger = logging.getLogger("adlens")
+logger = logging.getLogger("ads-os")
 
 import pandas as pd
 

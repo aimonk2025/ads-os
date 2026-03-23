@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-AdLens Morning Brief
+Ads OS Morning Brief
 --------------------
-Fetches open anomalies for all clients from a running AdLens instance,
+Fetches open anomalies for all clients from a running Ads OS instance,
 runs them through Claude (same subprocess pattern as the rest of the app),
 and prints a formatted brief to the terminal.
 
@@ -12,7 +12,7 @@ Usage:
     python brief.py --url http://localhost:5000
     python brief.py --watch --interval 300 # keep running, brief every 5 min
 
-Requires AdLens to be running: python web/app.py
+Requires Ads OS to be running: python web/app.py
 """
 
 import sys
@@ -109,7 +109,7 @@ def run_claude(payload: dict) -> tuple[str, bool]:
 
 
 def fallback_brief(payload: dict) -> str:
-    lines = [f"AdLens Morning Brief - {payload['generated_at']}", ""]
+    lines = [f"Ads OS Morning Brief - {payload['generated_at']}", ""]
     total_critical = 0
     total_warning = 0
     for c in payload.get("clients", []):
@@ -137,15 +137,15 @@ def print_brief(brief: str, used_claude: bool) -> None:
     bar = "=" * 60
     source = "Claude" if used_claude else "fallback"
     print(f"\n{bar}")
-    print(f"  AdLens Brief  [{ts}]  ({source})")
+    print(f"  Ads OS Brief  [{ts}]  ({source})")
     print(bar)
     print(brief)
     print(bar + "\n")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="AdLens Morning Brief")
-    parser.add_argument("--url", default="http://localhost:5000", help="AdLens base URL")
+    parser = argparse.ArgumentParser(description="Ads OS Morning Brief")
+    parser.add_argument("--url", default="http://localhost:5000", help="Ads OS base URL")
     parser.add_argument("--client-id", type=int, default=None, help="Specific client ID (default: all)")
     parser.add_argument("--watch", action="store_true", help="Keep running and re-brief on interval")
     parser.add_argument("--interval", type=int, default=300, help="Watch interval in seconds (default: 300)")
@@ -180,8 +180,8 @@ def main():
             print_brief(brief, used_claude)
 
         except urlerr.URLError:
-            print(f"\nCould not connect to AdLens at {args.url}")
-            print("Make sure AdLens is running: python web/app.py\n")
+            print(f"\nCould not connect to Ads OS at {args.url}")
+            print("Make sure Ads OS is running: python web/app.py\n")
             sys.exit(1)
         except Exception as e:
             print(f"\nError: {e}\n")

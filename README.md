@@ -1,8 +1,8 @@
-# AdLens
+# Ads OS
 
 AI-powered ad audit and agency management platform. Upload Google Ads, Meta Ads, and Google Analytics 4 CSV exports, get senior-level performance analysis via Claude, and manage all clients from a single dashboard.
 
-> No API keys required. AdLens uses your local Claude Code CLI session - just authenticate once and it works.
+> No API keys required. Ads OS uses your local Claude Code CLI session - just authenticate once and it works.
 
 ![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat&logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=flat&logo=flask&logoColor=white)
@@ -17,7 +17,7 @@ AI-powered ad audit and agency management platform. Upload Google Ads, Meta Ads,
 
 ## Starting the App
 
-From the `adlens` folder in PowerShell:
+From the `ads-os` folder in PowerShell:
 
 ```powershell
 venv\Scripts\activate
@@ -42,15 +42,15 @@ python --version
 claude --version
 ```
 
-Claude is optional. If not installed, AdLens falls back to a built-in template report.
+Claude is optional. If not installed, Ads OS falls back to a built-in template report.
 
 ---
 
 ### Step 1 - Clone the repo
 
 ```powershell
-git clone https://github.com/aimonk2025/adlens.git
-cd adlens
+git clone https://github.com/aimonk2025/ads-os.git
+cd ads-os
 ```
 
 ---
@@ -84,7 +84,7 @@ python web/app.py
 
 Open `http://localhost:5000` in your browser.
 
-On first run, AdLens automatically creates:
+On first run, Ads OS automatically creates:
 - `data/adaudit.duckdb` - local database (all data stored here)
 - `uploads/` - temporary upload storage
 - `reports/` and `reports/pdfs/` - generated report files
@@ -252,7 +252,7 @@ Each check: **Good / Warning / Critical** + reason + score
 Available under **Competitors** in the sidebar.
 
 1. Add competitor brand names per client
-2. Click **Scrape Now** - AdLens scrapes the Meta Ad Library for that brand
+2. Click **Scrape Now** - Ads OS scrapes the Meta Ad Library for that brand
 3. Claude analyzes each ad found:
 
 | Analysis field | What Claude identifies |
@@ -354,7 +354,7 @@ Include: Sessions, Engaged sessions, Bounce rate, Conversions, Total revenue.
 
 ## Platform Auto-Detection
 
-AdLens identifies the platform of any CSV before upload by scanning the first 2KB of column headers.
+Ads OS identifies the platform of any CSV before upload by scanning the first 2KB of column headers.
 
 | Platform | Key signals |
 |----------|------------|
@@ -469,7 +469,7 @@ Requires `python web/app.py` running in another terminal window.
 
 ## Report Branding
 
-Agency logo and name are set in **Settings > Branding**. Once set, every generated report header shows the agency logo and name alongside the AdLens badge. Applies to all HTML, PDF, and multi-client summary reports.
+Agency logo and name are set in **Settings > Branding**. Once set, every generated report header shows the agency logo and name alongside the Ads OS badge. Applies to all HTML, PDF, and multi-client summary reports.
 
 ---
 
@@ -556,7 +556,7 @@ sample_data/
 ## Troubleshooting
 
 **"Claude not found" warning in the report**
-Claude Code CLI is not installed or not in PATH. Install from [claude.ai/code](https://claude.ai/code). AdLens still generates a complete report using its built-in fallback template.
+Claude Code CLI is not installed or not in PATH. Install from [claude.ai/code](https://claude.ai/code). Ads OS still generates a complete report using its built-in fallback template.
 
 **CSV columns not recognized**
 Check the cleaning report shown after upload - it lists every column found and which were renamed. Use the Manual Column Mapping modal to fix anything the fuzzy matcher missed.
@@ -565,7 +565,7 @@ Check the cleaning report shown after upload - it lists every column found and w
 Drop the file onto the correct specific zone (Google Ads / Meta Ads / GA4 / Funnel) to override detection.
 
 **Date column not normalizing correctly**
-Check the cleaning report - it lists every date normalization applied. For ambiguous DD/MM vs MM/DD formats, AdLens scans the whole column to determine ordering and defaults to day-first if ambiguous.
+Check the cleaning report - it lists every date normalization applied. For ambiguous DD/MM vs MM/DD formats, Ads OS scans the whole column to determine ordering and defaults to day-first if ambiguous.
 
 **Garbled characters in reports**
 Verify you are running Python 3.9+ and that `src/claude_client.py` and `src/budget_agent.py` have `encoding="utf-8"` on their subprocess calls.
