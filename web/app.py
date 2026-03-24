@@ -58,10 +58,6 @@ from src.alert_engine import (
     trigger_alerts_for_upload, get_alerts, get_unread_count,
     update_alert_status, dismiss_all_for_client,
 )
-from src.competitor_intel import (
-    scrape_and_analyze, get_competitors, add_competitor,
-    delete_competitor, get_competitor_ads, get_scrape_history,
-)
 from src.onboarding import (
     get_onboarding_status, save_step_data, generate_client_brief, STEPS,
 )
@@ -234,8 +230,11 @@ def api_forecast(client_id):
 
         # Get client info for narrative
         client = get_client(conn, client_id) or {}
+        raw_context = (client.get("context") or "")
+        business_context = format_client_context(parse_context_from_json(raw_context))
         narrative = generate_forecast_narrative(
-            forecast, client.get("name", "Client"), client.get("currency", "INR")
+            forecast, client.get("name", "Client"), client.get("currency", "INR"),
+            business_context=business_context
         )
         forecast["narrative"] = narrative
         return jsonify(forecast)
@@ -275,7 +274,10 @@ def api_structured_audit_run():
         result = run_structured_audit(conn, int(client_id), int(upload_id) if upload_id else None)
         if "error" in result:
             return jsonify(result), 400
-        summary = generate_audit_summary(result)
+        client_row = get_client(conn, int(client_id)) or {}
+        raw_context = client_row.get("context", "") or ""
+        business_context = format_client_context(parse_context_from_json(raw_context))
+        summary = generate_audit_summary(result, business_context=business_context)
         result["summary"] = summary
         return jsonify(result)
     except Exception as e:
@@ -354,73 +356,6 @@ def api_pixel_health_latest(client_id):
         return jsonify(result)
     except Exception as e:
         logger.exception("Pixel health latest error")
-        return jsonify({"error": str(e)}), 500
-
-
-# ---- Competitor Intel ----
-
-@app.get("/api/competitors/<int:client_id>")
-def api_competitors_list(client_id):
-    try:
-        return jsonify(get_competitors(get_db(), client_id))
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.post("/api/competitors/add")
-def api_competitors_add():
-    data = request.get_json()
-    client_id  = data.get("client_id")
-    brand_name = (data.get("brand_name") or "").strip()
-    ad_lib_url = (data.get("ad_library_url") or "").strip()
-    if not client_id or not brand_name:
-        return jsonify({"error": "client_id and brand_name required"}), 400
-    try:
-        result = add_competitor(get_db(), int(client_id), brand_name, ad_lib_url)
-        if "error" in result:
-            return jsonify(result), 409
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.delete("/api/competitors/<int:competitor_id>")
-def api_competitors_delete(competitor_id):
-    data = request.get_json() or {}
-    client_id = data.get("client_id")
-    if not client_id:
-        return jsonify({"error": "client_id required"}), 400
-    try:
-        delete_competitor(get_db(), competitor_id, int(client_id))
-        return jsonify({"ok": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.post("/api/competitors/scrape")
-def api_competitors_scrape():
-    data = request.get_json()
-    client_id     = data.get("client_id")
-    competitor_id = data.get("competitor_id")
-    brand_name    = (data.get("brand_name") or "").strip()
-    country       = (data.get("country") or "ALL").strip().upper()
-    if not client_id or not competitor_id or not brand_name:
-        return jsonify({"error": "client_id, competitor_id and brand_name required"}), 400
-    try:
-        result = scrape_and_analyze(get_db(), int(client_id), int(competitor_id), brand_name, country)
-        return jsonify(result)
-    except Exception as e:
-        logger.exception("Competitor scrape error")
-        return jsonify({"error": str(e)}), 500
-
-
-@app.get("/api/competitors/<int:competitor_id>/ads")
-def api_competitor_ads(competitor_id):
-    try:
-        ads = get_competitor_ads(get_db(), competitor_id)
-        history = get_scrape_history(get_db(), competitor_id)
-        return jsonify({"ads": ads, "history": history})
-    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 

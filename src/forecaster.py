@@ -224,7 +224,7 @@ def run_forecast(conn, client_id: int, horizon_days: int = 30) -> dict:
     }
 
 
-def generate_forecast_narrative(forecast: dict, client_name: str, currency: str) -> str:
+def generate_forecast_narrative(forecast: dict, client_name: str, currency: str, business_context: str = "") -> str:
     """Ask Claude to narrate the forecast. Returns markdown string."""
     if not forecast or "error" in forecast:
         return ""
@@ -253,6 +253,8 @@ def generate_forecast_narrative(forecast: dict, client_name: str, currency: str)
         )
     )
 
+    context_block = f"\n\n{business_context}" if business_context else ""
+
     prompt = (
         "You are a senior performance marketing strategist. "
         "Based on the following forecast data, write a concise 'What to Expect Next' narrative "
@@ -261,6 +263,7 @@ def generate_forecast_narrative(forecast: dict, client_name: str, currency: str)
         "and give 1-2 concrete actions the team should take before the period starts. "
         "Be direct. No preamble.\n\n"
         + payload
+        + context_block
     )
 
     try:

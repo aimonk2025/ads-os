@@ -9,6 +9,7 @@ import json
 import subprocess
 from datetime import datetime
 from .db import _q, _q1, upsert_action_items
+from .context import parse_context_from_json
 
 
 # ---- Scoring weights per category ----
@@ -28,6 +29,41 @@ STATUS_SCORE = {"pass": 100, "warning": 50, "fail": 0}
 # CHECK FUNCTIONS
 # Each returns: {"check": str, "status": "pass"|"warning"|"fail", "reason": str, "action": str|None, "platform": str}
 # ============================================================
+
+def _build_context_filters(context_dict: dict) -> tuple[set, dict]:
+    """
+    Extract brand campaign names and per-campaign targets from context.
+    Returns (brand_names_set, per_campaign_targets_dict).
+    brand_names_set: lowercased campaign names tagged brand_awareness or brand.
+    per_campaign_targets_dict: {lowercased_name: {target_roas, target_cpa, target_cpl}}
+    """
+    brand_names = set()
+    per_campaign_targets = {}
+
+    if not context_dict:
+        return brand_names, per_campaign_targets
+
+    tags = context_dict.get("campaign_tags", {})
+    for name, tag in tags.items():
+        if tag in ("brand_awareness", "brand"):
+            brand_names.add(name.lower())
+
+    targets = context_dict.get("campaign_targets", [])
+    for t in targets:
+        name = (t.get("name") or "").lower()
+        if name:
+            entry = {}
+            if t.get("target_roas"):
+                entry["target_roas"] = float(t["target_roas"])
+            if t.get("target_cpa"):
+                entry["target_cpa"] = float(t["target_cpa"])
+            if t.get("target_cpl"):
+                entry["target_cpl"] = float(t["target_cpl"])
+            if entry:
+                per_campaign_targets[name] = entry
+
+    return brand_names, per_campaign_targets
+
 
 def _check(name, status, reason, action=None, platform="all", campaign=None, priority="medium"):
     return {
@@ -276,37 +312,67 @@ def check_creative_diversity(campaigns, platform):
 
 # --- Category 5: Cost Diagnostics ---
 
-def check_cpa_vs_target(campaigns, platform, target_cpa=None):
-    if not target_cpa:
+def check_cpa_vs_target(campaigns, platform, target_cpa=None, brand_names=None, per_campaign_targets=None):
+    brand_names = brand_names or set()
+    per_campaign_targets = per_campaign_targets or {}
+    non_brand = [c for c in campaigns if c.get("campaign_name", "").lower() not in brand_names]
+    if not target_cpa and not per_campaign_targets:
         return _check("CPA vs Target", "pass", "No CPA target set. Configure in Budget Rules.", platform=platform)
-    bad = [c for c in campaigns if (c.get("cac") or 0) > target_cpa * 1.5 and (c.get("conversions") or 0) > 0]
+    bad = []
+    for c in non_brand:
+        c_name = c.get("campaign_name", "").lower()
+        c_target = (per_campaign_targets.get(c_name, {}).get("target_cpa")
+                    or per_campaign_targets.get(c_name, {}).get("target_cpl")
+                    or target_cpa)
+        if c_target and (c.get("cac") or 0) > c_target * 1.5 and (c.get("conversions") or 0) > 0:
+            bad.append(c)
     if bad:
         names = ", ".join(c["campaign_name"] for c in bad[:3])
         return _check("CPA vs Target", "fail",
                       f"{len(bad)} campaigns exceed CPA target ({target_cpa:,.0f}) by >50%: {names}",
                       action=f"Pause or restructure high-CPA campaigns: {names}",
                       platform=platform, priority="high")
-    warn = [c for c in campaigns if (c.get("cac") or 0) > target_cpa and (c.get("conversions") or 0) > 0]
+    warn = []
+    for c in non_brand:
+        c_name = c.get("campaign_name", "").lower()
+        c_target = (per_campaign_targets.get(c_name, {}).get("target_cpa")
+                    or per_campaign_targets.get(c_name, {}).get("target_cpl")
+                    or target_cpa)
+        if c_target and (c.get("cac") or 0) > c_target and (c.get("conversions") or 0) > 0:
+            warn.append(c)
     if warn:
         return _check("CPA vs Target", "warning",
                       f"{len(warn)} campaigns above CPA target ({target_cpa:,.0f}).", platform=platform)
     return _check("CPA vs Target", "pass", f"All campaigns within CPA target ({target_cpa:,.0f}).", platform=platform)
 
 
-def check_roas_vs_target(campaigns, platform, target_roas=None):
-    if not target_roas:
+def check_roas_vs_target(campaigns, platform, target_roas=None, brand_names=None, per_campaign_targets=None):
+    brand_names = brand_names or set()
+    per_campaign_targets = per_campaign_targets or {}
+    non_brand = [c for c in campaigns if c.get("campaign_name", "").lower() not in brand_names]
+    if not target_roas and not per_campaign_targets:
         return _check("ROAS vs Target", "pass", "No ROAS target set. Configure in Budget Rules.", platform=platform)
-    spending = [c for c in campaigns if (c.get("spend") or 0) > 100]
+    spending = [c for c in non_brand if (c.get("spend") or 0) > 100]
     if not spending:
         return _check("ROAS vs Target", "warning", "Insufficient spend to evaluate ROAS.", platform=platform)
-    below = [c for c in spending if (c.get("roas") or 0) < target_roas * 0.7]
+    below = []
+    for c in spending:
+        c_name = c.get("campaign_name", "").lower()
+        c_target = per_campaign_targets.get(c_name, {}).get("target_roas") or target_roas
+        if c_target and (c.get("roas") or 0) < c_target * 0.7:
+            below.append(c)
     if below:
         names = ", ".join(c["campaign_name"] for c in below[:3])
         return _check("ROAS vs Target", "fail",
                       f"{len(below)} campaigns >30% below ROAS target ({target_roas}x): {names}",
                       action=f"Review and optimize or pause: {names}",
                       platform=platform, campaign=below[0]["campaign_name"] if below else None, priority="high")
-    warn_camps = [c for c in spending if (c.get("roas") or 0) < target_roas]
+    warn_camps = []
+    for c in spending:
+        c_name = c.get("campaign_name", "").lower()
+        c_target = per_campaign_targets.get(c_name, {}).get("target_roas") or target_roas
+        if c_target and (c.get("roas") or 0) < c_target:
+            warn_camps.append(c)
     if warn_camps:
         return _check("ROAS vs Target", "warning",
                       f"{len(warn_camps)} campaigns below ROAS target ({target_roas}x).", platform=platform)
@@ -329,23 +395,27 @@ def check_cpc_outliers(campaigns, platform):
     return _check("CPC Outliers", "pass", f"CPC distribution looks normal (avg: {avg_cpc:.2f}).", platform=platform)
 
 
-def check_wasted_spend(campaigns, platform):
-    total_waste = sum(c.get("wasted_spend") or 0 for c in campaigns)
-    total_spend = sum(c.get("spend") or 0 for c in campaigns)
+def check_wasted_spend(campaigns, platform, brand_names=None):
+    brand_names = brand_names or set()
+    non_brand = [c for c in campaigns if c.get("campaign_name", "").lower() not in brand_names]
+    excluded_count = len(campaigns) - len(non_brand)
+    total_waste = sum(c.get("wasted_spend") or 0 for c in non_brand)
+    total_spend = sum(c.get("spend") or 0 for c in non_brand)
+    excl_note = f" ({excluded_count} brand campaign(s) excluded from waste ratio)" if excluded_count else ""
     if total_spend == 0:
         return _check("Wasted Spend", "pass", "No spend data.", platform=platform)
     if total_waste == 0:
-        return _check("Wasted Spend", "pass", "No wasted spend flagged.", platform=platform)
+        return _check("Wasted Spend", "pass", f"No wasted spend flagged.{excl_note}", platform=platform)
     waste_pct = total_waste / total_spend * 100
     if waste_pct > 20:
         return _check("Wasted Spend", "fail",
-                      f"{waste_pct:.0f}% of {platform} budget is wasted spend ({total_waste:,.0f}).",
+                      f"{waste_pct:.0f}% of {platform} budget is wasted spend ({total_waste:,.0f}).{excl_note}",
                       action="Review negative keywords, exclusions, and audience targeting to cut waste.",
                       platform=platform, priority="high")
     if waste_pct > 10:
         return _check("Wasted Spend", "warning",
-                      f"{waste_pct:.0f}% of budget flagged as wasted spend.", platform=platform)
-    return _check("Wasted Spend", "pass", f"Wasted spend at acceptable level ({waste_pct:.0f}%).", platform=platform)
+                      f"{waste_pct:.0f}% of budget flagged as wasted spend.{excl_note}", platform=platform)
+    return _check("Wasted Spend", "pass", f"Wasted spend at acceptable level ({waste_pct:.0f}%).{excl_note}", platform=platform)
 
 
 # --- Category 6: Account Health ---
@@ -395,12 +465,14 @@ def check_spend_efficiency(campaigns, platform):
                   f"{platform} account ROAS: {roas:.2f}x - healthy.", platform=platform)
 
 
-def check_top_campaign_health(campaigns, platform):
+def check_top_campaign_health(campaigns, platform, brand_names=None):
+    brand_names = brand_names or set()
     if not campaigns:
         return _check("Top Campaign Health", "warning", "No campaigns.", platform=platform)
     top = sorted(campaigns, key=lambda x: x.get("spend") or 0, reverse=True)[0]
+    is_brand = top.get("campaign_name", "").lower() in brand_names
     issues = []
-    if (top.get("roas") or 0) < 1.5:
+    if not is_brand and (top.get("roas") or 0) < 1.5:
         issues.append(f"low ROAS ({top.get('roas', 0):.2f}x)")
     if (top.get("conversions") or 0) == 0:
         issues.append("zero conversions")
@@ -411,8 +483,9 @@ def check_top_campaign_health(campaigns, platform):
                       f"Top spend campaign '{top['campaign_name']}' has issues: {', '.join(issues)}.",
                       action=f"Prioritize fixing '{top['campaign_name']}' - it consumes the most budget.",
                       platform=platform, campaign=top["campaign_name"], priority="high")
+    brand_note = " (brand campaign - ROAS threshold skipped)" if is_brand else ""
     return _check("Top Campaign Health", "pass",
-                  f"Top campaign '{top['campaign_name']}' looks healthy.", platform=platform)
+                  f"Top campaign '{top['campaign_name']}' looks healthy.{brand_note}", platform=platform)
 
 
 # ============================================================
@@ -436,9 +509,12 @@ def run_structured_audit(conn, client_id: int, upload_id: int = None) -> dict:
         upload_id = latest["id"]
 
     # Client info
-    client = _q1(conn, "SELECT name, currency FROM clients WHERE id = ?", [client_id]) or {}
+    client = _q1(conn, "SELECT name, currency, context FROM clients WHERE id = ?", [client_id]) or {}
     client_name = client.get("name", "Unknown")
     currency    = client.get("currency", "INR")
+    brand_names, per_campaign_targets = _build_context_filters(
+        parse_context_from_json(client.get("context") or "")
+    )
 
     # Budget rules for targets
     rules = _q1(conn, """
@@ -505,14 +581,14 @@ def run_structured_audit(conn, client_id: int, upload_id: int = None) -> dict:
         add("Creative Performance",  check_ctr_health(google_camps, "google"))
         add("Creative Performance",  check_ctr_decline_trend(google_hist, "google"))
         add("Creative Performance",  check_creative_diversity(google_camps, "google"))
-        add("Cost Diagnostics",      check_cpa_vs_target(google_camps, "google", g_cpl))
-        add("Cost Diagnostics",      check_roas_vs_target(google_camps, "google", g_roas))
+        add("Cost Diagnostics",      check_cpa_vs_target(google_camps, "google", g_cpl, brand_names, per_campaign_targets))
+        add("Cost Diagnostics",      check_roas_vs_target(google_camps, "google", g_roas, brand_names, per_campaign_targets))
         add("Cost Diagnostics",      check_cpc_outliers(google_camps, "google"))
-        add("Cost Diagnostics",      check_wasted_spend(google_camps, "google"))
+        add("Cost Diagnostics",      check_wasted_spend(google_camps, "google", brand_names))
         add("Account Health",        check_zero_spend_campaigns(google_camps, "google"))
         add("Account Health",        check_impressions_no_clicks(google_camps, "google"))
         add("Account Health",        check_spend_efficiency(google_camps, "google"))
-        add("Account Health",        check_top_campaign_health(google_camps, "google"))
+        add("Account Health",        check_top_campaign_health(google_camps, "google", brand_names))
 
     # Meta checks
     if meta_camps:
@@ -529,14 +605,14 @@ def run_structured_audit(conn, client_id: int, upload_id: int = None) -> dict:
         add("Creative Performance",  check_ctr_health(meta_camps, "meta", 1.5))
         add("Creative Performance",  check_ctr_decline_trend(meta_hist, "meta"))
         add("Creative Performance",  check_creative_diversity(meta_camps, "meta"))
-        add("Cost Diagnostics",      check_cpa_vs_target(meta_camps, "meta", m_cpl))
-        add("Cost Diagnostics",      check_roas_vs_target(meta_camps, "meta", m_roas))
+        add("Cost Diagnostics",      check_cpa_vs_target(meta_camps, "meta", m_cpl, brand_names, per_campaign_targets))
+        add("Cost Diagnostics",      check_roas_vs_target(meta_camps, "meta", m_roas, brand_names, per_campaign_targets))
         add("Cost Diagnostics",      check_cpc_outliers(meta_camps, "meta"))
-        add("Cost Diagnostics",      check_wasted_spend(meta_camps, "meta"))
+        add("Cost Diagnostics",      check_wasted_spend(meta_camps, "meta", brand_names))
         add("Account Health",        check_zero_spend_campaigns(meta_camps, "meta"))
         add("Account Health",        check_impressions_no_clicks(meta_camps, "meta"))
         add("Account Health",        check_spend_efficiency(meta_camps, "meta"))
-        add("Account Health",        check_top_campaign_health(meta_camps, "meta"))
+        add("Account Health",        check_top_campaign_health(meta_camps, "meta", brand_names))
 
     if not google_camps and not meta_camps:
         return {"error": "No campaign data found for this upload."}
@@ -625,7 +701,7 @@ def run_structured_audit(conn, client_id: int, upload_id: int = None) -> dict:
     }
 
 
-def generate_audit_summary(result: dict) -> str:
+def generate_audit_summary(result: dict, business_context: str = "") -> str:
     """Ask Claude for a 1-paragraph executive summary of the structured audit. Returns markdown."""
     if not result or "error" in result:
         return ""
@@ -646,6 +722,8 @@ def generate_audit_summary(result: dict) -> str:
         + "\n".join(f"  [{r['priority'].upper()}] {r['check']}: {r['reason']}" for r in top_recs)
     )
 
+    context_block = f"\n\n{business_context}" if business_context else ""
+
     prompt = (
         "You are a senior performance marketing auditor. "
         "Write a concise 2-paragraph executive summary of this ad account structured audit. "
@@ -653,6 +731,7 @@ def generate_audit_summary(result: dict) -> str:
         "Paragraph 2: 2-3 most critical action items. "
         "Be direct. No preamble. Clean markdown.\n\n"
         + payload
+        + context_block
     )
 
     try:

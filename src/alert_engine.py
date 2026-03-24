@@ -56,7 +56,7 @@ def _get_campaign_metrics(conn, upload_id: int, client_id: int) -> list[dict]:
     """, [upload_id, client_id])
 
 
-def run_alert_checks(conn, client_id: int, upload_id: int) -> list[dict]:
+def run_alert_checks(conn, client_id: int, upload_id: int, context_dict: dict = None) -> list[dict]:
     """
     Run all alert checks for a new upload.
     Returns list of alert dicts (not yet persisted).
@@ -65,6 +65,27 @@ def run_alert_checks(conn, client_id: int, upload_id: int) -> list[dict]:
     current  = _get_campaign_metrics(conn, upload_id, client_id)
     prior_up = _get_prior_upload(conn, client_id, upload_id)
     prior    = _get_campaign_metrics(conn, prior_up["id"], client_id) if prior_up else []
+
+    # Extract brand names and per-campaign targets from context
+    brand_names = set()
+    per_campaign_targets = {}
+    if context_dict:
+        tags = context_dict.get("campaign_tags", {})
+        for tag_name, tag_val in tags.items():
+            if tag_val in ("brand_awareness", "brand"):
+                brand_names.add(tag_name.lower())
+        for t in context_dict.get("campaign_targets", []):
+            t_name = (t.get("name") or "").lower()
+            if t_name:
+                entry = {}
+                if t.get("target_roas"):
+                    entry["target_roas"] = float(t["target_roas"])
+                if t.get("target_cpa"):
+                    entry["target_cpa"] = float(t["target_cpa"])
+                if t.get("target_cpl"):
+                    entry["target_cpl"] = float(t["target_cpl"])
+                if entry:
+                    per_campaign_targets[t_name] = entry
 
     # Index prior by (campaign_name, platform)
     prior_map = {(r["campaign_name"], r["platform"]): r for r in prior}
@@ -81,6 +102,7 @@ def run_alert_checks(conn, client_id: int, upload_id: int) -> list[dict]:
         ctr      = camp.get("ctr") or 0
         impr     = camp.get("impressions") or 0
         clicks   = camp.get("clicks") or 0
+        is_brand = name.lower() in brand_names
 
         prior_c  = prior_map.get((name, camp.get("platform")), {})
         p_spend  = prior_c.get("spend") or 0
@@ -92,9 +114,10 @@ def run_alert_checks(conn, client_id: int, upload_id: int) -> list[dict]:
         cvr   = conv / clicks * 100 if clicks else 0
         p_cvr = (prior_c.get("conversions") or 0) / (prior_c.get("clicks") or 1) * 100
 
-        # 1. ROAS below target
-        min_roas = rules.get(f"{platform}_min_roas") or rules.get("google_min_roas") or 2.0
-        if spend > 50 and roas > 0 and roas < min_roas:
+        # 1. ROAS below target (skip brand campaigns)
+        c_target_roas = per_campaign_targets.get(name.lower(), {}).get("target_roas")
+        min_roas = c_target_roas or rules.get(f"{platform}_min_roas") or rules.get("google_min_roas") or 2.0
+        if not is_brand and spend > 50 and roas > 0 and roas < min_roas:
             pct = _pct_change(roas, min_roas)
             alerts.append({
                 "client_id":    client_id,
@@ -124,9 +147,11 @@ def run_alert_checks(conn, client_id: int, upload_id: int) -> list[dict]:
                 "message":      f"Zero conversions with {spend:,.0f} spend",
             })
 
-        # 3. CPA spike vs prior period
-        min_cpl = rules.get(f"{platform}_min_cpl")
-        if min_cpl and cac > 0 and cac > min_cpl * 1.3:
+        # 3. CPA spike vs prior period (skip brand campaigns)
+        c_target_cpa = (per_campaign_targets.get(name.lower(), {}).get("target_cpa")
+                        or per_campaign_targets.get(name.lower(), {}).get("target_cpl"))
+        min_cpl = c_target_cpa or rules.get(f"{platform}_min_cpl")
+        if not is_brand and min_cpl and cac > 0 and cac > min_cpl * 1.3:
             pct = _pct_change(cac, min_cpl)
             alerts.append({
                 "client_id":    client_id,
@@ -140,7 +165,7 @@ def run_alert_checks(conn, client_id: int, upload_id: int) -> list[dict]:
                 "severity":     SEVERITY_MAP["cpa_spike"](pct),
                 "message":      f"CPA {cac:,.0f} exceeds ceiling {min_cpl:,.0f}",
             })
-        elif prior_c and cac > 0 and p_conv > 0:
+        elif not is_brand and prior_c and cac > 0 and p_conv > 0:
             p_cac = prior_c.get("cac") or 0
             if p_cac > 0:
                 pct = _pct_change(cac, p_cac)
@@ -248,7 +273,15 @@ def persist_alerts(conn, alerts: list[dict]) -> int:
 
 def trigger_alerts_for_upload(conn, client_id: int, upload_id: int) -> int:
     """Full pipeline: run checks + persist. Returns alert count."""
-    alerts = run_alert_checks(conn, client_id, upload_id)
+    row = _q1(conn, "SELECT context FROM clients WHERE id = ?", [client_id]) or {}
+    raw_context = row.get("context") or ""
+    context_dict = {}
+    if raw_context:
+        try:
+            context_dict = json.loads(raw_context)
+        except Exception:
+            pass
+    alerts = run_alert_checks(conn, client_id, upload_id, context_dict=context_dict)
     return persist_alerts(conn, alerts)
 
 

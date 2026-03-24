@@ -16,6 +16,7 @@
     --border: #e2e8f0;
     --text: #0f172a;
     --muted: #64748b;
+    --text-secondary: #475569;
     --critical: #dc2626;
     --warning: #d97706;
     --ok: #16a34a;
@@ -327,36 +328,23 @@
   }
   .ob-step-dot.done { background: rgba(255,255,255,0.85); }
   .ob-step-dot.active { background: #fff; }
+
+  /* ---- Structured Audit filter buttons ---- */
+  .sa-filter-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .sa-filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .sa-filter-btn.sa-filter-active { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
   .ob-wiz-step { animation: fadeIn .2s ease; }
 
-  /* ---- Competitor Intel ---- */
-  .ci-comp-item {
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg-secondary);
-    cursor: pointer;
-    transition: border-color .15s, background .15s;
-  }
-  .ci-comp-item:hover { border-color: var(--primary); }
-  .ci-comp-item.active { border-color: var(--primary); background: var(--primary-light, #eff6ff); }
-  [data-theme="dark"] .ci-comp-item.active { background: #1e3a5f; }
-  .ci-ad-card {
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px;
-    background: var(--bg-secondary);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .ci-ad-text {
-    font-size: 13px;
-    line-height: 1.55;
-    color: var(--text);
-    border-left: 3px solid var(--primary);
-    padding-left: 10px;
-  }
   .ci-ad-analysis {
     margin-top: 8px;
     font-size: 12px;
@@ -1669,9 +1657,6 @@
       <div class="nav-item" data-section="pixel-health" onclick="navigate('pixel-health')">
         <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg></span> Pixel Health
       </div>
-      <div class="nav-item" data-section="competitors" onclick="navigate('competitors')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg></span> Competitors
-      </div>
       <div class="nav-item active" data-section="audit" onclick="navigate('audit')">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Audit
       </div>
@@ -1946,78 +1931,79 @@
       <!-- ======== STRUCTURED AUDIT SECTION ======== -->
       <section id="section-structured-audit" class="section">
 
-        <div class="section-header" style="align-items:center;gap:12px;">
+        <!-- Header bar -->
+        <div class="section-header" style="align-items:center;gap:10px;">
           <h2>Structured Audit</h2>
-          <select id="sa-upload-select" class="form-select" style="width:auto;max-width:220px;"></select>
-          <button class="btn-primary" onclick="runStructuredAudit()">Run Audit</button>
-          <button class="btn-secondary" onclick="loadLatestStructuredAudit()" style="margin-left:4px;">Load Latest</button>
+          <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+            <select id="sa-upload-select" class="form-select" style="width:auto;max-width:200px;font-size:12px;"></select>
+            <button class="btn-secondary" onclick="loadLatestStructuredAudit()" style="font-size:12px;padding:6px 12px;">Load Latest</button>
+            <button class="btn-primary" onclick="runStructuredAudit()" style="font-size:12px;padding:6px 14px;">Run Audit</button>
+          </div>
         </div>
 
-        <div id="sa-loading" style="display:none;padding:40px;text-align:center;color:var(--muted);">Running 50+ checks...</div>
-        <div id="sa-error" style="display:none;padding:24px;color:#e53e3e;"></div>
+        <!-- Loading / error -->
+        <div id="sa-loading" style="display:none;">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 24px;gap:16px;">
+            <div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+            <div style="font-size:13px;color:var(--muted);">Running 50+ checks across your account...</div>
+          </div>
+        </div>
+        <div id="sa-error" style="display:none;padding:16px 20px;background:#fff5f5;border:1px solid #fed7d7;border-radius:10px;color:#c53030;font-size:13px;margin-bottom:16px;"></div>
 
         <div id="sa-content" style="display:none;">
 
-          <!-- Score header -->
-          <div style="display:flex;align-items:center;gap:24px;margin-bottom:24px;flex-wrap:wrap;">
-            <div id="sa-score-ring" style="text-align:center;min-width:120px;">
-              <svg viewBox="0 0 120 120" width="120" height="120" id="sa-score-svg"></svg>
-              <div style="font-size:11px;color:var(--muted);margin-top:4px;">Account Health</div>
+          <!-- Score hero row -->
+          <div style="display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;background:var(--white);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:20px;">
+
+            <!-- Score ring -->
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+              <svg viewBox="0 0 120 120" width="100" height="100" id="sa-score-svg"></svg>
+              <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);">Health Score</div>
             </div>
-            <div style="flex:1;min-width:240px;">
-              <div id="sa-summary-text" style="font-size:13px;line-height:1.65;color:var(--text-secondary);"></div>
+
+            <!-- Summary text -->
+            <div style="padding:0 8px;border-left:1px solid var(--border);border-right:1px solid var(--border);">
+              <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">AI Analysis</div>
+              <div id="sa-summary-text" style="font-size:13px;line-height:1.7;color:var(--text-secondary);"></div>
             </div>
-            <div style="display:flex;gap:16px;flex-wrap:wrap;" id="sa-stat-pills"></div>
+
+            <!-- Stat pills -->
+            <div style="display:flex;flex-direction:column;gap:10px;min-width:130px;" id="sa-stat-pills"></div>
+
           </div>
 
           <!-- Category scores -->
           <div class="dash-chart-card" style="margin-bottom:20px;">
-            <div class="dash-chart-title">Category Scores</div>
-            <div id="sa-category-bars" style="display:flex;flex-direction:column;gap:10px;padding:4px 0;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+              <div style="font-size:13px;font-weight:600;color:var(--text);">Category Breakdown</div>
+              <div style="font-size:11px;color:var(--muted);">Scored 0–100</div>
+            </div>
+            <div id="sa-category-bars" style="display:flex;flex-direction:column;gap:14px;"></div>
           </div>
 
-          <!-- Recommendations table -->
+          <!-- Recommendations -->
           <div class="dash-chart-card" style="margin-bottom:20px;">
-            <div class="dash-chart-title" style="display:flex;align-items:center;justify-content:space-between;">
-              <span>Recommendations</span>
-              <span id="sa-rec-count" style="font-size:12px;color:var(--muted);font-weight:400;"></span>
-            </div>
-            <div style="overflow-x:auto;">
-              <table class="audit-table">
-                <thead>
-                  <tr>
-                    <th>Priority</th>
-                    <th>Category</th>
-                    <th>Check</th>
-                    <th>Finding</th>
-                    <th>Action</th>
-                    <th>Platform</th>
-                  </tr>
-                </thead>
-                <tbody id="sa-recs-body"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- All checks table -->
-          <div class="dash-chart-card">
-            <div class="dash-chart-title" style="display:flex;align-items:center;justify-content:space-between;">
-              <span>All Checks</span>
-              <div style="display:flex;gap:8px;">
-                <button class="btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="filterSAChecks('all')">All</button>
-                <button class="btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="filterSAChecks('fail')">Fail</button>
-                <button class="btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="filterSAChecks('warning')">Warning</button>
-                <button class="btn-secondary" style="padding:4px 10px;font-size:12px;" onclick="filterSAChecks('pass')">Pass</button>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text);">Action Items</div>
+                <div id="sa-rec-count" style="font-size:11px;color:var(--muted);margin-top:2px;"></div>
               </div>
             </div>
-            <div style="overflow-x:auto;">
-              <table class="audit-table">
-                <thead>
-                  <tr><th>Status</th><th>Category</th><th>Check</th><th>Finding</th><th>Platform</th></tr>
-                </thead>
-                <tbody id="sa-checks-body"></tbody>
-              </table>
+            <div id="sa-recs-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+
+          <!-- All checks -->
+          <div class="dash-chart-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <div style="font-size:13px;font-weight:600;color:var(--text);">All Checks</div>
+              <div style="display:flex;gap:6px;" id="sa-filter-btns">
+                <button onclick="filterSAChecks('all')"     class="sa-filter-btn sa-filter-active"    data-f="all">All</button>
+                <button onclick="filterSAChecks('fail')"    class="sa-filter-btn"                     data-f="fail">Failed</button>
+                <button onclick="filterSAChecks('warning')" class="sa-filter-btn"                     data-f="warning">Warning</button>
+                <button onclick="filterSAChecks('pass')"    class="sa-filter-btn"                     data-f="pass">Passed</button>
+              </div>
             </div>
+            <div id="sa-checks-list" style="display:flex;flex-direction:column;gap:4px;"></div>
           </div>
 
         </div><!-- /sa-content -->
@@ -2089,72 +2075,6 @@
 
       </section>
 
-      <!-- ======== COMPETITORS SECTION ======== -->
-      <section id="section-competitors" class="section">
-
-        <div class="section-header" style="align-items:center;gap:12px;">
-          <h2>Competitor Intelligence</h2>
-          <button class="btn-primary" onclick="showAddCompetitor()">+ Add Competitor</button>
-        </div>
-
-        <!-- Add competitor form -->
-        <div id="ci-add-form" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;">
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
-            <div style="flex:1;min-width:180px;">
-              <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Brand Name</label>
-              <input type="text" id="ci-brand-name" class="form-input" placeholder="e.g. Nike" style="width:100%;"/>
-            </div>
-            <div style="flex:2;min-width:240px;">
-              <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Ad Library URL (optional)</label>
-              <input type="text" id="ci-ad-lib-url" class="form-input" placeholder="https://www.facebook.com/ads/library/..." style="width:100%;"/>
-            </div>
-            <button class="btn-primary" onclick="submitAddCompetitor()">Add</button>
-            <button class="btn-secondary" onclick="document.getElementById('ci-add-form').style.display='none'">Cancel</button>
-          </div>
-        </div>
-
-        <div id="ci-loading" style="display:none;padding:40px;text-align:center;color:var(--muted);">Scraping Meta Ad Library...</div>
-        <div id="ci-error" style="display:none;padding:16px;color:#e53e3e;background:#fff5f5;border-radius:8px;margin-bottom:16px;"></div>
-
-        <div style="display:flex;gap:20px;align-items:flex-start;min-height:300px;">
-
-          <!-- Competitor list -->
-          <div style="width:220px;flex-shrink:0;">
-            <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Competitors</div>
-            <div id="ci-competitor-list" style="display:flex;flex-direction:column;gap:6px;"></div>
-            <div id="ci-no-competitors" style="display:none;padding:16px;text-align:center;color:var(--muted);font-size:13px;">No competitors added yet.</div>
-          </div>
-
-          <!-- Ad cards + summary -->
-          <div style="flex:1;min-width:0;">
-            <div id="ci-brand-header" style="display:none;margin-bottom:16px;">
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                <h3 id="ci-active-brand" style="margin:0;font-size:16px;"></h3>
-                <select id="ci-country" class="form-select" style="width:auto;">
-                  <option value="ALL">All Countries</option>
-                  <option value="IN">India</option>
-                  <option value="US">USA</option>
-                  <option value="GB">UK</option>
-                  <option value="AE">UAE</option>
-                  <option value="AU">Australia</option>
-                </select>
-                <button class="btn-primary" onclick="scrapeCompetitor()">Scrape Now</button>
-                <button class="btn-secondary" onclick="deleteActiveCompetitor()" style="color:#e53e3e;border-color:#e53e3e;">Remove</button>
-              </div>
-              <div id="ci-scrape-history" style="font-size:11px;color:var(--muted);margin-top:6px;"></div>
-            </div>
-
-            <div id="ci-pattern-summary" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.6;color:var(--text-secondary);"></div>
-
-            <div id="ci-ad-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;"></div>
-            <div id="ci-no-ads" style="display:none;padding:40px;text-align:center;color:var(--muted);font-size:13px;">
-              No ads scraped yet. Click "Scrape Now" to fetch from Meta Ad Library.
-            </div>
-          </div>
-
-        </div>
-
-      </section>
 
       <!-- ======== AUDIT SECTION ======== -->
       <section id="section-audit" class="section active">
@@ -3416,7 +3336,6 @@ const SECTION_TITLES = {
   forecast: 'Revenue Forecast',
   'structured-audit': 'Structured Audit',
   'pixel-health': 'Pixel Health Monitor',
-  'competitors': 'Competitor Intelligence',
   audit: 'Audit',
   report: 'Audit Report',
   anomaly: 'Anomaly Spotter',
@@ -3450,7 +3369,6 @@ function navigate(section) {
   if (section === 'forecast' && currentClientId) loadForecast();
   if (section === 'structured-audit' && currentClientId) initStructuredAudit();
   if (section === 'pixel-health' && currentClientId) initPixelHealth();
-  if (section === 'competitors' && currentClientId) loadCompetitors();
   if (section === 'anomaly' && currentClientId) loadAnomalies();
   if (section === 'audit' && currentClientId) loadAnomalyBanner();
   if (section === 'narrator' && currentClientId) loadUploadsForSelector('narrator-upload-select');
@@ -3507,7 +3425,6 @@ function onClientChange() {
   if (activeSection === 'forecast') loadForecast();
   if (activeSection === 'structured-audit') initStructuredAudit();
   if (activeSection === 'pixel-health') initPixelHealth();
-  if (activeSection === 'competitors') loadCompetitors();
   if (activeSection === 'anomaly') loadAnomalies();
   if (activeSection === 'narrator') loadUploadsForSelector('narrator-upload-select');
   if (activeSection === 'budget') { loadUploadsForSelector('budget-upload-select'); loadBudgetRulesIntoForm(); }
@@ -7381,37 +7298,34 @@ function renderStructuredAudit(data) {
   saAllChecks = data.checks || [];
   const score = data.overall_score || 0;
 
-  // Score ring SVG
-  const color = score >= 80 ? '#48bb78' : score >= 60 ? '#ecc94b' : score >= 40 ? '#ed8936' : '#e53e3e';
-  const r = 46, cx = 60, cy = 60;
+  // Score ring
+  const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : score >= 40 ? '#f97316' : '#ef4444';
+  const scoreLabel = score >= 80 ? 'Healthy' : score >= 60 ? 'Fair' : score >= 40 ? 'At Risk' : 'Critical';
+  const r = 40, cx = 60, cy = 60;
   const circ = 2 * Math.PI * r;
   const dash = (score / 100) * circ;
   document.getElementById('sa-score-svg').innerHTML = `
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="10"/>
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="10"
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="8"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${scoreColor}" stroke-width="8"
       stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}"
       stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
-    <text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="22" font-weight="700" fill="var(--text)">${score}</text>
-    <text x="${cx}" y="${cy+20}" text-anchor="middle" font-size="10" fill="var(--muted)">/100</text>
+    <text x="${cx}" y="${cy+2}" text-anchor="middle" font-size="20" font-weight="700" fill="${scoreColor}">${score}</text>
+    <text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="9" font-weight="600" fill="var(--muted)" letter-spacing="1">${scoreLabel.toUpperCase()}</text>
   `;
 
-  // Stat pills
+  // Stat pills - vertical stack on right
   document.getElementById('sa-stat-pills').innerHTML = `
-    <div style="background:#fff5f5;border:1px solid #fed7d7;border-radius:8px;padding:10px 16px;text-align:center;">
-      <div style="font-size:20px;font-weight:700;color:#e53e3e;">${data.fail_count || 0}</div>
-      <div style="font-size:11px;color:#e53e3e;">Critical</div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">
+      <div style="font-size:18px;font-weight:700;color:#dc2626;min-width:28px;">${data.fail_count || 0}</div>
+      <div style="font-size:11px;color:#dc2626;font-weight:500;">Critical</div>
     </div>
-    <div style="background:#fffbeb;border:1px solid #fef08a;border-radius:8px;padding:10px 16px;text-align:center;">
-      <div style="font-size:20px;font-weight:700;color:#d97706;">${data.warning_count || 0}</div>
-      <div style="font-size:11px;color:#d97706;">Warnings</div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;">
+      <div style="font-size:18px;font-weight:700;color:#d97706;min-width:28px;">${data.warning_count || 0}</div>
+      <div style="font-size:11px;color:#d97706;font-weight:500;">Warnings</div>
     </div>
-    <div style="background:#f0fff4;border:1px solid #c6f6d5;border-radius:8px;padding:10px 16px;text-align:center;">
-      <div style="font-size:20px;font-weight:700;color:#22863a;">${data.pass_count || 0}</div>
-      <div style="font-size:11px;color:#22863a;">Passed</div>
-    </div>
-    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;">
-      <div style="font-size:20px;font-weight:700;color:var(--text);">${data.total_checks || 0}</div>
-      <div style="font-size:11px;color:var(--muted);">Total Checks</div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+      <div style="font-size:18px;font-weight:700;color:#16a34a;min-width:28px;">${data.pass_count || 0}</div>
+      <div style="font-size:11px;color:#16a34a;font-weight:500;">Passed</div>
     </div>
   `;
 
@@ -7423,60 +7337,127 @@ function renderStructuredAudit(data) {
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       .replace(/\n/g, '<br>');
     document.getElementById('sa-summary-text').innerHTML = rendered;
+  } else {
+    document.getElementById('sa-summary-text').textContent = 'Run a structured audit to get an AI-generated account analysis.';
   }
 
   // Category bars
   const cats = data.category_scores || {};
   document.getElementById('sa-category-bars').innerHTML = Object.entries(cats).map(([cat, sc]) => {
-    const barColor = sc >= 80 ? '#48bb78' : sc >= 60 ? '#ecc94b' : sc >= 40 ? '#ed8936' : '#e53e3e';
+    const barColor = sc >= 80 ? '#22c55e' : sc >= 60 ? '#f59e0b' : sc >= 40 ? '#f97316' : '#ef4444';
+    const label = sc >= 80 ? 'Good' : sc >= 60 ? 'Fair' : sc >= 40 ? 'Poor' : 'Critical';
     return `
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:180px;font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cat}</div>
-        <div style="flex:1;background:var(--border);border-radius:4px;height:10px;overflow:hidden;">
-          <div style="width:${sc}%;background:${barColor};height:100%;border-radius:4px;transition:width .5s;"></div>
+      <div style="display:grid;grid-template-columns:180px 1fr 48px 52px;align-items:center;gap:12px;">
+        <div style="font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cat}</div>
+        <div style="background:var(--bg-secondary);border-radius:6px;height:8px;overflow:hidden;">
+          <div style="width:${sc}%;background:${barColor};height:100%;border-radius:6px;transition:width .6s ease;"></div>
         </div>
-        <div style="width:36px;font-size:12px;font-weight:600;color:var(--text);text-align:right;">${sc}</div>
+        <div style="font-size:12px;font-weight:700;color:${barColor};text-align:right;">${sc}</div>
+        <div style="font-size:10px;font-weight:600;color:${barColor};background:${barColor}18;padding:2px 7px;border-radius:10px;text-align:center;">${label}</div>
       </div>
     `;
   }).join('');
 
-  // Recommendations
+  // Action items (recommendations) - card style
   const recs = data.recommendations || [];
-  document.getElementById('sa-rec-count').textContent = `${recs.length} items`;
-  const priColor = p => p === 'high' ? '#e53e3e' : p === 'medium' ? '#ed8936' : '#718096';
-  document.getElementById('sa-recs-body').innerHTML = recs.map(r => `
-    <tr>
-      <td><span style="font-weight:600;color:${priColor(r.priority)};text-transform:uppercase;font-size:11px;">${r.priority}</span></td>
-      <td style="font-size:12px;color:var(--muted);">${r.category}</td>
-      <td style="font-weight:500;">${r.check}</td>
-      <td style="font-size:12px;">${r.reason}</td>
-      <td style="font-size:12px;color:var(--text-secondary);">${r.action || ''}</td>
-      <td><span class="badge badge-${(r.platform||'all').toLowerCase()}">${r.platform || 'all'}</span></td>
-    </tr>
-  `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);">No recommendations - great account health!</td></tr>';
+  document.getElementById('sa-rec-count').textContent = `${recs.length} action${recs.length !== 1 ? 's' : ''} required`;
+  const priMeta = p => p === 'high'
+    ? { bg: '#fef2f2', border: '#fecaca', color: '#dc2626', label: 'High' }
+    : p === 'medium'
+    ? { bg: '#fffbeb', border: '#fde68a', color: '#d97706', label: 'Medium' }
+    : { bg: '#f8fafc', border: 'var(--border)', color: '#64748b', label: 'Low' };
+
+  document.getElementById('sa-recs-list').innerHTML = recs.length ? recs.map(r => {
+    const pm = priMeta(r.priority);
+    return `
+      <div style="display:grid;grid-template-columns:auto 1fr auto;gap:0;border:1px solid ${pm.border};border-radius:10px;overflow:hidden;background:${pm.bg};">
+        <div style="width:4px;background:${pm.color};flex-shrink:0;"></div>
+        <div style="padding:12px 16px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+            <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${pm.color};">${pm.label}</span>
+            <span style="font-size:10px;color:var(--muted);background:var(--bg-secondary);padding:1px 7px;border-radius:10px;border:1px solid var(--border);">${r.category}</span>
+            <span class="badge badge-${(r.platform||'all').toLowerCase()}" style="font-size:10px;">${r.platform || 'All'}</span>
+          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;">${r.check}</div>
+          <div style="font-size:12px;color:var(--text-secondary);line-height:1.5;">${r.reason}</div>
+          ${r.action ? `<div style="font-size:12px;color:var(--primary);margin-top:6px;font-weight:500;">→ ${r.action}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('') : `
+    <div style="padding:32px;text-align:center;color:var(--muted);font-size:13px;">
+      <div style="font-size:24px;margin-bottom:8px;">✓</div>
+      No action items — account health looks good.
+    </div>`;
 
   // All checks
   renderSAChecks('all');
-
   document.getElementById('sa-content').style.display = '';
 }
 
 function filterSAChecks(status) {
+  // Update active button
+  document.querySelectorAll('.sa-filter-btn').forEach(b => {
+    b.classList.toggle('sa-filter-active', b.dataset.f === status);
+  });
   renderSAChecks(status);
 }
 
 function renderSAChecks(filterStatus) {
   const checks = filterStatus === 'all' ? saAllChecks : saAllChecks.filter(c => c.status === filterStatus);
-  const statusIcon = s => s === 'pass' ? '<span style="color:#48bb78">&#10003;</span>' : s === 'fail' ? '<span style="color:#e53e3e">&#10007;</span>' : '<span style="color:#ed8936">&#9888;</span>';
-  document.getElementById('sa-checks-body').innerHTML = checks.map(c => `
-    <tr>
-      <td>${statusIcon(c.status)}</td>
-      <td style="font-size:12px;color:var(--muted);">${c.category}</td>
-      <td style="font-weight:500;font-size:13px;">${c.check}</td>
-      <td style="font-size:12px;">${c.reason}</td>
-      <td><span class="badge badge-${(c.platform||'all').toLowerCase()}">${c.platform || 'all'}</span></td>
-    </tr>
-  `).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--muted);">No checks with status "${filterStatus}"</td></tr>`;
+
+  const statusCfg = {
+    pass:    { icon: '✓', bg: '#f0fdf4', border: '#bbf7d0', color: '#16a34a' },
+    warning: { icon: '!', bg: '#fffbeb', border: '#fde68a', color: '#d97706' },
+    fail:    { icon: '✕', bg: '#fef2f2', border: '#fecaca', color: '#dc2626' },
+  };
+
+  const container = document.getElementById('sa-checks-list');
+
+  if (!checks.length) {
+    container.innerHTML = `<div style="padding:32px;text-align:center;color:var(--muted);font-size:13px;">No checks with status "${filterStatus}".</div>`;
+    return;
+  }
+
+  // Build DOM nodes so we can attach real event listeners (no inline onclick needed)
+  container.innerHTML = '';
+  checks.forEach((c, i) => {
+    const cfg = statusCfg[c.status] || statusCfg.warning;
+    const hasDetails = !!(c.action);
+
+    const row = document.createElement('div');
+    row.style.cssText = `border:1px solid ${cfg.border};border-radius:8px;overflow:hidden;background:${cfg.bg};`;
+
+    row.innerHTML = `
+      <div class="sa-check-header" style="display:grid;grid-template-columns:32px 1fr auto auto;align-items:center;gap:12px;padding:10px 14px;${hasDetails ? 'cursor:pointer;' : ''}">
+        <div style="width:24px;height:24px;border-radius:50%;background:${cfg.color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;">${cfg.icon}</div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);">${c.check}</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">${c.category} &middot; ${c.reason}</div>
+        </div>
+        <span class="badge badge-${(c.platform||'all').toLowerCase()}" style="font-size:10px;white-space:nowrap;">${c.platform || 'All'}</span>
+        ${hasDetails ? `<div class="sa-chevron" style="font-size:12px;color:var(--muted);transition:transform .2s;flex-shrink:0;">▼</div>` : '<div></div>'}
+      </div>
+      ${hasDetails ? `
+      <div class="sa-check-body" style="display:none;padding:10px 14px 14px 56px;border-top:1px solid ${cfg.border};">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:${cfg.color};margin-bottom:6px;">Recommended Action</div>
+        <div style="font-size:12px;color:var(--text);line-height:1.6;">${c.action}</div>
+      </div>` : ''}
+    `;
+
+    if (hasDetails) {
+      const header = row.querySelector('.sa-check-header');
+      const body = row.querySelector('.sa-check-body');
+      const chevron = row.querySelector('.sa-chevron');
+      header.addEventListener('click', () => {
+        const open = body.style.display !== 'none';
+        body.style.display = open ? 'none' : '';
+        chevron.style.transform = open ? '' : 'rotate(180deg)';
+      });
+    }
+
+    container.appendChild(row);
+  });
 }
 
 // ============================================================
@@ -7618,177 +7599,6 @@ function renderPixelHealth(data) {
   document.getElementById('ph-content').style.display = '';
 }
 
-// ============================================================
-// COMPETITOR INTELLIGENCE
-// ============================================================
-let ciActiveCompetitorId = null;
-let ciActiveCompetitorName = '';
-
-async function loadCompetitors() {
-  if (!currentClientId) return;
-  try {
-    const res = await fetch(`/api/competitors/${currentClientId}`);
-    const data = await res.json();
-    renderCompetitorList(data);
-    if (data.length === 0) {
-      document.getElementById('ci-no-competitors').style.display = '';
-    } else {
-      document.getElementById('ci-no-competitors').style.display = 'none';
-      // Auto-select first
-      if (!ciActiveCompetitorId) selectCompetitor(data[0].id, data[0].brand_name);
-    }
-  } catch(e) {}
-}
-
-function renderCompetitorList(competitors) {
-  document.getElementById('ci-competitor-list').innerHTML = competitors.map(c => `
-    <div class="ci-comp-item ${c.id === ciActiveCompetitorId ? 'active' : ''}"
-         onclick="selectCompetitor(${c.id}, '${c.brand_name.replace(/'/g,"\\'")}')">
-      <div style="font-weight:500;font-size:13px;">${c.brand_name}</div>
-      <div style="font-size:11px;color:var(--muted);">${c.last_scraped_at ? 'Scraped ' + c.last_scraped_at.slice(0,10) : 'Not scraped'}</div>
-    </div>
-  `).join('');
-}
-
-async function selectCompetitor(id, name) {
-  ciActiveCompetitorId = id;
-  ciActiveCompetitorName = name;
-  document.getElementById('ci-active-brand').textContent = name;
-  document.getElementById('ci-brand-header').style.display = '';
-  document.getElementById('ci-no-ads').style.display = 'none';
-  document.getElementById('ci-ad-grid').innerHTML = '';
-  document.getElementById('ci-pattern-summary').style.display = 'none';
-  // Reload list to update active highlight
-  await loadCompetitors();
-  // Load existing ads
-  await loadCompetitorAds(id);
-}
-
-async function loadCompetitorAds(competitorId) {
-  try {
-    const res = await fetch(`/api/competitors/${competitorId}/ads`);
-    const data = await res.json();
-    if (data.error) return;
-    if (data.ads && data.ads.length > 0) {
-      renderAdCards(data.ads);
-    } else {
-      document.getElementById('ci-no-ads').style.display = '';
-    }
-    if (data.history && data.history.length > 0) {
-      document.getElementById('ci-scrape-history').textContent =
-        `Last scraped: ${data.history[0].scraped_at.slice(0,16)} | ${data.history[0].ad_count} ads`;
-    }
-  } catch(e) {}
-}
-
-function showAddCompetitor() {
-  document.getElementById('ci-add-form').style.display = '';
-  document.getElementById('ci-brand-name').focus();
-}
-
-async function submitAddCompetitor() {
-  const name = (document.getElementById('ci-brand-name').value || '').trim();
-  const url  = (document.getElementById('ci-ad-lib-url').value || '').trim();
-  if (!name) { showToast('Enter a brand name', 'error'); return; }
-  try {
-    const res = await fetch('/api/competitors/add', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ client_id: currentClientId, brand_name: name, ad_library_url: url }),
-    });
-    const data = await res.json();
-    if (data.error) { showToast(data.error, 'error'); return; }
-    document.getElementById('ci-add-form').style.display = 'none';
-    document.getElementById('ci-brand-name').value = '';
-    document.getElementById('ci-ad-lib-url').value = '';
-    showToast(`${name} added`, 'success');
-    await loadCompetitors();
-    selectCompetitor(data.id, data.brand_name);
-  } catch(e) {
-    showToast('Failed to add competitor', 'error');
-  }
-}
-
-async function deleteActiveCompetitor() {
-  if (!ciActiveCompetitorId) return;
-  if (!confirm(`Remove ${ciActiveCompetitorName} and all their ad data?`)) return;
-  try {
-    await fetch(`/api/competitors/${ciActiveCompetitorId}`, {
-      method: 'DELETE',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ client_id: currentClientId }),
-    });
-    ciActiveCompetitorId = null;
-    ciActiveCompetitorName = '';
-    document.getElementById('ci-brand-header').style.display = 'none';
-    document.getElementById('ci-ad-grid').innerHTML = '';
-    document.getElementById('ci-pattern-summary').style.display = 'none';
-    showToast('Competitor removed', 'success');
-    await loadCompetitors();
-  } catch(e) {
-    showToast('Failed to remove', 'error');
-  }
-}
-
-async function scrapeCompetitor() {
-  if (!ciActiveCompetitorId) return;
-  const country = document.getElementById('ci-country').value || 'ALL';
-  document.getElementById('ci-loading').style.display = '';
-  document.getElementById('ci-error').style.display = 'none';
-  try {
-    const res = await fetch('/api/competitors/scrape', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        client_id: currentClientId,
-        competitor_id: ciActiveCompetitorId,
-        brand_name: ciActiveCompetitorName,
-        country,
-      }),
-    });
-    const data = await res.json();
-    if (data.error) {
-      document.getElementById('ci-error').textContent = data.error;
-      document.getElementById('ci-error').style.display = '';
-      return;
-    }
-    if (data.pattern_summary) {
-      const el = document.getElementById('ci-pattern-summary');
-      el.innerHTML = '<strong>What they are testing:</strong> ' + data.pattern_summary;
-      el.style.display = '';
-    }
-    renderAdCards(data.ads || []);
-    showToast(`${data.ad_count} ads scraped and analyzed`, 'success');
-    await loadCompetitors();
-  } catch(e) {
-    document.getElementById('ci-error').textContent = 'Scrape failed: ' + e.message;
-    document.getElementById('ci-error').style.display = '';
-  } finally {
-    document.getElementById('ci-loading').style.display = 'none';
-  }
-}
-
-function renderAdCards(ads) {
-  document.getElementById('ci-no-ads').style.display = ads.length ? 'none' : '';
-  const funnelColor = f => f === 'ToFu' ? '#667eea' : f === 'MoFu' ? '#ed8936' : '#48bb78';
-  document.getElementById('ci-ad-grid').innerHTML = ads.map(ad => `
-    <div class="ci-ad-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        ${ad.funnel_stage ? `<span style="font-size:10px;font-weight:600;color:${funnelColor(ad.funnel_stage)};background:${funnelColor(ad.funnel_stage)}18;padding:2px 8px;border-radius:10px;">${ad.funnel_stage}</span>` : '<span></span>'}
-        ${ad.days_running ? `<span style="font-size:10px;color:var(--muted);">${ad.days_running}d running</span>` : ''}
-      </div>
-      <div class="ci-ad-text">${(ad.ad_text || '').slice(0, 200)}${(ad.ad_text||'').length > 200 ? '...' : ''}</div>
-      ${ad.cta ? `<div style="font-size:11px;color:#667eea;font-weight:600;margin-top:6px;">CTA: ${ad.cta}</div>` : ''}
-      <div class="ci-ad-analysis">
-        ${ad.angle ? `<div><span class="ci-label">Angle</span> ${ad.angle}</div>` : ''}
-        ${ad.offer ? `<div><span class="ci-label">Offer</span> ${ad.offer}</div>` : ''}
-        ${ad.psychology_triggers ? `<div><span class="ci-label">Psychology</span> ${ad.psychology_triggers}</div>` : ''}
-        ${ad.persona ? `<div><span class="ci-label">Persona</span> ${ad.persona}</div>` : ''}
-        ${ad.insight ? `<div style="margin-top:6px;font-style:italic;color:var(--muted);font-size:11px;">${ad.insight}</div>` : ''}
-      </div>
-    </div>
-  `).join('');
-}
 
 // ============================================================
 // BULK REPORT

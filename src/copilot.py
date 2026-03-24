@@ -6,6 +6,7 @@ Builds context from DuckDB, sends question to Claude CLI, parses action triggers
 import json
 import subprocess
 from .db import _q, _q1
+from .context import format_client_context, parse_context_from_json
 
 
 COPILOT_SYSTEM = """You are an expert ad performance analyst and strategist with deep knowledge of Google Ads, Meta Ads, and performance marketing. You have direct access to a client's real campaign data.
@@ -115,11 +116,9 @@ def build_context(conn, client_id: int) -> str:
 
     if context_raw:
         try:
-            ctx = json.loads(context_raw)
-            btype = ctx.get("business_type", "")
-            goals = ctx.get("primary_goal", "")
-            if btype:
-                lines.append(f"Business type: {btype}" + (f" | Goal: {goals}" if goals else ""))
+            briefing = format_client_context(parse_context_from_json(context_raw))
+            if briefing:
+                lines.append(f"\n{briefing}")
         except Exception:
             pass
 
