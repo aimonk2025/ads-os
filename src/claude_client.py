@@ -79,6 +79,22 @@ def is_claude_available() -> bool:
         return False
 
 
+def _build_prompt(analysis_data: dict, business_context: str = "") -> str:
+    payload = {k: v for k, v in analysis_data.items()
+               if k not in ("granular_context", "granularity_level")}
+    gran_context = analysis_data.get("granular_context", "")
+    data_json = json.dumps(payload, indent=2)
+    context_section = (
+        f"\n\nBusiness Context (provided by the marketer - use this to interpret campaign intent and goals):\n{business_context.strip()}"
+        if business_context and business_context.strip() else ""
+    )
+    gran_section = (
+        f"\n\nGranular breakdown context (use for deeper keyword/ad group/ad set/ad level recommendations):\n{gran_context}"
+        if gran_context else ""
+    )
+    return f"{SYSTEM_PROMPT}\n\nHere is the campaign performance data to analyze:\n\n{data_json}{context_section}{gran_section}"
+
+
 def analyze(analysis_data: dict, business_context: str = "") -> tuple[str, bool]:
     """
     Call Claude CLI with the analysis data.
@@ -89,30 +105,15 @@ def analyze(analysis_data: dict, business_context: str = "") -> tuple[str, bool]
         print("  WARNING: Claude CLI not found - using fallback analysis template")
         return fallback_template(analysis_data), False
 
-    # Inject granular context as plain text, keep JSON payload compact
-    payload = {k: v for k, v in analysis_data.items()
-               if k not in ("granular_context", "granularity_level")}
-    gran_context = analysis_data.get("granular_context", "")
-
-    data_json = json.dumps(payload, indent=2)
-
-    context_section = (
-        f"\n\nBusiness Context (provided by the marketer - use this to interpret campaign intent and goals):\n{business_context.strip()}"
-        if business_context and business_context.strip() else ""
-    )
-    gran_section = (
-        f"\n\nGranular breakdown context (use for deeper keyword/ad group/ad set/ad level recommendations):\n{gran_context}"
-        if gran_context else ""
-    )
-    full_prompt = f"{SYSTEM_PROMPT}\n\nHere is the campaign performance data to analyze:\n\n{data_json}{context_section}{gran_section}"
+    full_prompt = _build_prompt(analysis_data, business_context)
 
     try:
         result = subprocess.run(
-            ["claude", "--print", full_prompt],
+            ["claude", "--print", "--output-format", "text", full_prompt],
             capture_output=True,
             text=True,
             encoding="utf-8",
-            timeout=90
+            timeout=120
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip(), True
@@ -121,11 +122,132 @@ def analyze(analysis_data: dict, business_context: str = "") -> tuple[str, bool]
             print(f"  WARNING: Claude returned error: {err} - using fallback")
             return fallback_template(analysis_data), False
     except subprocess.TimeoutExpired:
-        print("  WARNING: Claude timed out after 90s - using fallback")
+        print("  WARNING: Claude timed out - using fallback")
         return fallback_template(analysis_data), False
     except Exception as e:
         print(f"  WARNING: Claude call failed ({e}) - using fallback")
         return fallback_template(analysis_data), False
+
+
+def stream_prompt(prompt: str):
+    """
+    Stream any prompt through Claude CLI.
+    Yields tuples: ('chunk', text) or ('done', full_text) or ('fallback', None)
+    """
+    if not is_claude_available():
+        yield ('fallback', None)
+        return
+
+    try:
+        proc = subprocess.Popen(
+            ["claude", "--print", "--output-format", "stream-json",
+             "--verbose", "--include-partial-messages", prompt],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+        )
+
+        full_text = []
+        for line in proc.stdout:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            etype = event.get("type")
+
+            if etype == "assistant":
+                msg = event.get("message") or {}
+                for block in msg.get("content") or []:
+                    if block.get("type") == "text":
+                        chunk = block.get("text", "")
+                        if chunk:
+                            full_text.append(chunk)
+                            yield ('chunk', chunk)
+
+            elif etype == "result":
+                result_text = event.get("result", "").strip()
+                if result_text:
+                    full_text = [result_text]
+                break
+
+        proc.wait(timeout=10)
+        combined = "".join(full_text).strip()
+        if combined:
+            yield ('done', combined)
+        else:
+            yield ('fallback', None)
+
+    except Exception as e:
+        print(f"  WARNING: Claude stream_prompt failed ({e})")
+        yield ('fallback', None)
+
+
+def analyze_stream(analysis_data: dict, business_context: str = ""):
+    """
+    Stream Claude CLI output using --output-format stream-json --include-partial-messages.
+    Yields tuples: ('chunk', text) or ('done', full_text) or ('fallback', full_text)
+    """
+    if not is_claude_available():
+        yield ('fallback', fallback_template(analysis_data))
+        return
+
+    full_prompt = _build_prompt(analysis_data, business_context)
+
+    try:
+        proc = subprocess.Popen(
+            ["claude", "--print", "--output-format", "stream-json",
+             "--verbose", "--include-partial-messages", full_prompt],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+        )
+
+        full_text = []
+        for line in proc.stdout:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+            etype = event.get("type")
+
+            if etype == "assistant":
+                # Partial message chunk - extract text from content blocks
+                msg = event.get("message") or {}
+                for block in msg.get("content") or []:
+                    if block.get("type") == "text":
+                        chunk = block.get("text", "")
+                        if chunk:
+                            full_text.append(chunk)
+                            yield ('chunk', chunk)
+
+            elif etype == "result":
+                # Final event - result text is authoritative
+                result_text = event.get("result", "").strip()
+                if result_text:
+                    # Use result text directly (avoids duplicate partial chunks)
+                    full_text = [result_text]
+                break
+
+        proc.wait(timeout=10)
+        combined = "".join(full_text).strip()
+        if combined:
+            yield ('done', combined)
+        else:
+            yield ('fallback', fallback_template(analysis_data))
+
+    except Exception as e:
+        print(f"  WARNING: Claude stream failed ({e}) - using fallback")
+        yield ('fallback', fallback_template(analysis_data))
 
 
 def fallback_template(data: dict) -> str:

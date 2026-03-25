@@ -217,7 +217,7 @@ def ask_copilot(conn, client_id: int, question: str, history: list) -> dict:
 
     try:
         result = subprocess.run(
-            ["claude", "--print", full_prompt],
+            ["claude", "--print", "--output-format", "text", full_prompt],
             capture_output=True,
             text=True,
             encoding="utf-8",

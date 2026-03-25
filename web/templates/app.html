@@ -18,8 +18,15 @@
     --muted: #64748b;
     --text-secondary: #475569;
     --critical: #dc2626;
+    --critical-bg: var(--critical-bg);
+    --critical-border: #fca5a5;
     --warning: #d97706;
+    --warning-bg: var(--warning-bg);
+    --warning-border: var(--warning-border);
+    --warning-text: var(--warning-text);
     --ok: #16a34a;
+    --ok-bg: var(--ok-bg);
+    --ok-border: var(--ok-border);
   }
 
   /* ---- Reset ---- */
@@ -382,7 +389,7 @@
     position: absolute;
     top: 4px;
     right: 4px;
-    background: #ef4444;
+    background: #dc2626;
     color: #fff;
     font-size: 10px;
     font-weight: 700;
@@ -669,16 +676,22 @@
   .btn-secondary:hover { border-color: var(--blue); color: var(--blue); }
   .btn-danger {
     background: var(--white);
-    color: #ef4444;
-    border: 1px solid #fecaca;
+    color: #dc2626;
+    border: 1px solid var(--critical-border);
   }
-  .btn-danger:hover { background: #fef2f2; border-color: #ef4444; }
+  .btn-danger:hover { background: var(--critical-bg); border-color: #dc2626; }
   .btn-danger {
-    background: #fef2f2;
+    background: var(--critical-bg);
     color: var(--critical);
     border: 1px solid #fca5a5;
   }
   .btn-danger:hover { background: #fee2e2; }
+  .btn-warning {
+    background: #d97706;
+    color: #fff;
+    border: 1px solid #d97706;
+  }
+  .btn-warning:hover { background: #b45309; border-color: #b45309; }
   .btn-ghost {
     background: transparent;
     color: var(--muted);
@@ -698,8 +711,8 @@
 
   /* ---- Cleaning Report ---- */
   .cleaning-report {
-    background: #fffbeb;
-    border: 1px solid #fcd34d;
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
     border-radius: 8px;
     margin-bottom: 20px;
     overflow: hidden;
@@ -712,14 +725,14 @@
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
-    color: #92400e;
+    color: var(--warning-text);
   }
   .cleaning-report-header:hover { background: rgba(0,0,0,0.02); }
   .cleaning-report-body { padding: 0 16px 16px; }
   .cleaning-report-body.collapsed { display: none; }
   .cleaning-item {
     font-size: 13px;
-    color: #78350f;
+    color: var(--warning-text);
     padding: 3px 0;
     border-bottom: 1px solid rgba(0,0,0,0.04);
   }
@@ -815,10 +828,10 @@
     margin-bottom: 20px;
     border: 1px solid;
   }
-  .morning-brief.critical { background: #fef2f2; border-color: #fca5a5; color: #7f1d1d; }
-  .morning-brief.warning { background: #fffbeb; border-color: #fcd34d; color: #78350f; }
-  .morning-brief.info { background: #eff6ff; border-color: #bfdbfe; color: #1e3a5f; }
-  .morning-brief.ok { background: #f0fdf4; border-color: #86efac; color: #14532d; }
+  .morning-brief.critical { background: var(--critical-bg); border-color: #fca5a5; color: var(--critical); }
+  .morning-brief.warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text); }
+  .morning-brief.info { background: #eff6ff; border-color: #bfdbfe; color: var(--blue-dark); }
+  .morning-brief.ok { background: var(--ok-bg); border-color: var(--ok-border); color: var(--ok); }
   .morning-brief-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
   .morning-brief-text { font-size: 14px; line-height: 1.5; }
 
@@ -833,9 +846,9 @@
     font-weight: 600;
     border: 1px solid;
   }
-  .summary-badge.critical { background: #fef2f2; border-color: #fca5a5; color: var(--critical); }
-  .summary-badge.warning { background: #fffbeb; border-color: #fcd34d; color: var(--warning); }
-  .summary-badge.info { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
+  .summary-badge.critical { background: var(--critical-bg); border-color: #fca5a5; color: var(--critical); }
+  .summary-badge.warning { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning); }
+  .summary-badge.info { background: #eff6ff; border-color: #bfdbfe; color: var(--blue); }
   .summary-badge .badge-count { font-size: 18px; font-weight: 800; }
 
   .filter-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
@@ -865,6 +878,7 @@
   .anomaly-card.warning { border-left-color: var(--warning); }
   .anomaly-card.info { border-left-color: var(--blue); }
   .anomaly-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .anomaly-platform-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .anomaly-card-title { font-size: 15px; font-weight: 600; color: var(--text); }
   .anomaly-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
   .anomaly-card-desc { font-size: 14px; color: #334155; line-height: 1.5; margin-bottom: 10px; }
@@ -881,19 +895,19 @@
     font-size: 11px;
     font-weight: 600;
   }
-  .badge-critical { background: #fef2f2; color: var(--critical); border: 1px solid #fca5a5; }
-  .badge-warning { background: #fffbeb; color: var(--warning); border: 1px solid #fcd34d; }
-  .badge-ok { background: #f0fdf4; color: var(--ok); border: 1px solid #86efac; }
-  .badge-info { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-  .badge-google { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-  .badge-meta { background: #fdf4ff; color: #7e22ce; border: 1px solid #e9d5ff; }
-  .badge-audit { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-  .badge-narrative { background: #fdf4ff; color: #7e22ce; border: 1px solid #e9d5ff; }
-  .badge-budget { background: #f0fdf4; color: var(--ok); border: 1px solid #86efac; }
-  .badge-anomaly { background: #fef2f2; color: var(--critical); border: 1px solid #fca5a5; }
-  .badge-open { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-  .badge-acknowledged { background: #fffbeb; color: var(--warning); border: 1px solid #fcd34d; }
-  .badge-resolved { background: #f0fdf4; color: var(--ok); border: 1px solid #86efac; }
+  .badge-critical { background: var(--critical-bg); color: var(--critical); border: 1px solid #fca5a5; }
+  .badge-warning { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+  .badge-ok { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-border); }
+  .badge-info { background: #eff6ff; color: var(--blue); border: 1px solid #bfdbfe; }
+  .badge-google { background: #eff6ff; color: var(--blue-dark); border: 1px solid #bfdbfe; }
+  .badge-meta { background: #eff6ff; color: var(--blue); border: 1px solid #bfdbfe; }
+  .badge-audit { background: #eff6ff; color: var(--blue); border: 1px solid #bfdbfe; }
+  .badge-narrative { background: #eff6ff; color: var(--blue); border: 1px solid #bfdbfe; }
+  .badge-budget { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-border); }
+  .badge-anomaly { background: var(--critical-bg); color: var(--critical); border: 1px solid var(--critical-border); }
+  .badge-open { background: #eff6ff; color: var(--blue); border: 1px solid #bfdbfe; }
+  .badge-acknowledged { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+  .badge-resolved { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-border); }
 
   /* ---- Data Table ---- */
   .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -1141,6 +1155,100 @@
   .context-hint-list li { font-size: 13px; color: var(--muted); line-height: 1.5; }
   .context-hint-list li strong { color: var(--text); }
   .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  /* ---- Docs ---- */
+  .doc-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+  }
+  .doc-section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .doc-subheading {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 20px 0 8px;
+  }
+  .doc-body {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+  .doc-body code {
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--text);
+  }
+  .doc-list {
+    padding-left: 20px;
+    margin-bottom: 12px;
+  }
+  .doc-list li {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 4px;
+  }
+  .doc-list li strong { color: var(--text); }
+  .doc-steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+  .doc-step { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+  .doc-step strong { color: var(--text); }
+  .doc-step-num {
+    width: 24px; height: 24px; min-width: 24px;
+    background: var(--blue); color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .doc-table-wrap { overflow-x: auto; margin-bottom: 16px; }
+  .doc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .doc-table th { background: #f8fafc; padding: 10px 14px; text-align: left; font-weight: 600; color: var(--text); border-bottom: 2px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .doc-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; }
+  .doc-table tr:last-child td { border-bottom: none; }
+  .doc-screenshot {
+    margin-top: 20px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .doc-screenshot img {
+    width: 100%;
+    display: block;
+  }
+  .doc-caption {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 10px 14px;
+    background: #f8fafc;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+  [data-theme="dark"] .doc-card { background: #1e293b; border-color: #334155; }
+  [data-theme="dark"] .doc-section-title { color: #f1f5f9; border-color: #334155; }
+  [data-theme="dark"] .doc-subheading { color: #f1f5f9; }
+  [data-theme="dark"] .doc-body { color: #94a3b8; }
+  [data-theme="dark"] .doc-body code { background: #0f172a; color: #e2e8f0; }
+  [data-theme="dark"] .doc-list li { color: #94a3b8; }
+  [data-theme="dark"] .doc-list li strong { color: #f1f5f9; }
+  [data-theme="dark"] .doc-step { color: #94a3b8; }
+  [data-theme="dark"] .doc-step strong { color: #f1f5f9; }
+  [data-theme="dark"] .doc-table th { background: #0f172a; color: #f1f5f9; border-color: #334155; }
+  [data-theme="dark"] .doc-table td { color: #94a3b8; border-color: #334155; }
+  [data-theme="dark"] .doc-screenshot { border-color: #334155; }
+  [data-theme="dark"] .doc-caption { background: #0f172a; color: #64748b; border-color: #334155; }
   .client-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
   .client-row {
     display: flex;
@@ -1192,6 +1300,7 @@
     align-items: center;
     gap: 14px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    min-width: 280px;
   }
   .spinner {
     width: 36px;
@@ -1203,6 +1312,44 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .spinner-text { font-size: 14px; font-weight: 500; color: var(--muted); }
+  .loader-steps {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    margin-top: 4px;
+    align-self: stretch;
+  }
+  .loader-steps.visible { display: flex; }
+  .loader-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--muted);
+    transition: color 0.2s;
+  }
+  .loader-step.active { color: var(--text); font-weight: 500; }
+  .loader-step.done { color: #16a34a; }
+  .loader-step-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+  }
+  .loader-step-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+    margin: 0 5px;
+  }
+  .loader-step.active .loader-step-dot { background: var(--blue); }
+  .loader-step.done .loader-step-dot { display: none; }
 
   /* ---- Toast ---- */
   #toast-container {
@@ -1226,9 +1373,9 @@
     align-items: center;
     gap: 8px;
   }
-  .toast.success { background: #f0fdf4; color: #14532d; border: 1px solid #86efac; }
-  .toast.error { background: #fef2f2; color: #7f1d1d; border: 1px solid #fca5a5; }
-  .toast.info { background: #eff6ff; color: #1e3a5f; border: 1px solid #bfdbfe; }
+  .toast.success { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-border); }
+  .toast.error { background: var(--critical-bg); color: var(--critical); border: 1px solid #fca5a5; }
+  .toast.info { background: #eff6ff; color: var(--blue-dark); border: 1px solid #bfdbfe; }
   @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
   /* ---- Upload selector ---- */
@@ -1400,7 +1547,7 @@
   [data-theme="dark"] .data-table td { border-color: #334155; }
   [data-theme="dark"] .data-table tr:nth-child(even) { background: #0f172a; }
   [data-theme="dark"] .filter-tab { background: #1e293b; color: #94a3b8; border-color: #334155; }
-  [data-theme="dark"] .filter-tab.active { background: #1d4ed8; color: #fff; }
+  [data-theme="dark"] .filter-tab.active { background: var(--blue); color: #fff; }
   [data-theme="dark"] .nav-item:hover { background: rgba(255,255,255,0.06); }
   [data-theme="dark"] .onboarding-modal { background: #1e293b; }
   [data-theme="dark"] .onboarding-body p { color: #94a3b8; }
@@ -1645,17 +1792,14 @@
       <span>Ads OS</span>
     </div>
     <nav id="sidebar-nav">
+      <div class="nav-item" data-section="overview" onclick="navigate('overview')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="4" rx="1"/><rect x="14" y="14" width="7" height="4" rx="1"/><line x1="3" y1="21" x2="10" y2="21"/><line x1="14" y1="21" x2="21" y2="21"/></svg></span> Overview
+      </div>
       <div class="nav-item" data-section="dashboard" onclick="navigate('dashboard')">
         <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="3" width="9" height="9" rx="1"/><rect x="13" y="3" width="9" height="5" rx="1"/><rect x="13" y="12" width="9" height="9" rx="1"/><rect x="2" y="16" width="9" height="5" rx="1"/></svg></span> Dashboard
       </div>
-      <div class="nav-item" data-section="forecast" onclick="navigate('forecast')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Forecast
-      </div>
-      <div class="nav-item" data-section="structured-audit" onclick="navigate('structured-audit')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span> Structured Audit
-      </div>
-      <div class="nav-item" data-section="pixel-health" onclick="navigate('pixel-health')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg></span> Pixel Health
+      <div class="nav-item" data-section="context" onclick="navigate('context')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Context
       </div>
       <div class="nav-item active" data-section="audit" onclick="navigate('audit')">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Audit
@@ -1663,8 +1807,14 @@
       <div class="nav-item" data-section="report" onclick="navigate('report')" id="nav-report" style="display:none;">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span> Audit Report
       </div>
+      <div class="nav-item" data-section="structured-audit" onclick="navigate('structured-audit')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span> Structured Audit
+      </div>
       <div class="nav-item" data-section="anomaly" onclick="navigate('anomaly')">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Anomaly Spotter
+      </div>
+      <div class="nav-item" data-section="actions" onclick="navigate('actions')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Action Plan
       </div>
       <div class="nav-item" data-section="narrator" onclick="navigate('narrator')">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> Narrator
@@ -1672,20 +1822,17 @@
       <div class="nav-item" data-section="budget" onclick="navigate('budget')">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Budget Agent
       </div>
-      <div class="nav-item" data-section="context" onclick="navigate('context')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Context
-      </div>
-      <div class="nav-item" data-section="overview" onclick="navigate('overview')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="4" rx="1"/><rect x="14" y="14" width="7" height="4" rx="1"/><line x1="3" y1="21" x2="10" y2="21"/><line x1="14" y1="21" x2="21" y2="21"/></svg></span> Overview
-      </div>
-      <div class="nav-item" data-section="actions" onclick="navigate('actions')">
-        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span> Action Plan
+      <div class="nav-item" data-section="forecast" onclick="navigate('forecast')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span> Forecast
       </div>
       <div class="nav-item" data-section="history" onclick="navigate('history')">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> History
       </div>
       <div class="nav-item" data-section="settings" onclick="navigate('settings')">
         <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Settings
+      </div>
+      <div class="nav-item" data-section="docs" onclick="navigate('docs')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span> Docs
       </div>
     </nav>
     <div id="sidebar-version">v1.0.0</div>
@@ -1710,7 +1857,7 @@
         <!-- Notification Bell -->
         <button id="btn-alerts" title="KPI Alerts" onclick="toggleAlertsPanel()" style="position:relative;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span id="alert-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#e53e3e;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;"></span>
+          <span id="alert-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;"></span>
         </button>
         <button id="btn-refresh" title="Refresh" onclick="refreshSection()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
         <button id="btn-theme" title="Toggle dark mode" onclick="toggleTheme()">
@@ -1878,13 +2025,13 @@
             <button class="dash-range-btn active" onclick="setForecastHorizon(30)">30D</button>
             <button class="dash-range-btn" onclick="setForecastHorizon(60)">60D</button>
           </div>
-          <button class="btn-secondary" onclick="loadForecast()" style="margin-left:auto;">Refresh</button>
+          <button class="btn btn-secondary btn-sm" onclick="loadForecast()" style="margin-left:auto;">Refresh</button>
         </div>
 
         <div id="forecast-loading" style="display:none;padding:40px;text-align:center;color:var(--muted);">
           Running forecast model...
         </div>
-        <div id="forecast-error" style="display:none;padding:24px;color:#e53e3e;"></div>
+        <div id="forecast-error" style="display:none;padding:24px;color:#dc2626;"></div>
 
         <div id="forecast-content" style="display:none;">
 
@@ -1936,19 +2083,20 @@
           <h2>Structured Audit</h2>
           <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
             <select id="sa-upload-select" class="form-select" style="width:auto;max-width:200px;font-size:12px;"></select>
-            <button class="btn-secondary" onclick="loadLatestStructuredAudit()" style="font-size:12px;padding:6px 12px;">Load Latest</button>
-            <button class="btn-primary" onclick="runStructuredAudit()" style="font-size:12px;padding:6px 14px;">Run Audit</button>
+            <button class="btn btn-secondary btn-sm" onclick="loadLatestStructuredAudit()">Load Latest</button>
+            <button class="btn btn-primary btn-sm" onclick="runStructuredAudit()">Run Audit</button>
           </div>
         </div>
 
         <!-- Loading / error -->
         <div id="sa-loading" style="display:none;">
-          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 24px;gap:16px;">
-            <div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-            <div style="font-size:13px;color:var(--muted);">Running 50+ checks across your account...</div>
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 24px;gap:18px;">
+            <div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
+            <div style="font-size:14px;font-weight:500;color:var(--text);" id="sa-loading-title">Running structured audit...</div>
+            <div id="sa-loading-steps" style="display:flex;flex-direction:column;gap:8px;min-width:240px;"></div>
           </div>
         </div>
-        <div id="sa-error" style="display:none;padding:16px 20px;background:#fff5f5;border:1px solid #fed7d7;border-radius:10px;color:#c53030;font-size:13px;margin-bottom:16px;"></div>
+        <div id="sa-error" style="display:none;padding:16px 20px;background:#fff5f5;border:1px solid #fed7d7;border-radius:10px;color:#dc2626;font-size:13px;margin-bottom:16px;"></div>
 
         <div id="sa-content" style="display:none;">
 
@@ -2011,69 +2159,6 @@
       </section>
 
       <!-- ======== PIXEL HEALTH SECTION ======== -->
-      <section id="section-pixel-health" class="section">
-
-        <div class="section-header" style="align-items:center;gap:12px;">
-          <h2>Pixel Health Monitor</h2>
-        </div>
-
-        <!-- Settings form -->
-        <div class="dash-chart-card" style="margin-bottom:20px;">
-          <div class="dash-chart-title">Meta Pixel Settings</div>
-          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;padding:4px 0;">
-            <div style="flex:1;min-width:200px;">
-              <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Meta Pixel ID</label>
-              <input type="text" id="ph-pixel-id" class="form-input" placeholder="e.g. 1234567890" style="width:100%;"/>
-            </div>
-            <div style="flex:2;min-width:280px;">
-              <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:4px;">Graph API Access Token</label>
-              <input type="password" id="ph-access-token" class="form-input" placeholder="EAAxxxxxxx..." style="width:100%;"/>
-            </div>
-            <button class="btn-primary" onclick="runPixelHealth()">Run Health Check</button>
-            <button class="btn-secondary" onclick="loadLatestPixelHealth()">Load Latest</button>
-          </div>
-          <p style="font-size:12px;color:var(--muted);margin-top:8px;">
-            Token needs <strong>ads_read</strong> and <strong>read_insights</strong> permissions. Never shared or stored in plaintext outside this session.
-          </p>
-        </div>
-
-        <div id="ph-loading" style="display:none;padding:40px;text-align:center;color:var(--muted);">Querying Meta Graph API...</div>
-        <div id="ph-error" style="display:none;padding:16px;color:#e53e3e;background:#fff5f5;border-radius:8px;margin-bottom:16px;"></div>
-
-        <div id="ph-content" style="display:none;">
-
-          <!-- Score header -->
-          <div style="display:flex;align-items:center;gap:24px;margin-bottom:20px;flex-wrap:wrap;">
-            <div style="text-align:center;min-width:120px;">
-              <svg viewBox="0 0 120 120" width="110" height="110" id="ph-score-svg"></svg>
-              <div style="font-size:11px;color:var(--muted);">Pixel Health</div>
-            </div>
-            <div style="display:flex;gap:14px;flex-wrap:wrap;" id="ph-stat-pills"></div>
-            <div style="flex:1;min-width:200px;" id="ph-pixel-meta" style="font-size:13px;color:var(--text-secondary);"></div>
-          </div>
-
-          <!-- Event counts -->
-          <div class="dash-chart-card" style="margin-bottom:20px;">
-            <div class="dash-chart-title">Event Counts (Last 28 Days)</div>
-            <div id="ph-event-bars" style="display:flex;flex-direction:column;gap:8px;padding:4px 0;"></div>
-          </div>
-
-          <!-- 11 Checks -->
-          <div class="dash-chart-card">
-            <div class="dash-chart-title">Health Checks</div>
-            <div style="overflow-x:auto;">
-              <table class="audit-table">
-                <thead>
-                  <tr><th>Status</th><th>Check</th><th>Finding</th><th>Detail</th></tr>
-                </thead>
-                <tbody id="ph-checks-body"></tbody>
-              </table>
-            </div>
-          </div>
-
-        </div><!-- /ph-content -->
-
-      </section>
 
 
       <!-- ======== AUDIT SECTION ======== -->
@@ -2104,11 +2189,11 @@
         </div>
 
         <!-- Anomaly Banner (shown when client has open anomalies) -->
-        <div id="anomaly-banner" style="display:none;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 16px;margin-bottom:16px;align-items:center;gap:12px;">
+        <div id="anomaly-banner" style="display:none;background:var(--warning-bg);border:1px solid var(--warning-border);border-radius:8px;padding:12px 16px;margin-bottom:16px;align-items:center;gap:12px;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <span id="anomaly-banner-text" style="font-size:13px;color:#92400e;flex:1;"></span>
-          <button class="btn btn-sm" style="background:#d97706;color:#fff;border:none;font-size:12px;" onclick="navigate('anomaly')">View Anomalies</button>
-          <button onclick="document.getElementById('anomaly-banner').style.display='none';" style="background:none;border:none;color:#92400e;font-size:18px;line-height:1;padding:0 2px;cursor:pointer;">&times;</button>
+          <span id="anomaly-banner-text" style="font-size:13px;color:var(--warning-text);flex:1;"></span>
+          <button class="btn btn-sm btn-warning" onclick="navigate('anomaly')">View Anomalies</button>
+          <button onclick="document.getElementById('anomaly-banner').style.display='none';" style="background:none;border:none;color:var(--warning-text);font-size:18px;line-height:1;padding:0 2px;cursor:pointer;">&times;</button>
         </div>
 
         <!-- Upload Panel -->
@@ -2855,9 +2940,38 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.36"/></svg>
             Refresh
           </button>
-          <button class="btn-primary" onclick="startBulkReport()" style="margin-left:8px;">
-            Run All Clients
+          <button class="btn btn-primary btn-sm" onclick="openAddClientModal()" style="margin-left:8px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Client
           </button>
+        </div>
+
+        <!-- Add Client Modal -->
+        <div id="add-client-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;display:none;align-items:center;justify-content:center;">
+          <div style="background:var(--white);border-radius:12px;padding:28px;width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.18);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+              <span style="font-size:16px;font-weight:700;color:var(--text);">New Client</span>
+              <button onclick="closeAddClientModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;">&times;</button>
+            </div>
+            <div class="form-group" style="margin-bottom:14px;">
+              <label class="form-label">Client Name</label>
+              <input type="text" class="form-input" id="overview-new-client-name" placeholder="e.g. Acme Corp" onkeydown="if(event.key==='Enter')addClientFromOverview()">
+            </div>
+            <div class="form-group" style="margin-bottom:20px;">
+              <label class="form-label">Currency</label>
+              <select class="form-input" id="overview-new-client-currency">
+                <option value="INR">INR</option>
+                <option value="USD">USD</option>
+                <option value="GBP">GBP</option>
+                <option value="EUR">EUR</option>
+                <option value="AED">AED</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+              <button class="btn btn-secondary btn-sm" onclick="closeAddClientModal()">Cancel</button>
+              <button class="btn btn-primary btn-sm" onclick="addClientFromOverview()">Add Client</button>
+            </div>
+          </div>
         </div>
 
         <div id="overview-loading" class="text-muted text-sm" style="padding:32px 0;text-align:center;display:none;">Loading...</div>
@@ -2936,6 +3050,329 @@
 
       </section>
 
+      <!-- ======== DOCS SECTION ======== -->
+      <section id="section-docs" class="section">
+        <div style="max-width:900px;margin:0 auto;padding:0 0 60px;">
+
+          <!-- Header -->
+          <div style="margin-bottom:32px;">
+            <h1 style="font-size:24px;font-weight:700;color:var(--text);margin-bottom:8px;">How to Use Ads OS</h1>
+            <p style="color:var(--muted);font-size:15px;line-height:1.6;">A step-by-step guide to every feature. From first upload to client-ready report.</p>
+          </div>
+
+          <!-- Quick Nav -->
+          <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:32px;">
+            <p style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Jump to</p>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <a href="#doc-start" style="font-size:13px;color:var(--blue);padding:4px 12px;border:1px solid var(--blue);border-radius:9999px;text-decoration:none;">Getting Started</a>
+              <a href="#doc-audit" style="font-size:13px;color:var(--blue);padding:4px 12px;border:1px solid var(--blue);border-radius:9999px;text-decoration:none;">Audit</a>
+              <a href="#doc-structured" style="font-size:13px;color:var(--blue);padding:4px 12px;border:1px solid var(--blue);border-radius:9999px;text-decoration:none;">Structured Audit</a>
+              <a href="#doc-anomaly" style="font-size:13px;color:var(--blue);padding:4px 12px;border:1px solid var(--blue);border-radius:9999px;text-decoration:none;">Anomaly Spotter</a>
+              <a href="#doc-forecast" style="font-size:13px;color:var(--blue);padding:4px 12px;border:1px solid var(--blue);border-radius:9999px;text-decoration:none;">Forecast</a>
+              <a href="#doc-narrator" style="font-size:13px;color:var(--blue);padding:4px 12px;border:1px solid var(--blue);border-radius:9999px;text-decoration:none;">Narrator</a>
+              <a href="#doc-budget" style="font-size:13px;color:var(--blue);padding:4px 12px;border:1px solid var(--blue);border-radius:9999px;text-decoration:none;">Budget Agent</a>
+              <a href="#doc-context" style="font-size:13px;color:var(--blue);padding:4px 12px;border:1px solid var(--blue);border-radius:9999px;text-decoration:none;">Context</a>
+              <a href="#doc-copilot" style="font-size:13px;color:var(--blue);padding:4px 12px;border:1px solid var(--blue);border-radius:9999px;text-decoration:none;">AI Copilot</a>
+              <a href="#doc-history" style="font-size:13px;color:var(--blue);padding:4px 12px;border:1px solid var(--blue);border-radius:9999px;text-decoration:none;">History</a>
+              <a href="#doc-settings" style="font-size:13px;color:var(--blue);padding:4px 12px;border:1px solid var(--blue);border-radius:9999px;text-decoration:none;">Settings</a>
+            </div>
+          </div>
+
+          <!-- Getting Started -->
+          <div id="doc-start" class="doc-card">
+            <h2 class="doc-section-title">Getting Started</h2>
+            <p class="doc-body">Ads OS works with raw CSV or Excel exports from Google Ads, Meta Ads, and Google Analytics 4. You do not need to clean or format your files - the tool handles messy real-world exports automatically.</p>
+
+            <div class="doc-steps">
+              <div class="doc-step"><span class="doc-step-num">1</span><div><strong>Add a client</strong> - Go to Settings, enter a client name and currency, click Add. Then select the client from the dropdown in the top bar.</div></div>
+              <div class="doc-step"><span class="doc-step-num">2</span><div><strong>Set business context</strong> - Go to Context, choose a business type, and fill in goals and any campaign notes. This makes all AI output specific to your client.</div></div>
+              <div class="doc-step"><span class="doc-step-num">3</span><div><strong>Upload and audit</strong> - Go to Audit, drop your Google/Meta CSV, click Upload and Analyze. Your first report is ready in under 2 minutes.</div></div>
+              <div class="doc-step"><span class="doc-step-num">4</span><div><strong>Run Structured Audit</strong> - Click Structured Audit in the sidebar, then Run Audit. This runs 50+ automated checks and produces an account health score.</div></div>
+              <div class="doc-step"><span class="doc-step-num">5</span><div><strong>Check alerts and anomalies</strong> - After every upload, KPI alerts fire automatically. Check Anomaly Spotter for statistical deviations against historical baselines.</div></div>
+            </div>
+
+            <div class="doc-screenshot">
+              <img src="/static/docs/screenshots/01-dashboard.png" alt="Dashboard overview showing total spend, ROAS, and trend chart" loading="lazy">
+              <p class="doc-caption">Executive Dashboard - total spend, blended ROAS, revenue trend, and channel split at a glance.</p>
+            </div>
+          </div>
+
+          <!-- Audit -->
+          <div id="doc-audit" class="doc-card">
+            <h2 class="doc-section-title">Audit</h2>
+            <p class="doc-body">The Audit page is where you upload data and generate reports. Drop one or more CSV files, let the tool detect and clean them, and click Upload and Analyze.</p>
+
+            <h3 class="doc-subheading">What files to upload</h3>
+            <div class="doc-table-wrap">
+              <table class="doc-table">
+                <thead><tr><th>File</th><th>Required?</th><th>What it adds</th></tr></thead>
+                <tbody>
+                  <tr><td>Google Ads CSV</td><td>Optional (need at least one)</td><td>Campaign spend, ROAS, conversions, CTR, CPC, keywords</td></tr>
+                  <tr><td>Meta Ads CSV</td><td>Optional (need at least one)</td><td>Campaign spend, purchase ROAS, results, CTR, CPC</td></tr>
+                  <tr><td>Funnel CSV</td><td>Optional</td><td>Leads, MQLs, SQLs, customers - adds CPL and funnel metrics</td></tr>
+                  <tr><td>GA4 Export CSV</td><td>Optional</td><td>Sessions, bounce rate, engaged sessions per campaign</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 class="doc-subheading">Auto-detection and cleaning</h3>
+            <p class="doc-body">The tool automatically identifies which platform each file belongs to by scanning the first 2KB of headers. It then:</p>
+            <ul class="doc-list">
+              <li>Fuzzy-matches column names (handles "Campaign name", "campaign_name", "Campaign Name" as the same column)</li>
+              <li>Strips currency symbols (Rs, $, £) and expands shorthand numbers (1.2K, 2.5L, 1Cr)</li>
+              <li>Removes summary rows (Total, Grand Total)</li>
+              <li>Normalises 12+ date formats including Indian fiscal years and Excel serials</li>
+              <li>Detects data granularity (keyword, ad, ad group, campaign, placement) and aggregates appropriately</li>
+            </ul>
+
+            <h3 class="doc-subheading">Column mapping</h3>
+            <p class="doc-body">If a column is not auto-detected, click Map Columns before uploading. A modal shows all columns in your file with auto-suggestions. Manually map any unrecognised columns before proceeding.</p>
+
+            <h3 class="doc-subheading">Comparing periods</h3>
+            <p class="doc-body">Toggle Compare Periods to upload a previous period alongside the current one. The report will show delta indicators for every metric.</p>
+
+            <div class="doc-screenshot">
+              <img src="/static/docs/screenshots/02-audit.png" alt="Audit upload page with Google and Meta drop zones" loading="lazy">
+              <p class="doc-caption">Audit page - drop Google Ads, Meta Ads, Funnel, and GA4 files. Platform is auto-detected.</p>
+            </div>
+          </div>
+
+          <!-- Structured Audit -->
+          <div id="doc-structured" class="doc-card">
+            <h2 class="doc-section-title">Structured Audit</h2>
+            <p class="doc-body">Runs 50+ automated checks across 6 categories. Each check returns Pass, Warning, or Fail. The overall account health score is 0-100.</p>
+
+            <div class="doc-table-wrap">
+              <table class="doc-table">
+                <thead><tr><th>Category</th><th>What it checks</th></tr></thead>
+                <tbody>
+                  <tr><td>Tracking Foundation</td><td>Zero-conversion campaigns, conversion value gaps, ROAS data quality</td></tr>
+                  <tr><td>Campaign Architecture</td><td>Budget concentration, campaign count, naming consistency, objective mix</td></tr>
+                  <tr><td>Ad Set Configuration</td><td>Learning phase flags, bid strategy consistency, spend distribution</td></tr>
+                  <tr><td>Creative Performance</td><td>CTR vs platform benchmark, CTR decline trend, creative format diversity</td></tr>
+                  <tr><td>Cost Diagnostics</td><td>CPA vs target, ROAS vs target, CPC outliers, wasted spend ratio</td></tr>
+                  <tr><td>Account Health</td><td>Zero-spend campaigns, ghost campaigns, spend efficiency, top campaign health</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="doc-body">Campaigns tagged as <code>brand_awareness</code> in the Context page are automatically excluded from ROAS and wasted spend checks. Per-campaign ROAS and CPA targets set in Context override account-level thresholds for each check.</p>
+
+            <p class="doc-body">Click Run Audit to execute. The AI summary section is generated by Claude and explains the most important issues in plain English. Action items from this run are automatically added to the Action Plan.</p>
+
+            <div class="doc-screenshot">
+              <img src="/static/docs/screenshots/04-structured-audit.png" alt="Structured Audit showing health score and category breakdown" loading="lazy">
+              <p class="doc-caption">Structured Audit - health score ring, per-category bar chart, and prioritised action items.</p>
+            </div>
+          </div>
+
+          <!-- Anomaly Spotter -->
+          <div id="doc-anomaly" class="doc-card">
+            <h2 class="doc-section-title">Anomaly Spotter</h2>
+            <p class="doc-body">Detects statistical deviations in campaign performance against each campaign's own historical baseline. Requires 3+ historical uploads to activate.</p>
+
+            <h3 class="doc-subheading">How it works</h3>
+            <p class="doc-body">For each campaign, the tool looks at the last 30 days of uploaded data and builds a median baseline (resistant to single outlier periods). It then compares the latest values against that baseline using these thresholds:</p>
+            <ul class="doc-list">
+              <li><strong>CPL spike</strong> - cost per lead up more than 30% vs median</li>
+              <li><strong>ROAS drop</strong> - ROAS down more than 20% vs median</li>
+              <li><strong>CTR drop</strong> - CTR down more than 25% vs median</li>
+              <li><strong>Spend pacing</strong> - spend off by more than 15% vs 7-day average</li>
+            </ul>
+
+            <h3 class="doc-subheading">Severity levels</h3>
+            <p class="doc-body"><span style="color:#dc2626;font-weight:600;">Critical</span> - deviation is 2x or more the threshold. <span style="color:#d97706;font-weight:600;">Warning</span> - 1-2x. <span style="color:var(--muted);font-weight:600;">Info</span> - near threshold.</p>
+
+            <h3 class="doc-subheading">Managing anomalies</h3>
+            <p class="doc-body">Each anomaly has three statuses: <strong>Open</strong> (active, needs attention), <strong>Acknowledged</strong> (you have seen it), <strong>Resolved</strong> (fixed). Use the buttons on each card to update status.</p>
+
+            <h3 class="doc-subheading">Morning Brief</h3>
+            <p class="doc-body">Click Morning Brief for a Claude-generated summary of all open anomalies, prioritised by severity. Tells you what to look at first when you start the day.</p>
+
+            <div class="doc-screenshot">
+              <img src="/static/docs/screenshots/03-anomaly-spotter.png" alt="Anomaly Spotter showing critical and warning anomalies" loading="lazy">
+              <p class="doc-caption">Anomaly Spotter - Critical and Warning anomalies with campaign context and detection date.</p>
+            </div>
+          </div>
+
+          <!-- Forecast -->
+          <div id="doc-forecast" class="doc-card">
+            <h2 class="doc-section-title">Revenue Forecast</h2>
+            <p class="doc-body">Projects spend, revenue, ROAS, and conversions for the next 7, 30, or 60 days based on all historical uploads. Uses a weighted moving average model with recency bias and seasonality factors.</p>
+
+            <h3 class="doc-subheading">How the model works</h3>
+            <ul class="doc-list">
+              <li>The most recent period gets 6x the weight of the oldest period in the moving average</li>
+              <li>A trend slope (average change per period) is calculated and added to the projection</li>
+              <li>A seasonality factor compares the target month against the same month in prior years (clamped 0.5x - 2.0x)</li>
+              <li>Needs at least 3 uploads to produce a meaningful forecast</li>
+            </ul>
+
+            <h3 class="doc-subheading">Output</h3>
+            <ul class="doc-list">
+              <li>Projected spend, revenue, ROAS, and conversions for the account</li>
+              <li>Per-campaign projections for the top campaigns by projected spend</li>
+              <li>Trend direction per metric (up / down / flat)</li>
+              <li>Historical chart for the last 6 periods with the projection dotted in</li>
+              <li>Claude narrative - what to expect and 2 concrete actions to take before the period starts</li>
+            </ul>
+
+            <p class="doc-body">Use the 7D / 60D tabs to switch forecast horizon. Click Refresh to re-run the model after a new upload.</p>
+
+            <div class="doc-screenshot">
+              <img src="/static/docs/screenshots/05-forecast.png" alt="Revenue forecast showing projected spend, ROAS trend chart, and Claude narrative" loading="lazy">
+              <p class="doc-caption">Forecast - projected KPIs, historical vs projection chart, and AI narrative with recommended actions.</p>
+            </div>
+          </div>
+
+          <!-- Narrator -->
+          <div id="doc-narrator" class="doc-card">
+            <h2 class="doc-section-title">Performance Narrator</h2>
+            <p class="doc-body">Generates a client-ready written performance summary in three tones. Export as PDF and send directly.</p>
+
+            <div class="doc-table-wrap">
+              <table class="doc-table">
+                <thead><tr><th>Tone</th><th>Best for</th></tr></thead>
+                <tbody>
+                  <tr><td>Executive</td><td>Client-facing reports, CMO updates - high-level, no jargon</td></tr>
+                  <tr><td>Detailed</td><td>Agency internal reviews, analyst QBRs - metric-specific, technical</td></tr>
+                  <tr><td>Urgent</td><td>Crisis standup, when something is badly wrong - problems first, direct language</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p class="doc-body">Select a tone, optionally set a date range and a specific upload to narrate, then click Generate Narrative. The report covers: This Period in Numbers, What Worked, What Needs Attention, and Recommended Actions.</p>
+
+            <div class="doc-screenshot">
+              <img src="/static/docs/screenshots/06-narrator.png" alt="Narrator showing tone selection options" loading="lazy">
+              <p class="doc-caption">Narrator - select tone, optionally narrow to a specific upload, then generate a PDF-ready summary.</p>
+            </div>
+          </div>
+
+          <!-- Budget Agent -->
+          <div id="doc-budget" class="doc-card">
+            <h2 class="doc-section-title">Budget Agent</h2>
+            <p class="doc-body">A two-layer reallocation engine. First pure rule enforcement, then Claude reasoning on top.</p>
+
+            <h3 class="doc-subheading">Budget Rules</h3>
+            <p class="doc-body">Set your minimum ROAS floor and maximum CPL ceiling for Google and Meta. Set a Max Budget Shift % to cap how aggressively the agent redistributes budget (default cap is 20% of account total).</p>
+
+            <h3 class="doc-subheading">How it works</h3>
+            <ul class="doc-list">
+              <li><strong>Layer 1 - Rule enforcement:</strong> Identifies every campaign below ROAS floor or above CPL ceiling. Tags underperformers for pause or decrease. Calculates freed budget. Identifies winners (ROAS &gt; floor x 1.5) to receive the shift.</li>
+              <li><strong>Layer 2 - Claude reasoning:</strong> Claude receives violations, winners, full metrics, and your business context. Returns per-campaign recommendations (increase / decrease / pause) with confidence scores 0-100, risk flags, and rationale notes.</li>
+            </ul>
+
+            <p class="doc-body">If Claude is unavailable, Layer 1 still runs and produces a rule-based report with clear explanation. Action items are added to the Action Plan automatically.</p>
+
+            <div class="doc-screenshot">
+              <img src="/static/docs/screenshots/07-budget-agent.png" alt="Budget Agent showing rules configuration" loading="lazy">
+              <p class="doc-caption">Budget Agent - set ROAS floors, CPL ceilings, and max budget shift before running the agent.</p>
+            </div>
+          </div>
+
+          <!-- Context -->
+          <div id="doc-context" class="doc-card">
+            <h2 class="doc-section-title">Client Context</h2>
+            <p class="doc-body">The most important setup step. Context makes all AI output specific to your client instead of generic. Fill this in before running any AI features.</p>
+
+            <h3 class="doc-subheading">What to fill in</h3>
+            <ul class="doc-list">
+              <li><strong>Business Type</strong> - Each type carries implied assumptions injected into Claude prompts. E-commerce adds cart abandonment and retargeting guidance. B2B SaaS adds long sales cycle and lead quality focus.</li>
+              <li><strong>Primary Goal and Target Audience</strong> - Plain English description of what you are optimising for and who you are targeting.</li>
+              <li><strong>Average Order Value</strong> - E-commerce only. Used to contextualise ROAS expectations.</li>
+              <li><strong>Seasonal Context</strong> - E.g. "Diwali is peak season, Oct-Nov see 3x normal spend." Claude uses this to avoid flagging intentional seasonal budget spikes.</li>
+              <li><strong>Campaign Notes</strong> - Critical field. Explain any campaigns that look bad on metrics but have a purpose. E.g. "Brand Awareness - Mumbai is top-of-funnel, not expected to convert directly."</li>
+              <li><strong>Budget Constraints</strong> - E.g. "Fixed monthly budget Rs 2L, cannot shift more than 20% from Meta."</li>
+              <li><strong>Attribution Model</strong> - Tells Claude how to interpret cross-channel ROAS numbers correctly.</li>
+            </ul>
+
+            <h3 class="doc-subheading">Campaign Type Tags</h3>
+            <p class="doc-body">Tag each campaign with its purpose. Campaigns tagged <code>brand</code> or <code>brand_awareness</code> are automatically excluded from ROAS failure checks, wasted spend calculations, and CPA spike alerts across the entire tool.</p>
+
+            <h3 class="doc-subheading">Per-Campaign Targets</h3>
+            <p class="doc-body">Override account-level ROAS floors and CPL ceilings on a per-campaign basis. A Performance Max campaign can have a ROAS target of 3x while a Retargeting campaign has a target of 2x. Structured Audit checks and KPI alerts use these individual targets.</p>
+
+            <div class="doc-screenshot">
+              <img src="/static/docs/screenshots/08-context.png" alt="Context page showing business type, goals, and campaign notes fields" loading="lazy">
+              <p class="doc-caption">Context - configure business type, goals, campaign tags, and per-campaign targets. Flows into every AI feature.</p>
+            </div>
+          </div>
+
+          <!-- AI Copilot -->
+          <div id="doc-copilot" class="doc-card">
+            <h2 class="doc-section-title">AI Copilot</h2>
+            <p class="doc-body">Ask questions about your campaigns. The Copilot answers using real data from your most recent upload - metrics, anomalies, action items, trends, and business context.</p>
+
+            <h3 class="doc-subheading">Opening the Copilot</h3>
+            <p class="doc-body">Click the blue chat bubble in the bottom-right corner of any screen. The panel slides in. Type a question or tap one of the quick prompts.</p>
+
+            <h3 class="doc-subheading">What it knows</h3>
+            <ul class="doc-list">
+              <li>All campaign metrics from the latest upload (spend, ROAS, CPA, CTR, CPC, wasted spend)</li>
+              <li>Open anomalies and their severity</li>
+              <li>Pending action items from the Action Plan</li>
+              <li>Historical trend for the last 6 periods</li>
+              <li>Your full business context (goals, brand exclusions, per-campaign targets)</li>
+            </ul>
+
+            <h3 class="doc-subheading">Types of questions</h3>
+            <ul class="doc-list">
+              <li><strong>Data lookups</strong> - "Which campaign had the worst ROAS last month?"</li>
+              <li><strong>Strategic</strong> - "Should I pause Performance Max or reduce the budget?"</li>
+              <li><strong>Diagnostic</strong> - "Why is CTR declining on Brand Search?"</li>
+              <li><strong>Planning</strong> - "Where should I move the budget freed from pausing X?"</li>
+            </ul>
+
+            <p class="doc-body">The Copilot can detect when a question warrants running another feature and will suggest triggering the Budget Agent, Narrator, or Forecast inline.</p>
+          </div>
+
+          <!-- History -->
+          <div id="doc-history" class="doc-card">
+            <h2 class="doc-section-title">History</h2>
+            <p class="doc-body">All reports and uploads are stored in History. Use it to view past reports, compare periods, and track metric trends over time.</p>
+
+            <h3 class="doc-subheading">Performance Trend chart</h3>
+            <p class="doc-body">Shows spend, ROAS, conversions, CTR, CAC, or CPL across all uploaded periods. Switch metrics using the buttons on the top right. The x-axis uses actual period dates, not upload timestamps.</p>
+
+            <h3 class="doc-subheading">Multi-Period Comparison</h3>
+            <p class="doc-body">Tick 2-4 uploads in the comparison row, then click Compare. A side-by-side table shows every campaign metric across the selected periods.</p>
+
+            <h3 class="doc-subheading">Report cards</h3>
+            <p class="doc-body">Each card shows the report type (Audit, Narrative, Budget), date, and links to View, Share, PDF, and Delete. View opens the full HTML report. PDF generates a downloadable file.</p>
+
+            <h3 class="doc-subheading">Importing historical data</h3>
+            <p class="doc-body">To import past periods, go to Audit and click Import History. Set the Period Label (e.g. "Jan 2026"), Period Start, and Period End dates before uploading. Historical periods appear correctly in all trend charts and anomaly baselines.</p>
+
+            <div class="doc-screenshot">
+              <img src="/static/docs/screenshots/11-history.png" alt="History page showing performance trend chart and report cards" loading="lazy">
+              <p class="doc-caption">History - performance trend chart, multi-period comparison selector, and all saved reports.</p>
+            </div>
+          </div>
+
+          <!-- Settings -->
+          <div id="doc-settings" class="doc-card">
+            <h2 class="doc-section-title">Settings</h2>
+            <p class="doc-body">Manage clients, set default budget rules, and configure report branding.</p>
+
+            <h3 class="doc-subheading">Client management</h3>
+            <p class="doc-body">Add a new client by entering a name and selecting a currency, then clicking Add. Each client has its own data, context, budget rules, and report history. Switch between clients using the dropdown in the top bar.</p>
+
+            <h3 class="doc-subheading">Budget Rules</h3>
+            <p class="doc-body">Set the default account-level minimum ROAS and CPL ceiling for Google and Meta. These are used by the Budget Agent and Structured Audit checks unless overridden by per-campaign targets in Context.</p>
+
+            <h3 class="doc-subheading">Report Branding</h3>
+            <p class="doc-body">Add your agency name and logo. These appear in the header of every generated audit report PDF.</p>
+
+            <div class="doc-screenshot">
+              <img src="/static/docs/screenshots/12-settings.png" alt="Settings showing client management and budget rules" loading="lazy">
+              <p class="doc-caption">Settings - manage clients, set budget rule defaults, and add agency branding to reports.</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
     </div><!-- /content -->
   </main>
 </div>
@@ -2991,13 +3428,13 @@
       <div class="onboarding-body">
         <h3>Upload your ad data</h3>
         <p>Export a CSV from Google Ads or Meta Ads and upload it. You can add comparison periods and funnel data later. Accepts any column format - the tool auto-detects and cleans it.</p>
-        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;margin-bottom:16px;">
+        <div style="background:var(--ok-bg);border:1px solid var(--ok-border);border-radius:8px;padding:14px 16px;margin-bottom:16px;">
           <div style="font-size:13px;font-weight:600;color:#15803d;margin-bottom:4px;">What to export from Google Ads</div>
-          <div style="font-size:12px;color:#166534;">Campaigns &rarr; Download &rarr; CSV. Include: Impressions, Clicks, Cost, Conversions, Conv. Value</div>
+          <div style="font-size:12px;color:var(--ok);">Campaigns &rarr; Download &rarr; CSV. Include: Impressions, Clicks, Cost, Conversions, Conv. Value</div>
         </div>
         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 16px;">
-          <div style="font-size:13px;font-weight:600;color:#1d4ed8;margin-bottom:4px;">What to export from Meta Ads</div>
-          <div style="font-size:12px;color:#1e40af;">Ads Manager &rarr; Export &rarr; By Campaign. Include: Amount Spent, Results, Purchase ROAS</div>
+          <div style="font-size:13px;font-weight:600;color:var(--blue);margin-bottom:4px;">What to export from Meta Ads</div>
+          <div style="font-size:12px;color:var(--text-secondary);">Ads Manager &rarr; Export &rarr; By Campaign. Include: Amount Spent, Results, Purchase ROAS</div>
         </div>
       </div>
       <div class="onboarding-footer">
@@ -3045,7 +3482,7 @@
 <div id="ob-wizard-overlay" style="display:none;position:fixed;inset:0;background:rgba(5,13,26,0.6);z-index:9200;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:14px;width:640px;max-width:95vw;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
     <!-- Header -->
-    <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:24px 28px;flex-shrink:0;">
+    <div style="background:var(--blue);color:#fff;padding:24px 28px;flex-shrink:0;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div>
           <h2 style="font-size:18px;font-weight:700;" id="ob-wiz-title">Client Setup Wizard</h2>
@@ -3162,9 +3599,9 @@
         <h3 style="font-size:15px;font-weight:700;margin-bottom:4px;">How to Export Your Data</h3>
         <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Follow these steps to get the right CSV files from each platform.</p>
         <div style="display:flex;flex-direction:column;gap:12px;">
-          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;">
+          <div style="background:var(--ok-bg);border:1px solid var(--ok-border);border-radius:8px;padding:14px 16px;">
             <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:6px;">Google Ads</div>
-            <ol style="font-size:12px;color:#166534;padding-left:16px;line-height:1.8;">
+            <ol style="font-size:12px;color:var(--ok);padding-left:16px;line-height:1.8;">
               <li>Go to Google Ads &rarr; Campaigns</li>
               <li>Set your date range (e.g. Last 30 days)</li>
               <li>Click Download &rarr; CSV</li>
@@ -3172,16 +3609,16 @@
             </ol>
           </div>
           <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 16px;">
-            <div style="font-size:13px;font-weight:700;color:#1d4ed8;margin-bottom:6px;">Meta Ads</div>
-            <ol style="font-size:12px;color:#1e40af;padding-left:16px;line-height:1.8;">
+            <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:6px;">Meta Ads</div>
+            <ol style="font-size:12px;color:var(--text-secondary);padding-left:16px;line-height:1.8;">
               <li>Go to Meta Ads Manager &rarr; Reports</li>
               <li>Set breakdown: Campaign Level</li>
               <li>Include: Amount Spent, Results, Impressions, Clicks, Purchase ROAS</li>
               <li>Export &rarr; CSV</li>
             </ol>
           </div>
-          <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:8px;padding:14px 16px;">
-            <div style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:6px;">Google Analytics 4</div>
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 16px;">
+            <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:6px;">Google Analytics 4</div>
             <ol style="font-size:12px;color:#6d28d9;padding-left:16px;line-height:1.8;">
               <li>Go to GA4 &rarr; Reports &rarr; Traffic acquisition</li>
               <li>Set dimension: Session source / medium or Campaign</li>
@@ -3214,7 +3651,7 @@
             <input type="number" class="form-input" id="ob5-m-cpl" placeholder="Leave blank if not set" min="0">
           </div>
         </div>
-        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:12px;color:#92400e;margin-top:8px;">
+        <div style="background:var(--warning-bg);border:1px solid var(--warning-border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--warning-text);margin-top:8px;">
           The Budget Agent will flag campaigns below Min ROAS and KPI Alerts will trigger when these thresholds are breached.
         </div>
       </div>
@@ -3223,7 +3660,7 @@
       <div class="ob-wiz-step" id="ob-wiz-step-6" style="display:none;">
         <h3 style="font-size:15px;font-weight:700;margin-bottom:4px;">Ready to Upload</h3>
         <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Your client is fully configured. Upload your first dataset to start the audit.</p>
-        <div style="background:linear-gradient(135deg,#f0fdf4 0%,#eff6ff 100%);border:1px solid #bbf7d0;border-radius:10px;padding:20px;text-align:center;">
+        <div style="background:linear-gradient(135deg,var(--ok-bg) 0%,#eff6ff 100%);border:1px solid var(--ok-border);border-radius:10px;padding:20px;text-align:center;">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.5" style="margin-bottom:12px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">Setup complete!</div>
           <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Go to the Audit section to upload your CSV files and run your first audit.</div>
@@ -3264,6 +3701,7 @@
   <div class="spinner-box">
     <div class="spinner"></div>
     <div class="spinner-text" id="loader-text">Processing...</div>
+    <div class="loader-steps" id="loader-steps"></div>
   </div>
 </div>
 
@@ -3335,7 +3773,6 @@ const SECTION_TITLES = {
   dashboard: 'Executive Dashboard',
   forecast: 'Revenue Forecast',
   'structured-audit': 'Structured Audit',
-  'pixel-health': 'Pixel Health Monitor',
   audit: 'Audit',
   report: 'Audit Report',
   anomaly: 'Anomaly Spotter',
@@ -3345,7 +3782,8 @@ const SECTION_TITLES = {
   overview: 'Overview',
   actions: 'Action Plan',
   history: 'History',
-  settings: 'Settings'
+  settings: 'Settings',
+  docs: 'How to Use'
 };
 
 // Action plan state
@@ -3368,7 +3806,6 @@ function navigate(section) {
   if (section === 'dashboard' && currentClientId) loadDashboard();
   if (section === 'forecast' && currentClientId) loadForecast();
   if (section === 'structured-audit' && currentClientId) initStructuredAudit();
-  if (section === 'pixel-health' && currentClientId) initPixelHealth();
   if (section === 'anomaly' && currentClientId) loadAnomalies();
   if (section === 'audit' && currentClientId) loadAnomalyBanner();
   if (section === 'narrator' && currentClientId) loadUploadsForSelector('narrator-upload-select');
@@ -3424,7 +3861,6 @@ function onClientChange() {
   if (activeSection === 'dashboard') loadDashboard();
   if (activeSection === 'forecast') loadForecast();
   if (activeSection === 'structured-audit') initStructuredAudit();
-  if (activeSection === 'pixel-health') initPixelHealth();
   if (activeSection === 'anomaly') loadAnomalies();
   if (activeSection === 'narrator') loadUploadsForSelector('narrator-upload-select');
   if (activeSection === 'budget') { loadUploadsForSelector('budget-upload-select'); loadBudgetRulesIntoForm(); }
@@ -3899,8 +4335,8 @@ function _renderBulkPreview(data) {
 
   data.clients.forEach((c, i) => {
     const statusBadge = c.will_create
-      ? '<span style="background:#dcfce7;color:#166534;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;">New client</span>'
-      : '<span style="background:#dbeafe;color:#1e40af;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;">Matched</span>';
+      ? '<span style="background:#dcfce7;color:var(--ok);font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;">New client</span>'
+      : '<span style="background:#eff6ff;color:var(--blue);font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;">Matched</span>';
 
     const clientOptions = (allClients || []).map(cl =>
       `<option value="${cl.id}" ${cl.id === c.matched_client_id ? 'selected' : ''}>${escHtml(cl.name)}</option>`
@@ -3999,13 +4435,13 @@ function _renderBulkResults(data) {
   const okColor   = data.total_errors === 0 ? '#16a34a' : '#d97706';
   summaryEl.innerHTML = `
     <div style="display:flex;gap:16px;margin-bottom:16px;">
-      <div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;text-align:center;">
+      <div style="flex:1;background:var(--ok-bg);border:1px solid var(--ok-border);border-radius:8px;padding:12px 16px;text-align:center;">
         <div style="font-size:22px;font-weight:700;color:#16a34a;">${data.total_ok}</div>
-        <div style="font-size:12px;color:#166534;font-weight:500;">Completed</div>
+        <div style="font-size:12px;color:var(--ok);font-weight:500;">Completed</div>
       </div>
-      <div style="flex:1;background:${data.total_errors ? '#fef2f2' : '#f0fdf4'};border:1px solid ${data.total_errors ? '#fecaca' : '#bbf7d0'};border-radius:8px;padding:12px 16px;text-align:center;">
+      <div style="flex:1;background:${data.total_errors ? 'var(--critical-bg)' : 'var(--ok-bg)'};border:1px solid ${data.total_errors ? 'var(--critical-border)' : 'var(--ok-border)'};border-radius:8px;padding:12px 16px;text-align:center;">
         <div style="font-size:22px;font-weight:700;color:${data.total_errors ? '#dc2626' : '#16a34a'};">${data.total_errors}</div>
-        <div style="font-size:12px;color:${data.total_errors ? '#991b1b' : '#166534'};font-weight:500;">Errors</div>
+        <div style="font-size:12px;color:${data.total_errors ? 'var(--critical)' : 'var(--ok)'};font-weight:500;">Errors</div>
       </div>
       <div style="flex:1;background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:12px 16px;text-align:center;">
         <div style="font-size:22px;font-weight:700;color:var(--text);">${data.total_clients}</div>
@@ -4028,8 +4464,8 @@ function _renderBulkResults(data) {
 
   data.results.forEach(r => {
     const statusBadge = r.status === 'ok'
-      ? '<span style="background:#dcfce7;color:#166534;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;">Done</span>'
-      : `<span style="background:#fef2f2;color:#991b1b;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;" title="${escHtml(r.error || '')}">Error</span>`;
+      ? '<span style="background:#dcfce7;color:var(--ok);font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;">Done</span>'
+      : `<span style="background:var(--critical-bg);color:var(--critical);font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;" title="${escHtml(r.error || '')}">Error</span>`;
 
     const reportLink = r.report_url
       ? `<a href="${escHtml(r.report_url)}" target="_blank" style="color:var(--blue);font-size:12px;text-decoration:underline;">View Report</a>`
@@ -4055,7 +4491,7 @@ function _renderBulkResults(data) {
 
 const PLATFORM_LABELS = { google: 'Google Ads', meta: 'Meta Ads', ga4: 'GA4', funnel: 'Funnel', unknown: 'Unknown' };
 const PLATFORM_KEYS = { google: 'google', meta: 'meta', ga4: 'ga', funnel: 'funnel' };
-const PLATFORM_COLORS = { google: '#1a73e8', meta: '#1877f2', ga4: '#e37400', funnel: '#7c3aed', unknown: '#64748b' };
+const PLATFORM_COLORS = { google: '#3b82f6', meta: '#3b82f6', ga4: '#d97706', funnel: '#3b82f6', unknown: '#64748b' };
 
 async function detectPlatform(file) {
   const fd = new FormData();
@@ -4113,7 +4549,7 @@ async function processAutoDetectFiles(files) {
       </div>`;
     } else if (key && assignments[key]) {
       // Conflict: already have a file for this platform
-      html += `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:8px 12px;font-size:12px;text-align:left;min-width:160px;">
+      html += `<div style="background:var(--critical-bg);border:1px solid #fca5a5;border-radius:8px;padding:8px 12px;font-size:12px;text-align:left;min-width:160px;">
         <div style="font-weight:700;color:#dc2626">Conflict: ${escHtml(PLATFORM_LABELS[platform] || platform)}</div>
         <div style="color:var(--muted);margin-top:2px;word-break:break-all">${escHtml(file.name)}</div>
         <div style="color:#dc2626;margin-top:3px">Already have a file for this platform</div>
@@ -4299,7 +4735,15 @@ async function runUploadAndAudit() {
   if (!uploadFiles.google && !uploadFiles.meta) {
     showToast('Upload at least one ads file (Google or Meta)', 'error'); return;
   }
-  showLoader('Uploading files...');
+  showLoader('Starting audit...');
+  showLoaderSteps([
+    { label: 'Uploading files',          delay: 0 },
+    { label: 'Cleaning & validating data', delay: 1200 },
+    { label: 'Storing in database',      delay: 2800 },
+    { label: 'Calling Claude AI',        delay: 4200 },
+    { label: 'Rendering report',         delay: 22000 },
+    { label: 'Detecting anomalies',      delay: 35000 },
+  ]);
   try {
     const fd = new FormData();
     fd.append('client_id', currentClientId);
@@ -4318,12 +4762,12 @@ async function runUploadAndAudit() {
       fd.append('column_mappings', JSON.stringify(pendingMappings));
     }
 
-    setLoaderText('Uploading files...');
     let upRes = await fetch('/api/upload', { method: 'POST', body: fd });
     let upData = await upRes.json();
 
     // Handle duplicate upload (409)
     if (upRes.status === 409 && upData.duplicate) {
+      clearLoaderSteps();
       hideLoader();
       const confirmOverwrite = confirm(
         upData.message + '\n\nClick OK to overwrite, Cancel to keep the existing upload.'
@@ -4334,6 +4778,14 @@ async function runUploadAndAudit() {
         showToast('Using existing upload for audit', 'info');
       } else {
         showLoader('Overwriting existing upload...');
+        showLoaderSteps([
+          { label: 'Uploading files',          delay: 0 },
+          { label: 'Cleaning & validating data', delay: 1200 },
+          { label: 'Storing in database',      delay: 2800 },
+          { label: 'Calling Claude AI',        delay: 4200 },
+          { label: 'Rendering report',         delay: 22000 },
+          { label: 'Detecting anomalies',      delay: 35000 },
+        ]);
         fd.append('overwrite', 'true');
         upRes = await fetch('/api/upload', { method: 'POST', body: fd });
         upData = await upRes.json();
@@ -4357,14 +4809,14 @@ async function runUploadAndAudit() {
     if (exportStrip) exportStrip.style.display = 'flex';
 
     setLoaderText('Running AI audit...');
-    const auditRes = await fetch('/api/audit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ upload_id: currentUploadId, client_id: currentClientId, currency: currentCurrency })
-    });
-    const auditData = await auditRes.json();
-    if (!auditRes.ok) { showToast(auditData.error || 'Audit failed', 'error'); hideLoader(); return; }
+    let auditData;
+    try {
+      auditData = await runStreamingAudit(currentUploadId, currentClientId, currentCurrency);
+    } catch(auditErr) {
+      showToast(auditErr.message || 'Audit failed', 'error'); hideLoader(); return;
+    }
 
+    completeLoaderSteps();
     currentReportId = auditData.report_id;
     currentReportUrl = auditData.report_url;
     showReportPreview(auditData.report_url);
@@ -4384,14 +4836,21 @@ async function runUploadAndAudit() {
 
 async function runSampleData() {
   if (!currentClientId) { showToast('Please select a client first', 'error'); return; }
-  showLoader('Loading sample data...');
+  showLoader('Starting audit...');
+  showLoaderSteps([
+    { label: 'Loading sample data',      delay: 0 },
+    { label: 'Cleaning & validating data', delay: 1200 },
+    { label: 'Storing in database',      delay: 2800 },
+    { label: 'Calling Claude AI',        delay: 4200 },
+    { label: 'Rendering report',         delay: 22000 },
+    { label: 'Detecting anomalies',      delay: 35000 },
+  ]);
   try {
     const fd = new FormData();
     fd.append('client_id', currentClientId);
     fd.append('use_sample', 'true');
     fd.append('compare', 'true');
 
-    setLoaderText('Loading sample data...');
     const upRes = await fetch('/api/upload', { method: 'POST', body: fd });
     const upData = await upRes.json();
     if (!upRes.ok) { showToast(upData.error || 'Sample load failed', 'error'); hideLoader(); return; }
@@ -4402,14 +4861,14 @@ async function runSampleData() {
     if (upData.has_funnel && upData.funnel_summary) showFunnel(upData.funnel_summary);
 
     setLoaderText('Running AI audit...');
-    const auditRes = await fetch('/api/audit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ upload_id: currentUploadId, client_id: currentClientId, currency: currentCurrency })
-    });
-    const auditData = await auditRes.json();
-    if (!auditRes.ok) { showToast(auditData.error || 'Audit failed', 'error'); hideLoader(); return; }
+    let auditData;
+    try {
+      auditData = await runStreamingAudit(currentUploadId, currentClientId, currentCurrency);
+    } catch(auditErr) {
+      showToast(auditErr.message || 'Audit failed', 'error'); hideLoader(); return;
+    }
 
+    completeLoaderSteps();
     currentReportId = auditData.report_id;
     currentReportUrl = auditData.report_url;
     showReportPreview(auditData.report_url);
@@ -4563,6 +5022,12 @@ async function runDetection() {
   if (!currentClientId) { showToast('Select a client first', 'error'); return; }
   if (!currentUploadId) { showToast('Run an audit first to generate upload data', 'error'); return; }
   showLoader('Detecting anomalies...');
+  showLoaderSteps([
+    { label: 'Fetching campaign history',    delay: 0 },
+    { label: 'Building baselines',           delay: 1500 },
+    { label: 'Running threshold checks',     delay: 3000 },
+    { label: 'Saving alerts',                delay: 5000 },
+  ]);
   try {
     const res = await fetch('/api/anomalies/detect', {
       method: 'POST',
@@ -4571,6 +5036,7 @@ async function runDetection() {
     });
     const data = await res.json();
     if (!res.ok) { showToast(data.error || 'Detection failed', 'error'); hideLoader(); return; }
+    completeLoaderSteps();
     allAnomalies = data.anomalies || [];
     renderAnomalySummary(data.summary || {});
     renderMorningBrief(data.morning_brief || null);
@@ -4628,6 +5094,48 @@ function renderMorningBrief(brief) {
   wrap.style.display = 'block';
 }
 
+// Shared streaming audit helper - returns a promise that resolves with auditData
+function runStreamingAudit(uploadId, clientId, currency) {
+  return new Promise((resolve, reject) => {
+    fetch('/api/audit/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ upload_id: uploadId, client_id: clientId, currency: currency || 'INR' })
+    }).then(res => {
+      if (!res.ok) { return res.json().then(d => reject(new Error(d.error || 'Audit failed'))); }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let chunkCount = 0;
+
+      function read() {
+        reader.read().then(({ done, value }) => {
+          if (done) { reject(new Error('Stream ended without done event')); return; }
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const event = JSON.parse(line.slice(6));
+              if (event.type === 'chunk') {
+                chunkCount++;
+                // After first chunk arrives, update loader text so user knows it's working
+                if (chunkCount === 1) setLoaderText('AI is writing the report...');
+              } else if (event.type === 'done') {
+                resolve(event);
+                return;
+              }
+            } catch(_) {}
+          }
+          read();
+        }).catch(reject);
+      }
+      read();
+    }).catch(reject);
+  });
+}
+
 function renderAnomalyList() {
   const list = document.getElementById('anomaly-list');
   let items = allAnomalies;
@@ -4638,19 +5146,31 @@ function renderAnomalyList() {
     return;
   }
 
+  const metricLabels = {
+    cpl: 'CPL Spike', roas: 'ROAS Drop', ctr: 'CTR Drop',
+    spend_pacing: 'Spend Pacing', creative_fatigue: 'Creative Fatigue',
+    roas_target: 'ROAS vs Target', cpl_target: 'CPL vs Target', cpa_target: 'CPA vs Target',
+  };
+  const platformIcons = { google: '🔵', meta: '🟣' };
+
   list.innerHTML = items.map(a => {
     const sev = a.severity || 'info';
     const status = a.status || 'open';
     const platform = a.platform || '';
+    const platformLabel = platform ? (platformIcons[platform] || '') + ' ' + platform.charAt(0).toUpperCase() + platform.slice(1) + ' Ads' : '';
+    const metricLabel = metricLabels[a.metric] || (a.metric || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     return `
       <div class="anomaly-card ${sev}">
         <div class="anomaly-card-header">
-          <div class="anomaly-card-title">${escHtml(a.campaign_name || 'Unknown Campaign')}</div>
+          <div>
+            <div class="anomaly-card-title">${escHtml(a.campaign_name || 'Unknown Campaign')}</div>
+            ${platformLabel ? `<div class="anomaly-platform-label">${platformLabel}</div>` : ''}
+          </div>
           <span class="badge badge-${sev}">${sev.charAt(0).toUpperCase() + sev.slice(1)}</span>
         </div>
         <div class="anomaly-card-meta">
-          ${platform ? `<span class="badge badge-${platform}">${platform.charAt(0).toUpperCase() + platform.slice(1)}</span>` : ''}
-          ${a.metric ? `<span class="badge badge-info">${escHtml(a.metric)}</span>` : ''}
+          ${platform ? `<span class="badge badge-${platform}">${platformLabel}</span>` : ''}
+          ${metricLabel ? `<span class="badge badge-info">${escHtml(metricLabel)}</span>` : ''}
           <span class="badge badge-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
         </div>
         <div class="anomaly-card-desc">${escHtml(a.description || '')}</div>
@@ -4668,28 +5188,56 @@ function renderAnomalyList() {
 
 async function generateMorningBrief() {
   if (!currentClientId) { showToast('Select a client first', 'error'); return; }
-  showLoader('Generating morning brief with Claude...');
+
+  const wrap = document.getElementById('morning-brief-wrap');
+  const card = document.getElementById('morning-brief-card');
+  const titleEl = document.getElementById('morning-brief-title');
+  const textEl  = document.getElementById('morning-brief-text');
+
+  // Show card immediately in loading state
+  card.className = 'morning-brief info';
+  titleEl.textContent = 'Morning Brief - writing...';
+  textEl.textContent = '';
+  wrap.style.display = '';
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
   try {
     const res = await fetch(`/api/morning-brief/${currentClientId}`, { method: 'POST' });
-    const data = await res.json();
-    hideLoader();
-    if (!res.ok) { showToast(data.error || 'Failed to generate brief', 'error'); return; }
-    // Display in the morning brief card
-    const wrap = document.getElementById('morning-brief-wrap');
-    const card = document.getElementById('morning-brief-card');
-    const usedClaude = data.used_claude;
-    card.className = 'morning-brief ' + (data.severity || 'info');
-    document.getElementById('morning-brief-title').textContent =
-      (usedClaude ? 'Morning Brief (Claude)' : 'Morning Brief') +
-      ' - ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('morning-brief-text').textContent = data.brief;
-    wrap.style.display = '';
-    wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!res.ok) { showToast('Failed to generate brief', 'error'); return; }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+
+        if (evt.type === 'chunk') {
+          textEl.textContent += evt.text;
+        } else if (evt.type === 'done') {
+          const usedClaude = evt.used_claude;
+          card.className = 'morning-brief ' + (evt.severity || 'info');
+          titleEl.textContent =
+            (usedClaude ? 'Morning Brief (Claude)' : 'Morning Brief') +
+            ' - ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          textEl.textContent = evt.brief;
+        }
+      }
+    }
   } catch(e) {
-    hideLoader();
     showToast('Failed to generate brief', 'error');
   }
 }
+
 
 async function saveAnomalyReport() {
   showToast('Anomaly report auto-saved on detection', 'info');
@@ -4712,11 +5260,23 @@ function setTone(tone) {
 
 async function generateNarrative() {
   if (!currentClientId) { showToast('Select a client first', 'error'); return; }
+  const uploadId = document.getElementById('narrator-upload-select').value || currentUploadId;
+  const dateRange = document.getElementById('narrator-date-range').value.trim();
+
   showLoader('Generating narrative...');
+  showLoaderSteps([
+    { label: 'Loading campaign data',        delay: 0 },
+    { label: 'Building performance summary', delay: 1500 },
+    { label: 'Writing with Claude AI',       delay: 3000 },
+  ]);
+
+  const resultEl = document.getElementById('narrator-result-html');
+  const resultWrap = document.getElementById('narrator-result-wrap');
+  resultEl.innerHTML = '';
+  resultWrap.style.display = 'none';
+
   try {
-    const uploadId = document.getElementById('narrator-upload-select').value || currentUploadId;
-    const dateRange = document.getElementById('narrator-date-range').value.trim();
-    const res = await fetch('/api/narrator', {
+    const res = await fetch('/api/narrator/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -4727,13 +5287,45 @@ async function generateNarrative() {
         date_range: dateRange
       })
     });
-    const data = await res.json();
-    if (!res.ok) { showToast(data.error || 'Narrative failed', 'error'); hideLoader(); return; }
-    currentNarrativeReportId = data.report_id;
-    document.getElementById('narrator-result-html').innerHTML = data.narrative_html || '';
-    document.getElementById('narrator-result-wrap').style.display = 'block';
-    showToast('Narrative generated', 'success');
-    hideLoader();
+    if (!res.ok) { showToast('Narrative failed', 'error'); hideLoader(); return; }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let streaming = false;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+
+        if (evt.type === 'chunk') {
+          if (!streaming) {
+            completeLoaderSteps();
+            hideLoader();
+            resultEl._streamBuffer = '';
+            resultWrap.style.display = 'block';
+            streaming = true;
+          }
+          resultEl._streamBuffer = (resultEl._streamBuffer || '') + evt.text;
+          resultEl.innerHTML = renderMarkdownLive(resultEl._streamBuffer);
+        } else if (evt.type === 'done') {
+          currentNarrativeReportId = evt.report_id;
+          resultEl.innerHTML = evt.narrative_html || resultEl.innerHTML;
+          resultEl._streamBuffer = '';
+          resultWrap.style.display = 'block';
+          if (!streaming) { completeLoaderSteps(); hideLoader(); }
+          showToast('Narrative generated', 'success');
+        }
+      }
+    }
   } catch(e) {
     showToast('Unexpected error: ' + e.message, 'error');
     hideLoader();
@@ -4828,10 +5420,21 @@ async function saveBudgetRules() {
 
 async function runBudgetAgent() {
   if (!currentClientId) { showToast('Select a client first', 'error'); return; }
+  const uploadId = document.getElementById('budget-upload-select').value || currentUploadId;
+
   showLoader('Running Budget Agent...');
+  showLoaderSteps([
+    { label: 'Loading campaign data',       delay: 0 },
+    { label: 'Applying budget rules',       delay: 1500 },
+    { label: 'Writing with Claude AI',      delay: 3000 },
+  ]);
+
+  const expWrap = document.getElementById('budget-explanation-html');
+  expWrap.innerHTML = '';
+  document.getElementById('budget-result-wrap').style.display = 'none';
+
   try {
-    const uploadId = document.getElementById('budget-upload-select').value || currentUploadId;
-    const res = await fetch('/api/budget-agent', {
+    const res = await fetch('/api/budget-agent/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -4840,19 +5443,47 @@ async function runBudgetAgent() {
         currency: currentCurrency
       })
     });
-    const data = await res.json();
-    if (!res.ok) { showToast(data.error || 'Budget Agent failed', 'error'); hideLoader(); return; }
-    currentBudgetReportId = data.report_id;
+    if (!res.ok) { showToast('Budget Agent failed', 'error'); hideLoader(); return; }
 
-    const tableWrap = document.getElementById('budget-table-html');
-    tableWrap.innerHTML = data.table_html || '<p class="text-muted" style="padding:16px;">No reallocation data available.</p>';
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let streaming = false;
 
-    const expWrap = document.getElementById('budget-explanation-html');
-    expWrap.innerHTML = data.explanation_html || '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
 
-    document.getElementById('budget-result-wrap').style.display = 'block';
-    showToast('Budget analysis complete', 'success');
-    hideLoader();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+
+        if (evt.type === 'chunk') {
+          if (!streaming) {
+            completeLoaderSteps();
+            hideLoader();
+            expWrap._streamBuffer = '';
+            document.getElementById('budget-result-wrap').style.display = 'block';
+            streaming = true;
+          }
+          expWrap._streamBuffer = (expWrap._streamBuffer || '') + evt.text;
+          expWrap.innerHTML = renderMarkdownLive(expWrap._streamBuffer);
+        } else if (evt.type === 'done') {
+          currentBudgetReportId = evt.report_id;
+          document.getElementById('budget-table-html').innerHTML =
+            evt.table_html || '<p class="text-muted" style="padding:16px;">No reallocation data available.</p>';
+          expWrap.innerHTML = evt.explanation_html || expWrap.innerHTML;
+          expWrap._streamBuffer = '';
+          document.getElementById('budget-result-wrap').style.display = 'block';
+          if (!streaming) { completeLoaderSteps(); hideLoader(); }
+          showToast('Budget analysis complete', 'success');
+        }
+      }
+    }
   } catch(e) {
     showToast('Unexpected error: ' + e.message, 'error');
     hideLoader();
@@ -5150,7 +5781,7 @@ function renderTrendChart() {
   const yScale = (v) => PAD.top + cH - ((v - minV) / range) * cH;
 
   const metricLabels = { spend: 'Spend', roas: 'ROAS', conversions: 'Conversions', ctr: 'CTR %', cac: 'CAC', cpl: 'CPL' };
-  const metricColor = { spend: '#3b82f6', roas: '#16a34a', conversions: '#d97706', ctr: '#7c3aed', cac: '#0891b2', cpl: '#be185d' };
+  const metricColor = { spend: '#3b82f6', roas: '#16a34a', conversions: '#d97706', ctr: '#3b82f6', cac: '#64748b', cpl: '#dc2626' };
   const col = metricColor[trendMetric] || '#3b82f6';
 
   // Build path
@@ -5382,7 +6013,7 @@ function renderCampaignTags() {
     <div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);">
       <span style="flex:1;font-size:13px;">${escHtml(name)}</span>
       <span class="badge badge-${tag === 'brand' ? 'ok' : tag === 'test' ? 'warning' : ''}" style="font-size:11px;">${escHtml(tag)}</span>
-      <button class="btn btn-sm" style="padding:2px 8px;font-size:11px;" onclick="removeCampaignTagByIndex(${i})">Remove</button>
+      <button class="btn btn-sm btn-ghost" onclick="removeCampaignTagByIndex(${i})">Remove</button>
     </div>`).join('');
 }
 
@@ -5414,7 +6045,7 @@ function renderCampaignTargets() {
     return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);">
       <span style="flex:1;font-size:13px;">${escHtml(t.name)}</span>
       <span style="font-size:12px;color:var(--muted);">${parts.join(' | ') || 'no targets'}</span>
-      <button class="btn btn-sm" style="padding:2px 8px;font-size:11px;" onclick="removeCampaignTarget(${i})">Remove</button>
+      <button class="btn btn-sm btn-ghost" onclick="removeCampaignTarget(${i})">Remove</button>
     </div>`;
   }).join('');
 }
@@ -5455,7 +6086,7 @@ function renderTypeOverrides() {
     return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);">
       <span style="flex:1;font-size:13px;font-family:monospace;">${escHtml(o.keyword)}</span>
       <span style="font-size:12px;color:var(--muted);">${parts.join(' | ') || '-'}</span>
-      <button class="btn btn-sm" style="padding:2px 8px;font-size:11px;" onclick="removeTypeOverride(${i})">Remove</button>
+      <button class="btn btn-sm btn-ghost" onclick="removeTypeOverride(${i})">Remove</button>
     </div>`;
   }).join('');
 }
@@ -5503,6 +6134,39 @@ async function clearContext() {
 // ============================================================
 // OVERVIEW DASHBOARD
 // ============================================================
+function openAddClientModal() {
+  const modal = document.getElementById('add-client-modal');
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('overview-new-client-name').focus(), 50);
+}
+
+function closeAddClientModal() {
+  document.getElementById('add-client-modal').style.display = 'none';
+  document.getElementById('overview-new-client-name').value = '';
+}
+
+async function addClientFromOverview() {
+  const name = document.getElementById('overview-new-client-name').value.trim();
+  const currency = document.getElementById('overview-new-client-currency').value;
+  if (!name) { showToast('Client name is required', 'error'); return; }
+  try {
+    const res = await fetch('/api/clients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, currency })
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed to add client', 'error'); return; }
+    closeAddClientModal();
+    showToast(`Client "${name}" added`, 'success');
+    await loadClients();
+    loadSettingsClients();
+    loadOverview();
+  } catch(e) {
+    showToast('Failed to add client', 'error');
+  }
+}
+
 async function loadOverview() {
   document.getElementById('overview-loading').style.display = '';
   document.getElementById('overview-table-wrap').style.display = 'none';
@@ -5551,7 +6215,7 @@ async function loadOverview() {
               <div style="width:${obPct}%;height:100%;background:${obPct>0?'var(--blue)':'var(--border)'};transition:width .3s;"></div>
             </div>
             <span style="font-size:11px;color:var(--muted);">${obPct}%</span>
-            <button class="btn btn-sm" style="padding:2px 7px;font-size:11px;background:var(--blue);color:#fff;border:none;border-radius:4px;"
+            <button class="btn btn-sm btn-primary"
               onclick="event.stopPropagation();openOnboardingWizard(${r.id})">Setup</button>
           </div>`;
       return `<tr>
@@ -5565,7 +6229,7 @@ async function loadOverview() {
         <td><span class="${statusClass}">${statusLabel}</span></td>
         <td>${setupCell}</td>
         <td>
-          <button class="btn btn-sm btn-secondary" style="padding:4px 10px;font-size:12px;"
+          <button class="btn btn-sm btn-secondary"
             onclick="selectClientAndNavigate(${r.id}, 'audit')">Open</button>
         </td>
       </tr>`;
@@ -5839,7 +6503,7 @@ function renderActionCard(a) {
   const sourceLabel = a.source === 'audit' ? 'Audit' : 'Budget Agent';
   const sourceBadgeStyle = a.source === 'audit'
     ? 'background:#e0f2fe;color:#0369a1;'
-    : 'background:#fef3c7;color:#92400e;';
+    : 'background:var(--warning-bg);color:var(--warning-text);';
   const priLabel = { high: 'High', medium: 'Medium', low: 'Low' }[a.priority] || a.priority;
 
   // Date picker - always shown on todo items, shown as editable on done items
@@ -5853,7 +6517,7 @@ function renderActionCard(a) {
 
   // Status badge for resolved items
   const statusBadge = isDone
-    ? `<span class="badge" style="background:#dcfce7;color:#166534;font-size:10px;">Done</span>`
+    ? `<span class="badge" style="background:#dcfce7;color:var(--ok);font-size:10px;">Done</span>`
     : isNotNeeded
     ? `<span class="badge" style="background:#f1f5f9;color:#64748b;font-size:10px;">Not Needed</span>`
     : '';
@@ -5863,16 +6527,16 @@ function renderActionCard(a) {
     <div class="action-impact-area" id="impact-area-${a.id}">
       <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Performance Impact</div>
       <div id="impact-content-${a.id}" style="font-size:12px;color:var(--muted);">
-        <button class="btn btn-sm btn-secondary" style="font-size:11px;padding:3px 10px;" onclick="loadImpact(${a.id})">Measure impact</button>
+        <button class="btn btn-sm btn-secondary" onclick="loadImpact(${a.id})">Measure impact</button>
       </div>
     </div>` : '';
 
   // Action buttons
   const actionBtns = isTodo ? `
-    <button class="btn btn-sm btn-primary" onclick="markActionStatus(${a.id},'done')" style="font-size:11px;padding:4px 12px;">Done</button>
-    <button class="btn btn-sm btn-secondary" onclick="markActionStatus(${a.id},'not_needed')" style="font-size:11px;padding:4px 10px;color:var(--muted);">Not Needed</button>
+    <button class="btn btn-sm btn-primary" onclick="markActionStatus(${a.id},'done')">Done</button>
+    <button class="btn btn-sm btn-secondary" onclick="markActionStatus(${a.id},'not_needed')">Not Needed</button>
   ` : `
-    <button class="btn btn-sm btn-secondary" onclick="markActionStatus(${a.id},'todo')" style="font-size:11px;padding:4px 12px;">Reopen</button>
+    <button class="btn btn-sm btn-secondary" onclick="markActionStatus(${a.id},'todo')">Reopen</button>
   `;
 
   return `<div class="action-card${isResolved ? ' done-card' : ''}" id="action-card-${a.id}">
@@ -6254,6 +6918,23 @@ function fmtCurrency(val, currency) {
   return formatted;
 }
 
+function renderMarkdownLive(md) {
+  if (!md) return '';
+  return md
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^## (.+)$/gm, '<h2 style="font-size:15px;font-weight:700;margin:20px 0 8px;color:var(--text);">$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;color:var(--text);">$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^(\d+)\. (.+)$/gm, '<div style="display:flex;gap:8px;margin:4px 0;"><span style="min-width:18px;font-weight:600;color:var(--blue);">$1.</span><span>$2</span></div>')
+    .replace(/^- (.+)$/gm, '<div style="display:flex;gap:8px;margin:3px 0;"><span style="color:var(--blue);min-width:12px;">&#8226;</span><span>$1</span></div>')
+    .replace(/\n\n/g, '</p><p style="margin:0 0 10px;">')
+    .replace(/\n/g, '<br>')
+    .replace(/^/, '<p style="margin:0 0 10px;">')
+    .replace(/$/, '</p>');
+}
+
+
 function fmtNumber(val) {
   const n = parseInt(val) || 0;
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
@@ -6323,14 +7004,75 @@ function showToast(msg, type) {
 function showLoader(text) {
   document.getElementById('loader').classList.add('active');
   document.getElementById('loader-text').textContent = text || 'Processing...';
+  const steps = document.getElementById('loader-steps');
+  steps.classList.remove('visible');
+  steps.innerHTML = '';
 }
 
 function hideLoader() {
   document.getElementById('loader').classList.remove('active');
+  clearLoaderSteps();
 }
 
 function setLoaderText(text) {
   document.getElementById('loader-text').textContent = text;
+}
+
+// ---- Step-list loader ----
+let _stepTimers = [];
+
+function clearLoaderSteps() {
+  _stepTimers.forEach(t => clearTimeout(t));
+  _stepTimers = [];
+  const steps = document.getElementById('loader-steps');
+  steps.classList.remove('visible');
+  steps.innerHTML = '';
+}
+
+function showLoaderSteps(stepDefs) {
+  // stepDefs: [{label, delay}]  delay in ms from when this function is called
+  // A step becomes "active" at its delay, and "done" when the next one activates.
+  const container = document.getElementById('loader-steps');
+  container.innerHTML = '';
+  stepDefs.forEach((s, i) => {
+    const el = document.createElement('div');
+    el.className = 'loader-step';
+    el.id = `lstep-${i}`;
+    el.innerHTML = `<span class="loader-step-icon" id="lstep-icon-${i}"><span class="loader-step-dot"></span></span><span>${s.label}</span>`;
+    container.appendChild(el);
+  });
+  container.classList.add('visible');
+
+  stepDefs.forEach((s, i) => {
+    const t = setTimeout(() => {
+      // Mark previous as done
+      if (i > 0) {
+        const prev = document.getElementById(`lstep-${i - 1}`);
+        if (prev) {
+          prev.classList.remove('active');
+          prev.classList.add('done');
+          const icon = document.getElementById(`lstep-icon-${i - 1}`);
+          if (icon) icon.innerHTML = '&#10003;';
+        }
+      }
+      const el = document.getElementById(`lstep-${i}`);
+      if (el) el.classList.add('active');
+    }, s.delay);
+    _stepTimers.push(t);
+  });
+}
+
+function completeLoaderSteps() {
+  // Mark all steps as done immediately
+  _stepTimers.forEach(t => clearTimeout(t));
+  _stepTimers = [];
+  const container = document.getElementById('loader-steps');
+  container.querySelectorAll('.loader-step').forEach(el => {
+    el.classList.remove('active');
+    el.classList.add('done');
+    const icon = el.querySelector('.loader-step-icon');
+    if (icon) icon.innerHTML = '&#10003;';
+  });
 }
 
 // ============================================================
@@ -6433,6 +7175,14 @@ function exportUploadCsv() {
 async function runUploadAndAuditWithOverwrite(fd) {
   fd.append('overwrite', 'true');
   setLoaderText('Overwriting existing upload...');
+  showLoaderSteps([
+    { label: 'Uploading files',          delay: 0 },
+    { label: 'Cleaning & validating data', delay: 1200 },
+    { label: 'Storing in database',      delay: 2800 },
+    { label: 'Calling Claude AI',        delay: 4200 },
+    { label: 'Rendering report',         delay: 22000 },
+    { label: 'Detecting anomalies',      delay: 35000 },
+  ]);
   const upRes = await fetch('/api/upload', { method: 'POST', body: fd });
   const upData = await upRes.json();
   if (!upRes.ok) { showToast(upData.error || 'Upload failed', 'error'); hideLoader(); return null; }
@@ -6743,7 +7493,7 @@ function renderDashAudience(audience) {
     const t = audience.user_totals || {};
     const pctNew = t.pct_new || 0;
     const pctRet = 100 - pctNew;
-    const newColor = pctNew >= 50 ? '#16a34a' : pctNew >= 30 ? '#f59e0b' : '#ef4444';
+    const newColor = pctNew >= 50 ? '#16a34a' : pctNew >= 30 ? '#d97706' : '#dc2626';
     signals.push(`
       <div class="dash-card" style="padding:20px;">
         <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Audience Composition</div>
@@ -6772,7 +7522,7 @@ function renderDashAudience(audience) {
       ? (audience.meta_reach.reduce((s, r) => s + (r.frequency || 0), 0) / audience.meta_reach.length)
       : 0;
     const fatigueCount = (audience.fatigue_alerts || []).length;
-    const freqColor = avgFreq < 2.5 ? '#16a34a' : avgFreq < 3.5 ? '#f59e0b' : '#ef4444';
+    const freqColor = avgFreq < 2.5 ? '#16a34a' : avgFreq < 3.5 ? '#d97706' : '#dc2626';
     signals.push(`
       <div class="dash-card" style="padding:20px;">
         <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Meta Audience Saturation</div>
@@ -6782,7 +7532,7 @@ function renderDashAudience(audience) {
         </div>
         <div style="font-size:13px;margin-bottom:6px;">Total Reach: <strong>${fmtNum(totalReach)}</strong> unique accounts</div>
         ${fatigueCount > 0
-          ? `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px 12px;font-size:12px;color:#ef4444;margin-top:8px;">⚠️ ${fatigueCount} campaign${fatigueCount>1?'s':''} showing creative fatigue (freq ≥ 3.0)</div>`
+          ? `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px 12px;font-size:12px;color:#dc2626;margin-top:8px;">⚠️ ${fatigueCount} campaign${fatigueCount>1?'s':''} showing creative fatigue (freq ≥ 3.0)</div>`
           : `<div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.2);border-radius:8px;padding:8px 12px;font-size:12px;color:#16a34a;margin-top:8px;">✅ No frequency fatigue detected across Meta campaigns</div>`
         }
       </div>`);
@@ -6791,14 +7541,14 @@ function renderDashAudience(audience) {
   if (audience.misclassified_spend && audience.misclassified_spend.length > 0) {
     const totalMisSpend = audience.misclassified_spend.reduce((s, r) => s + (r.spend || 0), 0);
     signals.push(`
-      <div class="dash-card" style="padding:20px;border-left:3px solid #f59e0b;">
+      <div class="dash-card" style="padding:20px;border-left:3px solid #d97706;">
         <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Budget Allocation Flag</div>
-        <div style="font-size:2rem;font-weight:700;color:#f59e0b;line-height:1;margin-bottom:6px;">${audience.misclassified_spend.length}</div>
+        <div style="font-size:2rem;font-weight:700;color:#d97706;line-height:1;margin-bottom:6px;">${audience.misclassified_spend.length}</div>
         <div style="font-size:13px;margin-bottom:8px;">campaign${audience.misclassified_spend.length>1?'s':''} flagged as possible retargeting spend</div>
         <div style="font-size:12px;color:var(--muted);line-height:1.5;">
           ${sym}${fmtNum(totalMisSpend)} is going to audiences that are mostly existing users — not net new acquisition.
         </div>
-        <div style="margin-top:10px;font-size:12px;font-weight:600;color:#f59e0b;">Action: Review campaign objectives and audience targeting.</div>
+        <div style="margin-top:10px;font-size:12px;font-weight:600;color:#d97706;">Action: Review campaign objectives and audience targeting.</div>
       </div>`);
   }
 
@@ -6814,8 +7564,8 @@ function renderDashAudience(audience) {
         <div style="font-size:18px;flex-shrink:0;">🔴</div>
         <div style="flex:1;">
           <div style="font-weight:600;font-size:13px;margin-bottom:2px;">${a.campaign_name}</div>
-          <div style="font-size:12px;color:var(--muted);">Frequency: <strong style="color:#ef4444;">${(a.frequency||0).toFixed(1)}x</strong> · Reach: ${fmtNum(a.reach||0)} · Spend: ${sym}${fmtNum(a.spend||0)}</div>
-          <div style="font-size:12px;margin-top:4px;color:#ef4444;">Action: Refresh creative or rotate to a new audience to reduce fatigue.</div>
+          <div style="font-size:12px;color:var(--muted);">Frequency: <strong style="color:#dc2626;">${(a.frequency||0).toFixed(1)}x</strong> · Reach: ${fmtNum(a.reach||0)} · Spend: ${sym}${fmtNum(a.spend||0)}</div>
+          <div style="font-size:12px;margin-top:4px;color:#dc2626;">Action: Refresh creative or rotate to a new audience to reduce fatigue.</div>
         </div>
       </div>`).join('');
   } else {
@@ -6829,10 +7579,10 @@ function renderDashAudience(audience) {
     userWrap.style.display = '';
     userBody.innerHTML = audience.user_split.map(r => {
       const pct = r.pct_new_users || 0;
-      const barColor = pct >= 50 ? '#16a34a' : pct >= 30 ? '#f59e0b' : '#ef4444';
+      const barColor = pct >= 50 ? '#16a34a' : pct >= 30 ? '#d97706' : '#dc2626';
       const isMis = (audience.misclassified_spend || []).some(m => m.campaign_name === r.campaign_name);
       const signal = isMis
-        ? `<span style="color:#f59e0b;font-size:11px;font-weight:600;">⚠️ Mostly returning</span>`
+        ? `<span style="color:#d97706;font-size:11px;font-weight:600;">⚠️ Mostly returning</span>`
         : pct >= 60 ? `<span style="color:#16a34a;font-size:11px;font-weight:600;">✅ Strong acquisition</span>`
         : `<span style="color:var(--muted);font-size:11px;">–</span>`;
       return `<tr>
@@ -6864,11 +7614,11 @@ function renderDashAudience(audience) {
     reachWrap.style.display = '';
     reachBody.innerHTML = audience.meta_reach.map(r => {
       const freq = r.frequency || 0;
-      const freqColor = freq < 2.5 ? '#16a34a' : freq < 3.5 ? '#f59e0b' : '#ef4444';
+      const freqColor = freq < 2.5 ? '#16a34a' : freq < 3.5 ? '#d97706' : '#dc2626';
       const status = freq >= 3.5
-        ? `<span style="color:#ef4444;font-weight:600;font-size:12px;">🔴 Fatigue — Refresh Creative</span>`
+        ? `<span style="color:#dc2626;font-weight:600;font-size:12px;">🔴 Fatigue — Refresh Creative</span>`
         : freq >= 2.5
-        ? `<span style="color:#f59e0b;font-weight:600;font-size:12px;">🟡 Watch — Nearing Saturation</span>`
+        ? `<span style="color:#d97706;font-weight:600;font-size:12px;">🟡 Watch — Nearing Saturation</span>`
         : `<span style="color:#16a34a;font-weight:600;font-size:12px;">🟢 Healthy</span>`;
       return `<tr>
         <td style="font-size:13px;">${r.campaign_name}</td>
@@ -6889,7 +7639,7 @@ function renderDashChannelBars(channels) {
   wrap.innerHTML = '';
   if (!channels || !channels.length) { wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;">No channel data.</div>'; return; }
   const sym = getCurrencySymbol();
-  const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444'];
+  const COLORS = ['#3b82f6', '#d97706', '#16a34a', '#64748b', '#dc2626'];
   const total = channels.reduce((s, c) => s + (c.spend || 0), 0) || 1;
   wrap.innerHTML = channels.map((c, i) => {
     const pct = Math.round((c.spend || 0) / total * 100);
@@ -6935,9 +7685,9 @@ function renderDashPL(pl, kpi) {
   const maxVal = Math.max(spend, revenue, 1);
 
   const rows = [
-    { label: 'Total Ad Spend',  value: spend,   color: '#ef4444', pct: spend / maxVal * 100 },
+    { label: 'Total Ad Spend',  value: spend,   color: '#dc2626', pct: spend / maxVal * 100 },
     { label: 'Total Revenue',   value: revenue, color: '#3b82f6', pct: revenue / maxVal * 100 },
-    { label: 'Gross Profit',    value: gross,   color: gross >= 0 ? '#16a34a' : '#ef4444', pct: Math.abs(gross) / maxVal * 100 },
+    { label: 'Gross Profit',    value: gross,   color: gross >= 0 ? '#16a34a' : '#dc2626', pct: Math.abs(gross) / maxVal * 100 },
   ];
 
   document.getElementById('dash-pl-waterfall').innerHTML = rows.map(r => `
@@ -6995,24 +7745,68 @@ async function loadForecast() {
   document.getElementById('forecast-loading').style.display = '';
   document.getElementById('forecast-error').style.display = 'none';
   document.getElementById('forecast-content').style.display = 'none';
+
   try {
-    const res = await fetch(`/api/forecast/${currentClientId}?horizon=${forecastHorizon}`);
-    const data = await res.json();
-    if (!res.ok || data.error) {
-      document.getElementById('forecast-error').textContent = data.error || 'Forecast failed.';
+    const res = await fetch(`/api/forecast/stream/${currentClientId}?horizon=${forecastHorizon}`);
+    if (!res.ok) {
+      document.getElementById('forecast-error').textContent = 'Forecast failed.';
       document.getElementById('forecast-error').style.display = '';
       document.getElementById('forecast-loading').style.display = 'none';
       return;
     }
-    renderForecastKPIs(data);
-    renderForecastNarrative(data);
-    renderForecastCampaigns(data);
-    document.getElementById('forecast-content').style.display = '';
-    requestAnimationFrame(() => renderForecastChart(data));
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let forecastData = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+
+        if (evt.type === 'error') {
+          document.getElementById('forecast-error').textContent = evt.error || 'Forecast failed.';
+          document.getElementById('forecast-error').style.display = '';
+          document.getElementById('forecast-loading').style.display = 'none';
+          return;
+        } else if (evt.type === 'forecast') {
+          // Render charts/KPIs immediately without waiting for narrative
+          forecastData = evt.data;
+          renderForecastKPIs(forecastData);
+          renderForecastCampaigns(forecastData);
+          document.getElementById('forecast-content').style.display = '';
+          document.getElementById('forecast-loading').style.display = 'none';
+          requestAnimationFrame(() => renderForecastChart(forecastData));
+        } else if (evt.type === 'chunk') {
+          // Stream narrative text as it arrives
+          if (forecastData) {
+            if (!forecastData._narrativeStreaming) {
+              forecastData._narrativeStreaming = true;
+              forecastData.narrative = '';
+              renderForecastNarrative(forecastData);
+            }
+            forecastData.narrative += evt.text;
+            renderForecastNarrative(forecastData);
+          }
+        } else if (evt.type === 'done') {
+          if (forecastData) {
+            forecastData.narrative = evt.narrative;
+            renderForecastNarrative(forecastData);
+          }
+        }
+      }
+    }
   } catch(e) {
     document.getElementById('forecast-error').textContent = 'Network error: ' + e.message;
     document.getElementById('forecast-error').style.display = '';
-  } finally {
     document.getElementById('forecast-loading').style.display = 'none';
   }
 }
@@ -7074,22 +7868,22 @@ function renderForecastChart(data) {
   // Area fills
   const spendPts = spends.map((v, i) => `${xAt(i)},${yScale(v)}`).join(' ');
   const revPts   = revs.map((v, i) => `${xAt(i)},${yScale(v)}`).join(' ');
-  svg += `<polygon points="${pad.left + xStep/2},${yScale(0)} ${spendPts} ${xAt(spends.length-1)},${yScale(0)}" fill="#667eea" fill-opacity="0.08"/>`;
-  svg += `<polygon points="${pad.left + xStep/2},${yScale(0)} ${revPts} ${xAt(revs.length-1)},${yScale(0)}" fill="#48bb78" fill-opacity="0.08"/>`;
+  svg += `<polygon points="${pad.left + xStep/2},${yScale(0)} ${spendPts} ${xAt(spends.length-1)},${yScale(0)}" fill="#3b82f6" fill-opacity="0.08"/>`;
+  svg += `<polygon points="${pad.left + xStep/2},${yScale(0)} ${revPts} ${xAt(revs.length-1)},${yScale(0)}" fill="#16a34a" fill-opacity="0.08"/>`;
   // Lines
-  svg += `<polyline points="${pts(spends)}" fill="none" stroke="#667eea" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-  svg += `<polyline points="${pts(revs)}" fill="none" stroke="#48bb78" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  svg += `<polyline points="${pts(spends)}" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  svg += `<polyline points="${pts(revs)}" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
   // Data point dots
-  spends.forEach((v, i) => { svg += `<circle cx="${xAt(i)}" cy="${yScale(v)}" r="3" fill="#667eea"/>`; });
-  revs.forEach((v, i)   => { svg += `<circle cx="${xAt(i)}" cy="${yScale(v)}" r="3" fill="#48bb78"/>`; });
+  spends.forEach((v, i) => { svg += `<circle cx="${xAt(i)}" cy="${yScale(v)}" r="3" fill="#3b82f6"/>`; });
+  revs.forEach((v, i)   => { svg += `<circle cx="${xAt(i)}" cy="${yScale(v)}" r="3" fill="#16a34a"/>`; });
   // Projection dashes
   const projX = pad.left + innerW;
   const projSpendY = yScale(data.account.proj_spend);
   const projRevY   = yScale(data.account.proj_revenue);
-  svg += `<line x1="${xAt(history.length-1)}" y1="${yScale(spends[spends.length-1])}" x2="${projX}" y2="${projSpendY}" stroke="#667eea" stroke-width="2" stroke-dasharray="5,4"/>`;
-  svg += `<line x1="${xAt(history.length-1)}" y1="${yScale(revs[revs.length-1])}" x2="${projX}" y2="${projRevY}" stroke="#48bb78" stroke-width="2" stroke-dasharray="5,4"/>`;
-  svg += `<circle cx="${projX}" cy="${projSpendY}" r="5" fill="#667eea" stroke="white" stroke-width="1.5"/>`;
-  svg += `<circle cx="${projX}" cy="${projRevY}" r="5" fill="#48bb78" stroke="white" stroke-width="1.5"/>`;
+  svg += `<line x1="${xAt(history.length-1)}" y1="${yScale(spends[spends.length-1])}" x2="${projX}" y2="${projSpendY}" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5,4"/>`;
+  svg += `<line x1="${xAt(history.length-1)}" y1="${yScale(revs[revs.length-1])}" x2="${projX}" y2="${projRevY}" stroke="#16a34a" stroke-width="2" stroke-dasharray="5,4"/>`;
+  svg += `<circle cx="${projX}" cy="${projSpendY}" r="5" fill="#3b82f6" stroke="white" stroke-width="1.5"/>`;
+  svg += `<circle cx="${projX}" cy="${projRevY}" r="5" fill="#16a34a" stroke="white" stroke-width="1.5"/>`;
   // X labels — limit to 6 evenly spaced
   const maxLabels = 6;
   const step = Math.max(1, Math.ceil(history.length / maxLabels));
@@ -7104,9 +7898,9 @@ function renderForecastChart(data) {
   // Vertical separator before projection
   svg += `<line x1="${xAt(history.length-1) + xStep*0.2}" y1="${pad.top}" x2="${xAt(history.length-1) + xStep*0.2}" y2="${h - pad.bottom}" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>`;
   // Legend
-  svg += `<circle cx="${pad.left}" cy="14" r="5" fill="#667eea"/>`;
+  svg += `<circle cx="${pad.left}" cy="14" r="5" fill="#3b82f6"/>`;
   svg += `<text x="${pad.left + 10}" y="18" font-size="11" fill="var(--text-secondary)">Spend</text>`;
-  svg += `<circle cx="${pad.left + 65}" cy="14" r="5" fill="#48bb78"/>`;
+  svg += `<circle cx="${pad.left + 65}" cy="14" r="5" fill="#16a34a"/>`;
   svg += `<text x="${pad.left + 75}" y="18" font-size="11" fill="var(--text-secondary)">Revenue</text>`;
   svg += '</svg>';
   el.innerHTML = svg;
@@ -7272,24 +8066,105 @@ async function runStructuredAudit() {
   document.getElementById('sa-error').style.display = 'none';
   document.getElementById('sa-content').style.display = 'none';
 
+  const saStepDefs = [
+    { label: 'Loading campaign data',         delay: 0 },
+    { label: 'Running 50+ check functions',   delay: 1000 },
+    { label: 'Scoring categories',            delay: 3500 },
+    { label: 'Calling Claude AI for summary', delay: 5000 },
+    { label: 'Saving results',                delay: 25000 },
+  ];
+  const saStepsEl = document.getElementById('sa-loading-steps');
+  saStepsEl.innerHTML = '';
+  const saTimers = [];
+  saStepDefs.forEach((s, i) => {
+    const el = document.createElement('div');
+    el.className = 'loader-step';
+    el.id = `sa-lstep-${i}`;
+    el.innerHTML = `<span class="loader-step-icon" id="sa-lstep-icon-${i}"><span class="loader-step-dot"></span></span><span>${s.label}</span>`;
+    saStepsEl.appendChild(el);
+    const t = setTimeout(() => {
+      if (i > 0) {
+        const prev = document.getElementById(`sa-lstep-${i-1}`);
+        if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
+        const pi = document.getElementById(`sa-lstep-icon-${i-1}`);
+        if (pi) pi.innerHTML = '&#10003;';
+      }
+      const el2 = document.getElementById(`sa-lstep-${i}`);
+      if (el2) el2.classList.add('active');
+    }, s.delay);
+    saTimers.push(t);
+  });
+
   try {
-    const res = await fetch('/api/structured-audit/run', {
+    const res = await fetch('/api/structured-audit/stream', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ client_id: currentClientId, upload_id: uploadId }),
     });
-    const data = await res.json();
-    if (!res.ok || data.error) {
-      document.getElementById('sa-error').textContent = data.error || 'Audit failed.';
+    if (!res.ok) {
+      saTimers.forEach(t => clearTimeout(t));
+      document.getElementById('sa-error').textContent = 'Audit failed.';
       document.getElementById('sa-error').style.display = '';
+      document.getElementById('sa-loading').style.display = 'none';
       return;
     }
-    renderStructuredAudit(data);
-    showToast('Structured audit complete', 'success');
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let auditData = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+
+        if (evt.type === 'error') {
+          saTimers.forEach(t => clearTimeout(t));
+          document.getElementById('sa-error').textContent = evt.error || 'Audit failed.';
+          document.getElementById('sa-error').style.display = '';
+          document.getElementById('sa-loading').style.display = 'none';
+          return;
+        } else if (evt.type === 'audit') {
+          // Render checks/scores immediately
+          saTimers.forEach(t => clearTimeout(t));
+          saStepsEl.querySelectorAll('.loader-step').forEach(el => {
+            el.classList.remove('active'); el.classList.add('done');
+            const icon = el.querySelector('.loader-step-icon');
+            if (icon) icon.innerHTML = '&#10003;';
+          });
+          auditData = evt.data;
+          auditData.summary = '';
+          renderStructuredAudit(auditData);
+          document.getElementById('sa-loading').style.display = 'none';
+        } else if (evt.type === 'chunk') {
+          // Stream summary text into the summary element
+          if (auditData) {
+            auditData.summary = (auditData.summary || '') + evt.text;
+            const summaryEl = document.getElementById('sa-summary-text');
+            if (summaryEl) summaryEl.textContent = auditData.summary;
+          }
+        } else if (evt.type === 'done') {
+          if (auditData) {
+            auditData.summary = evt.summary;
+            const summaryEl = document.getElementById('sa-summary-text');
+            if (summaryEl) summaryEl.textContent = evt.summary;
+          }
+          showToast('Structured audit complete', 'success');
+        }
+      }
+    }
   } catch(e) {
+    saTimers.forEach(t => clearTimeout(t));
     document.getElementById('sa-error').textContent = 'Network error: ' + e.message;
     document.getElementById('sa-error').style.display = '';
-  } finally {
     document.getElementById('sa-loading').style.display = 'none';
   }
 }
@@ -7299,7 +8174,7 @@ function renderStructuredAudit(data) {
   const score = data.overall_score || 0;
 
   // Score ring
-  const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : score >= 40 ? '#f97316' : '#ef4444';
+  const scoreColor = score >= 80 ? '#16a34a' : score >= 60 ? '#d97706' : score >= 40 ? '#d97706' : '#dc2626';
   const scoreLabel = score >= 80 ? 'Healthy' : score >= 60 ? 'Fair' : score >= 40 ? 'At Risk' : 'Critical';
   const r = 40, cx = 60, cy = 60;
   const circ = 2 * Math.PI * r;
@@ -7315,15 +8190,15 @@ function renderStructuredAudit(data) {
 
   // Stat pills - vertical stack on right
   document.getElementById('sa-stat-pills').innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--critical-bg);border:1px solid var(--critical-border);border-radius:8px;">
       <div style="font-size:18px;font-weight:700;color:#dc2626;min-width:28px;">${data.fail_count || 0}</div>
       <div style="font-size:11px;color:#dc2626;font-weight:500;">Critical</div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--warning-bg);border:1px solid var(--warning-border);border-radius:8px;">
       <div style="font-size:18px;font-weight:700;color:#d97706;min-width:28px;">${data.warning_count || 0}</div>
       <div style="font-size:11px;color:#d97706;font-weight:500;">Warnings</div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--ok-bg);border:1px solid var(--ok-border);border-radius:8px;">
       <div style="font-size:18px;font-weight:700;color:#16a34a;min-width:28px;">${data.pass_count || 0}</div>
       <div style="font-size:11px;color:#16a34a;font-weight:500;">Passed</div>
     </div>
@@ -7344,7 +8219,7 @@ function renderStructuredAudit(data) {
   // Category bars
   const cats = data.category_scores || {};
   document.getElementById('sa-category-bars').innerHTML = Object.entries(cats).map(([cat, sc]) => {
-    const barColor = sc >= 80 ? '#22c55e' : sc >= 60 ? '#f59e0b' : sc >= 40 ? '#f97316' : '#ef4444';
+    const barColor = sc >= 80 ? '#16a34a' : sc >= 60 ? '#d97706' : sc >= 40 ? '#d97706' : '#dc2626';
     const label = sc >= 80 ? 'Good' : sc >= 60 ? 'Fair' : sc >= 40 ? 'Poor' : 'Critical';
     return `
       <div style="display:grid;grid-template-columns:180px 1fr 48px 52px;align-items:center;gap:12px;">
@@ -7362,9 +8237,9 @@ function renderStructuredAudit(data) {
   const recs = data.recommendations || [];
   document.getElementById('sa-rec-count').textContent = `${recs.length} action${recs.length !== 1 ? 's' : ''} required`;
   const priMeta = p => p === 'high'
-    ? { bg: '#fef2f2', border: '#fecaca', color: '#dc2626', label: 'High' }
+    ? { bg: 'var(--critical-bg)', border: 'var(--critical-border)', color: '#dc2626', label: 'High' }
     : p === 'medium'
-    ? { bg: '#fffbeb', border: '#fde68a', color: '#d97706', label: 'Medium' }
+    ? { bg: 'var(--warning-bg)', border: 'var(--warning-border)', color: '#d97706', label: 'Medium' }
     : { bg: '#f8fafc', border: 'var(--border)', color: '#64748b', label: 'Low' };
 
   document.getElementById('sa-recs-list').innerHTML = recs.length ? recs.map(r => {
@@ -7407,9 +8282,9 @@ function renderSAChecks(filterStatus) {
   const checks = filterStatus === 'all' ? saAllChecks : saAllChecks.filter(c => c.status === filterStatus);
 
   const statusCfg = {
-    pass:    { icon: '✓', bg: '#f0fdf4', border: '#bbf7d0', color: '#16a34a' },
-    warning: { icon: '!', bg: '#fffbeb', border: '#fde68a', color: '#d97706' },
-    fail:    { icon: '✕', bg: '#fef2f2', border: '#fecaca', color: '#dc2626' },
+    pass:    { icon: '✓', bg: 'var(--ok-bg)', border: 'var(--ok-border)', color: '#16a34a' },
+    warning: { icon: '!', bg: 'var(--warning-bg)', border: 'var(--warning-border)', color: '#d97706' },
+    fail:    { icon: '✕', bg: 'var(--critical-bg)', border: 'var(--critical-border)', color: '#dc2626' },
   };
 
   const container = document.getElementById('sa-checks-list');
@@ -7459,146 +8334,6 @@ function renderSAChecks(filterStatus) {
     container.appendChild(row);
   });
 }
-
-// ============================================================
-// PIXEL HEALTH
-// ============================================================
-
-async function initPixelHealth() {
-  if (!currentClientId) return;
-  // Try to pre-fill saved settings
-  try {
-    const res = await fetch(`/api/pixel-health/latest/${currentClientId}`);
-    const data = await res.json();
-    if (data.meta_pixel_id) document.getElementById('ph-pixel-id').value = data.meta_pixel_id;
-    if (!data.error) renderPixelHealth(data);
-  } catch(e) {}
-}
-
-async function loadLatestPixelHealth() {
-  if (!currentClientId) return;
-  document.getElementById('ph-loading').style.display = '';
-  document.getElementById('ph-error').style.display = 'none';
-  document.getElementById('ph-content').style.display = 'none';
-  try {
-    const res = await fetch(`/api/pixel-health/latest/${currentClientId}`);
-    const data = await res.json();
-    document.getElementById('ph-loading').style.display = 'none';
-    if (data.error) {
-      document.getElementById('ph-error').textContent = data.error;
-      document.getElementById('ph-error').style.display = '';
-      return;
-    }
-    if (data.meta_pixel_id) document.getElementById('ph-pixel-id').value = data.meta_pixel_id;
-    renderPixelHealth(data);
-  } catch(e) {
-    document.getElementById('ph-loading').style.display = 'none';
-    document.getElementById('ph-error').textContent = 'Network error: ' + e.message;
-    document.getElementById('ph-error').style.display = '';
-  }
-}
-
-async function runPixelHealth() {
-  if (!currentClientId) { showToast('Select a client first', 'error'); return; }
-  const pixelId = (document.getElementById('ph-pixel-id').value || '').trim();
-  const token   = (document.getElementById('ph-access-token').value || '').trim();
-  if (!pixelId || !token) { showToast('Enter Pixel ID and Access Token', 'error'); return; }
-
-  document.getElementById('ph-loading').style.display = '';
-  document.getElementById('ph-error').style.display = 'none';
-  document.getElementById('ph-content').style.display = 'none';
-
-  try {
-    const res = await fetch('/api/pixel-health/run', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ client_id: currentClientId, pixel_id: pixelId, access_token: token }),
-    });
-    const data = await res.json();
-    if (!res.ok || data.error) {
-      document.getElementById('ph-error').textContent = data.error || 'Health check failed.';
-      document.getElementById('ph-error').style.display = '';
-      return;
-    }
-    renderPixelHealth(data);
-    showToast('Pixel health check complete', 'success');
-  } catch(e) {
-    document.getElementById('ph-error').textContent = 'Network error: ' + e.message;
-    document.getElementById('ph-error').style.display = '';
-  } finally {
-    document.getElementById('ph-loading').style.display = 'none';
-  }
-}
-
-function renderPixelHealth(data) {
-  const score = data.overall_score || 0;
-  const color = score >= 85 ? '#48bb78' : score >= 70 ? '#ecc94b' : score >= 50 ? '#ed8936' : '#e53e3e';
-  const r = 46, cx = 60, cy = 60, circ = 2 * Math.PI * r;
-  const dash = (score / 100) * circ;
-  document.getElementById('ph-score-svg').innerHTML = `
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border)" stroke-width="10"/>
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="10"
-      stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}"
-      stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
-    <text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="22" font-weight="700" fill="var(--text)">${score}</text>
-    <text x="${cx}" y="${cy+18}" text-anchor="middle" font-size="10" fill="var(--muted)">${data.health_label || ''}</text>
-  `;
-
-  document.getElementById('ph-stat-pills').innerHTML = `
-    <div style="background:#f0fff4;border:1px solid #c6f6d5;border-radius:8px;padding:10px 16px;text-align:center;">
-      <div style="font-size:20px;font-weight:700;color:#22863a;">${data.good_count || 0}</div>
-      <div style="font-size:11px;color:#22863a;">Good</div>
-    </div>
-    <div style="background:#fffbeb;border:1px solid #fef08a;border-radius:8px;padding:10px 16px;text-align:center;">
-      <div style="font-size:20px;font-weight:700;color:#d97706;">${data.warning_count || 0}</div>
-      <div style="font-size:11px;color:#d97706;">Warning</div>
-    </div>
-    <div style="background:#fff5f5;border:1px solid #fed7d7;border-radius:8px;padding:10px 16px;text-align:center;">
-      <div style="font-size:20px;font-weight:700;color:#e53e3e;">${data.critical_count || 0}</div>
-      <div style="font-size:11px;color:#e53e3e;">Critical</div>
-    </div>
-    <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:10px 16px;text-align:center;">
-      <div style="font-size:13px;font-weight:600;color:var(--text);">${data.pixel_name || data.pixel_id || ''}</div>
-      <div style="font-size:11px;color:var(--muted);">Pixel Name</div>
-    </div>
-  `;
-
-  // Event bars
-  const stats = data.stats || {};
-  const events = stats.event_counts || {};
-  const order = ['PageView','ViewContent','AddToCart','InitiateCheckout','Purchase'];
-  const allEvents = [...new Set([...order, ...Object.keys(events)])];
-  const maxVal = Math.max(...Object.values(events), 1);
-  document.getElementById('ph-event-bars').innerHTML = allEvents.map(ev => {
-    const val = events[ev] || 0;
-    const capiVal = (stats.capi_counts || {})[ev] || 0;
-    const pct = (val / maxVal * 100).toFixed(0);
-    return `
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:160px;font-size:12px;color:var(--text-secondary);">${ev}</div>
-        <div style="flex:1;background:var(--border);border-radius:4px;height:10px;overflow:hidden;">
-          <div style="width:${pct}%;background:#667eea;height:100%;border-radius:4px;"></div>
-        </div>
-        <div style="width:80px;font-size:12px;color:var(--text);text-align:right;">${val.toLocaleString()}</div>
-        ${capiVal ? `<div style="font-size:11px;color:var(--muted);width:80px;">+${capiVal.toLocaleString()} CAPI</div>` : ''}
-      </div>
-    `;
-  }).join('');
-
-  // Checks table
-  const statusIcon = s => s === 'good' ? '<span style="color:#48bb78">&#10003;</span>' : s === 'critical' ? '<span style="color:#e53e3e">&#10007;</span>' : '<span style="color:#ed8936">&#9888;</span>';
-  document.getElementById('ph-checks-body').innerHTML = (data.checks || []).map(c => `
-    <tr>
-      <td>${statusIcon(c.status)}</td>
-      <td style="font-weight:500;">${c.check}</td>
-      <td style="font-size:12px;">${c.reason}</td>
-      <td style="font-size:11px;color:var(--muted);">${c.detail || ''}</td>
-    </tr>
-  `).join('');
-
-  document.getElementById('ph-content').style.display = '';
-}
-
 
 // ============================================================
 // BULK REPORT
@@ -7687,8 +8422,8 @@ async function pollBulkStatus() {
       const crit  = results.filter(r => r.budget_health === 'Critical').length;
       document.getElementById('bulk-result-pills').innerHTML = `
         <span style="background:#f0fff4;border:1px solid #c6f6d5;border-radius:6px;padding:4px 10px;font-size:12px;color:#22863a;">${good} Good</span>
-        <span style="background:#fffbeb;border:1px solid #fef08a;border-radius:6px;padding:4px 10px;font-size:12px;color:#d97706;">${warn} Warning</span>
-        <span style="background:#fff5f5;border:1px solid #fed7d7;border-radius:6px;padding:4px 10px;font-size:12px;color:#e53e3e;">${crit} Critical</span>
+        <span style="background:var(--warning-bg);border:1px solid var(--warning-border);border-radius:6px;padding:4px 10px;font-size:12px;color:#d97706;">${warn} Warning</span>
+        <span style="background:#fff5f5;border:1px solid #fed7d7;border-radius:6px;padding:4px 10px;font-size:12px;color:#dc2626;">${crit} Critical</span>
       `;
     }
   } catch(e) {}
@@ -7734,7 +8469,7 @@ async function loadAlerts(status) {
 }
 
 function renderAlerts(alerts) {
-  const sevColor = s => s === 'high' ? '#e53e3e' : s === 'medium' ? '#ed8936' : '#718096';
+  const sevColor = s => s === 'high' ? '#dc2626' : s === 'medium' ? '#ed8936' : '#718096';
   const typeLabel = {
     roas_below: 'ROAS Below Target', cpa_spike: 'CPA Spike',
     cpl_spike: 'CPL Spike', spend_overpace: 'Spend Overpacing',
@@ -8185,9 +8920,9 @@ function copyActions() {
       <!-- Step 2: Preview detected clients -->
       <div id="bulk-step-2" style="display:none;">
         <div id="bulk-preview-info" style="font-size:13px;color:var(--muted);margin-bottom:14px;"></div>
-        <div id="bulk-client-col-missing" style="display:none;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:13px;">
-          <strong style="color:#92400e;">No client column detected.</strong>
-          <span style="color:#78350f;"> Enter the column name that identifies clients above and click Preview again, or map it manually.</span>
+        <div id="bulk-client-col-missing" style="display:none;background:var(--warning-bg);border:1px solid var(--warning-border);border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:13px;">
+          <strong style="color:var(--warning-text);">No client column detected.</strong>
+          <span style="color:var(--warning-text);"> Enter the column name that identifies clients above and click Preview again, or map it manually.</span>
         </div>
         <div id="bulk-clients-table"></div>
       </div>
@@ -8254,11 +8989,11 @@ function copyActions() {
       <span id="bulk-progress-pct">0%</span>
     </div>
     <div id="bulk-modal-done" style="display:none;">
-      <a id="bulk-summary-link" href="#" target="_blank" class="btn-primary" style="display:inline-block;text-decoration:none;margin-bottom:10px;">View Summary Report</a>
+      <a id="bulk-summary-link" href="#" target="_blank" class="btn btn-primary btn-sm" style="display:inline-block;text-decoration:none;margin-bottom:10px;">View Summary Report</a>
       <div id="bulk-result-pills" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;"></div>
     </div>
     <div style="text-align:right;margin-top:16px;">
-      <button class="btn-secondary" onclick="closeBulkModal()">Close</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeBulkModal()">Close</button>
     </div>
   </div>
 </div>
@@ -8269,7 +9004,7 @@ function copyActions() {
   <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);">
     <div style="font-weight:600;font-size:15px;">KPI Alerts</div>
     <div style="display:flex;gap:8px;">
-      <button class="btn-secondary" style="font-size:12px;padding:4px 10px;" onclick="dismissAllAlerts()">Dismiss All</button>
+      <button class="btn btn-secondary btn-sm" onclick="dismissAllAlerts()">Dismiss All</button>
       <button onclick="toggleAlertsPanel()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;">&times;</button>
     </div>
   </div>

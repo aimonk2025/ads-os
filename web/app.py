@@ -42,17 +42,16 @@ from src.ga_loader import load_ga4, merge_ga4_into_campaigns, build_ga_summary
 from src.context import format_client_context, parse_context_from_json, BUSINESS_TYPE_PROFILES
 from src.calculator import calculate_google_metrics, calculate_meta_metrics, build_summary
 from src.funnel_loader import load_funnel
-from src.claude_client import analyze
+from src.claude_client import analyze, analyze_stream, stream_prompt
 from src.renderer import render_report
 from src.anomaly_detector import detect_anomalies, format_morning_brief
-from src.narrator import generate_narrative
-from src.budget_agent import run_budget_agent, format_reallocation_table
+from src.narrator import generate_narrative, stream_narrative
+from src.budget_agent import run_budget_agent, stream_budget_agent, format_reallocation_table
 from src.bulk_splitter import split_bulk_file, df_to_tempfile, detect_client_column, match_or_create_client
 from src.dashboard import get_dashboard_data
 from src.copilot import ask_copilot
-from src.forecaster import run_forecast, generate_forecast_narrative
-from src.structured_audit import run_structured_audit, generate_audit_summary
-from src.pixel_monitor import run_pixel_health, save_pixel_health, get_latest_pixel_health
+from src.forecaster import run_forecast, generate_forecast_narrative, stream_forecast_narrative
+from src.structured_audit import run_structured_audit, generate_audit_summary, stream_audit_summary
 from src.bulk_reporter import start_bulk_report, get_bulk_status
 from src.alert_engine import (
     trigger_alerts_for_upload, get_alerts, get_unread_count,
@@ -243,6 +242,112 @@ def api_forecast(client_id):
         return jsonify({"error": str(e)}), 500
 
 
+@app.get("/api/forecast/stream/<int:client_id>")
+def api_forecast_stream(client_id):
+    horizon = int(request.args.get("horizon", 30))
+    if horizon not in (7, 30, 60):
+        horizon = 30
+
+    # Do all DB work inside the request context before the generator starts
+    try:
+        conn = get_db()
+        forecast = run_forecast(conn, client_id, horizon)
+        if "error" in forecast:
+            return jsonify(forecast), 400
+
+        conn.execute("""
+            INSERT INTO forecasts (
+                client_id, horizon_days, proj_spend, proj_revenue, proj_roas,
+                proj_conversions, spend_trend, roas_trend, season_factor,
+                periods_used, campaign_data
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?)
+        """, [
+            client_id,
+            forecast["account"]["horizon_days"],
+            forecast["account"]["proj_spend"],
+            forecast["account"]["proj_revenue"],
+            forecast["account"]["proj_roas"],
+            forecast["account"]["proj_conversions"],
+            forecast["account"]["spend_trend"],
+            forecast["account"]["roas_trend"],
+            forecast["account"]["season_factor"],
+            forecast["account"]["periods_used"],
+            json.dumps(forecast["campaigns"]),
+        ])
+        conn.commit()
+
+        client = get_client(conn, client_id) or {}
+        raw_context = (client.get("context") or "")
+        business_context = format_client_context(parse_context_from_json(raw_context))
+        client_name = client.get("name", "Client")
+        currency = client.get("currency", "INR")
+    except Exception as e:
+        logger.exception("Forecast stream setup error")
+        return jsonify({"error": str(e)}), 500
+
+    def generate():
+        try:
+            # Send forecast data immediately so UI can render charts
+            yield f"data: {json.dumps({'type': 'forecast', 'data': forecast})}\n\n"
+
+            # Stream the narrative
+            for event_type, text in stream_forecast_narrative(forecast, client_name, currency, business_context):
+                if event_type == 'chunk':
+                    yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
+                elif event_type in ('done', 'fallback'):
+                    yield f"data: {json.dumps({'type': 'done', 'narrative': text})}\n\n"
+                    return
+
+        except Exception as e:
+            logger.exception("Forecast stream error")
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+
+    return Response(generate(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.post("/api/structured-audit/stream")
+def api_structured_audit_stream():
+    data      = request.get_json()
+    client_id = data.get("client_id")
+    upload_id = data.get("upload_id")
+    if not client_id:
+        return jsonify({"error": "client_id required"}), 400
+
+    # Do all DB work inside the request context before the generator starts
+    try:
+        conn = get_db()
+        result = run_structured_audit(conn, int(client_id), int(upload_id) if upload_id else None)
+        if "error" in result:
+            return jsonify(result), 400
+        client_row = get_client(conn, int(client_id)) or {}
+        raw_context = client_row.get("context", "") or ""
+        business_context = format_client_context(parse_context_from_json(raw_context))
+    except Exception as e:
+        logger.exception("Structured audit stream setup error")
+        return jsonify({"error": str(e)}), 500
+
+    def generate():
+        try:
+            # Send audit data immediately so UI can render checks/scores
+            yield f"data: {json.dumps({'type': 'audit', 'data': result})}\n\n"
+
+            # Stream the summary
+            for event_type, text in stream_audit_summary(result, business_context):
+                if event_type == 'chunk':
+                    yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
+                elif event_type in ('done', 'fallback'):
+                    yield f"data: {json.dumps({'type': 'done', 'summary': text})}\n\n"
+                    return
+
+        except Exception as e:
+            logger.exception("Structured audit stream error")
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+
+    return Response(generate(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 # ---- Bulk Report ----
 
 @app.post("/api/bulk-report/run")
@@ -306,57 +411,6 @@ def api_structured_audit_latest(client_id):
         logger.exception("Structured audit latest error")
         return jsonify({"error": str(e)}), 500
 
-
-# ---- Pixel Health ----
-
-@app.post("/api/pixel-health/run")
-def api_pixel_health_run():
-    data = request.get_json()
-    client_id = data.get("client_id")
-    pixel_id  = (data.get("pixel_id") or "").strip()
-    token     = (data.get("access_token") or "").strip()
-
-    if not client_id:
-        return jsonify({"error": "client_id required"}), 400
-    if not pixel_id or not token:
-        return jsonify({"error": "pixel_id and access_token required"}), 400
-
-    try:
-        result = run_pixel_health(pixel_id, token)
-        if "error" not in result:
-            # Persist settings on client
-            conn = get_db()
-            conn.execute(
-                "UPDATE clients SET meta_pixel_id = ?, meta_pixel_token = ? WHERE id = ?",
-                [pixel_id, token, int(client_id)]
-            )
-            conn.commit()
-            save_pixel_health(conn, int(client_id), result)
-        return jsonify(result)
-    except Exception as e:
-        logger.exception("Pixel health error")
-        return jsonify({"error": str(e)}), 500
-
-
-@app.get("/api/pixel-health/latest/<int:client_id>")
-def api_pixel_health_latest(client_id):
-    try:
-        conn = get_db()
-        result = get_latest_pixel_health(conn, client_id)
-        if not result:
-            # Also return saved pixel settings so the form pre-fills
-            c = get_client(conn, client_id) or {}
-            return jsonify({
-                "error": "No pixel health report found.",
-                "meta_pixel_id": c.get("meta_pixel_id", ""),
-            }), 404
-        c = get_client(conn, client_id) or {}
-        result["meta_pixel_id"]    = c.get("meta_pixel_id", "")
-        result["meta_pixel_token"] = c.get("meta_pixel_token", "")
-        return jsonify(result)
-    except Exception as e:
-        logger.exception("Pixel health latest error")
-        return jsonify({"error": str(e)}), 500
 
 
 # ---- KPI Alerts ----
@@ -1347,6 +1401,164 @@ def api_audit():
     })
 
 
+@app.post("/api/audit/stream")
+def api_audit_stream():
+    """
+    Streaming version of /api/audit using Server-Sent Events.
+    Sends Claude output chunks as they arrive, then finalizes the report.
+    """
+    data = request.get_json()
+    upload_id = data.get("upload_id")
+    client_id = data.get("client_id")
+    currency  = data.get("currency", "INR")
+
+    if not upload_id or not client_id:
+        return jsonify({"error": "upload_id and client_id required"}), 400
+
+    db = get_db()
+    upload = get_upload(db, upload_id)
+    if not upload:
+        return jsonify({"error": "Upload not found"}), 404
+
+    client = get_client(db, client_id)
+
+    campaigns = get_campaigns_for_upload(db, upload_id)
+    funnel_rows = get_funnel_for_upload(db, upload_id)
+    platforms = json.loads(upload.get("platforms") or "[]")
+    analysis = _reconstruct_analysis(campaigns, funnel_rows, platforms, upload_id)
+
+    gran_context_parts = []
+    gran_level = upload.get("granularity_level") or "campaign"
+    for platform in platforms:
+        for row_level in ["adgroup", "keyword", "ad", "placement"]:
+            grows = get_granular_rows(db, upload_id, row_level)
+            plat_rows = [r for r in grows if r.get("platform") == platform]
+            if not plat_rows:
+                continue
+            top_by_spend = sorted(plat_rows, key=lambda x: -(x.get("spend") or 0))[:10]
+            worst_roas = sorted(top_by_spend, key=lambda x: (x.get("roas") or 0))[:3]
+            best_roas  = sorted(top_by_spend, key=lambda x: -(x.get("roas") or 0))[:3]
+            level_label = {"adgroup": "Ad Group", "keyword": "Keyword",
+                           "ad": "Ad", "placement": "Placement"}.get(row_level, row_level)
+            name_field = {"adgroup": "adgroup_name", "keyword": "keyword_name",
+                          "ad": "ad_name", "placement": "placement_name"}.get(row_level, "adgroup_name")
+            if worst_roas:
+                gran_context_parts.append(
+                    f"{platform.title()} {level_label} level - worst performers: " +
+                    ", ".join(f"{r.get(name_field) or '?'} (ROAS {r.get('roas', 0):.2f}x, spend {r.get('spend', 0):,.0f})"
+                              for r in worst_roas)
+                )
+            if best_roas:
+                gran_context_parts.append(
+                    f"{platform.title()} {level_label} level - top performers: " +
+                    ", ".join(f"{r.get(name_field) or '?'} (ROAS {r.get('roas', 0):.2f}x)"
+                              for r in best_roas)
+                )
+
+    if gran_context_parts:
+        analysis["granularity_level"] = gran_level
+        analysis["granular_context"] = f"Data granularity: {gran_level} level.\n" + "\n".join(gran_context_parts)
+
+    raw_context = (client or {}).get("context", "") or ""
+    client_context = format_client_context(parse_context_from_json(raw_context))
+
+    def generate():
+        claude_output = []
+        used_claude = False
+
+        for event_type, text in analyze_stream(analysis, business_context=client_context):
+            if event_type == 'chunk':
+                used_claude = True
+                claude_output.append(text)
+                yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
+            elif event_type in ('done', 'fallback'):
+                used_claude = (event_type == 'done')
+                if not claude_output:
+                    claude_output.append(text)
+
+        full_output = "".join(claude_output).strip()
+
+        # Build granular insights for report template
+        all_gran_rows = get_granular_rows(db, upload_id)
+        if all_gran_rows:
+            level_rows = defaultdict(list)
+            for r in all_gran_rows:
+                level_rows[r["row_level"]].append(r)
+
+            def _rows_to_df(rows): return pd.DataFrame(rows) if rows else None
+            adgroup_rows = level_rows.get("adgroup", [])
+            keyword_rows = level_rows.get("keyword", [])
+            ad_rows      = level_rows.get("ad", [])
+            _name_field  = {"adgroup": "adgroup_name", "keyword": "keyword_name",
+                            "ad": "ad_name", "placement": "placement_name"}
+
+            def _remap(rows, name_col, level):
+                src_field = _name_field.get(level, "adgroup_name")
+                return [{
+                    name_col: r.get(src_field, ""), "campaign": r.get("campaign_name", ""),
+                    "cost": r.get("spend", 0), "conversions": r.get("conversions", 0),
+                    "conversion value": r.get("conversion_value", 0), "roas": r.get("roas", 0),
+                    "ctr": r.get("ctr", 0), "cpc": r.get("cpc", 0),
+                    "quality score": r.get("quality_score", 0), "match type": r.get("match_type", ""),
+                    "ad type": r.get("ad_type", ""), "ad group": r.get("adgroup_name", ""),
+                } for r in rows]
+
+            fake_gran = {
+                "level": upload.get("granularity_level") or "campaign", "spend_col": "cost",
+                "campaign_col": "campaign",
+                "adgroup_col": "ad group" if adgroup_rows else None,
+                "keyword_col": "keyword"  if keyword_rows else None,
+                "ad_col":      "ad"       if ad_rows      else None,
+                "adgroup_df":  pd.DataFrame(_remap(adgroup_rows, "ad group", "adgroup")) if adgroup_rows else None,
+                "keyword_df":  pd.DataFrame(_remap(keyword_rows, "keyword",  "keyword")) if keyword_rows else None,
+                "ad_df":       pd.DataFrame(_remap(ad_rows,      "ad",       "ad"))      if ad_rows      else None,
+                "placement_df": None,
+                "granularity_note": upload.get("granularity_level", "campaign") + " level",
+            }
+            gran_insights = build_granular_insights(fake_gran)
+            analysis["granular_insights"] = gran_insights
+            analysis["granularity_level"] = fake_gran["level"]
+            analysis["granularity_note"]  = upload.get("granularity_level", "campaign") + " level data"
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        client_name = (client or {}).get("name", "client")
+        html_filename = f"audit_{client_name.lower().replace(' ', '_')}_{ts}.html"
+        html_path = str(REPORTS_DIR / html_filename)
+
+        raw_ctx_dict = parse_context_from_json(raw_context)
+        branding = {
+            "agency_name": raw_ctx_dict.get("agency_name", ""),
+            "agency_logo": raw_ctx_dict.get("agency_logo", ""),
+            "client_name": client_name,
+        }
+        render_report(analysis, full_output, html_path, branding=branding)
+
+        report_id = save_report(
+            db, client_id, upload_id, "audit",
+            f"Audit - {client_name} - {datetime.now().strftime('%d/%b/%Y')}",
+            html_path=html_path,
+        )
+
+        anomalies_found = []
+        try:
+            anomalies_found = detect_anomalies(upload_id, client_id, db,
+                                               client_context=parse_context_from_json(raw_context))
+            if anomalies_found:
+                insert_anomalies(db, anomalies_found)
+        except Exception as e:
+            logger.warning("Anomaly detection failed for upload %s: %s", upload_id, e)
+
+        try:
+            trigger_alerts_for_upload(db, client_id, upload_id)
+        except Exception as e:
+            logger.warning("Alert engine failed for upload %s: %s", upload_id, e)
+
+        yield f"data: {json.dumps({'type': 'done', 'report_id': report_id, 'report_url': f'/report/{html_filename}', 'used_claude': used_claude, 'anomalies_detected': len(anomalies_found), 'morning_brief': format_morning_brief(anomalies_found)})}\n\n"
+
+    return Response(generate(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 def _reconstruct_analysis(campaigns: list, funnel_rows: list,
                            platforms: list, upload_id: int) -> dict:
     from datetime import datetime as dt
@@ -1500,7 +1712,7 @@ def api_update_anomaly(anomaly_id):
 
 @app.post("/api/morning-brief/<int:client_id>")
 def api_morning_brief(client_id):
-    """Generate a Claude-powered morning brief for this client's open anomalies."""
+    """Stream a Claude-powered morning brief for this client's open anomalies via SSE."""
     db = get_db()
     client = get_client(db, client_id)
     if not client:
@@ -1508,6 +1720,10 @@ def api_morning_brief(client_id):
 
     anomalies = get_anomalies(db, client_id, status="open", limit=20)
     summary = get_anomaly_summary(db, client_id)
+
+    crit_count = summary.get("critical", 0)
+    warn_count = summary.get("warning", 0)
+    severity = "critical" if crit_count > 0 else "warning" if warn_count > 0 else "ok"
 
     payload = {
         "client_name": client.get("name", f"Client {client_id}"),
@@ -1544,47 +1760,40 @@ Rules:
 Data:
 """
 
-    import subprocess as sp
-    brief_text = None
-    used_claude = False
-    try:
-        prompt = BRIEF_PROMPT + json.dumps(payload, indent=2)
-        result = sp.run(
-            ["claude", "--print", prompt],
-            capture_output=True, text=True, timeout=90
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            brief_text = result.stdout.strip()
-            used_claude = True
-    except Exception as e:
-        logger.warning("Morning brief Claude call failed: %s", e)
-
-    if not brief_text:
-        # Fallback: plain text brief
+    def _fallback_brief():
         lines = []
         if not anomalies:
             lines.append(f"All Clear - no open anomalies for {client.get('name')}.")
             lines.append("Recommendation: Run a fresh audit to check latest data.")
         else:
-            crit = summary.get("critical", 0)
-            warn = summary.get("warning", 0)
-            lines.append(f"{crit} critical, {warn} warnings detected for {client.get('name')}.")
+            lines.append(f"{crit_count} critical, {warn_count} warnings detected for {client.get('name')}.")
             for a in anomalies[:5]:
                 lines.append(f"[{a['severity'].upper()}] {a['campaign_name']} ({a['platform']}): {a['description']}")
             lines.append("Recommended: Review critical campaigns first, then warnings.")
-        brief_text = "\n".join(lines)
+        return "\n".join(lines)
 
-    # Determine severity class for UI
-    crit_count = summary.get("critical", 0)
-    warn_count = summary.get("warning", 0)
-    severity = "critical" if crit_count > 0 else "warning" if warn_count > 0 else "ok"
+    def generate():
+        prompt = BRIEF_PROMPT + json.dumps(payload, indent=2)
+        full_text = []
+        used_claude = False
 
-    return jsonify({
-        "brief": brief_text,
-        "used_claude": used_claude,
-        "severity": severity,
-        "summary": summary,
-    })
+        for event_type, text in stream_prompt(prompt):
+            if event_type == 'chunk':
+                used_claude = True
+                full_text.append(text)
+                yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
+            elif event_type == 'done':
+                brief = text or "".join(full_text)
+                yield f"data: {json.dumps({'type': 'done', 'brief': brief, 'used_claude': True, 'severity': severity, 'summary': summary})}\n\n"
+                return
+            elif event_type == 'fallback':
+                break
+
+        # Fallback if Claude unavailable or returned nothing
+        yield f"data: {json.dumps({'type': 'done', 'brief': _fallback_brief(), 'used_claude': False, 'severity': severity, 'summary': summary})}\n\n"
+
+    return Response(generate(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 # ---- Narrator ----
@@ -1644,6 +1853,65 @@ def api_narrator():
         "used_claude":   used_claude,
         "tone":          tone,
     })
+
+
+@app.post("/api/narrator/stream")
+def api_narrator_stream():
+    data = request.get_json()
+    upload_id  = data.get("upload_id")
+    client_id  = data.get("client_id")
+    tone       = data.get("tone", "executive")
+    currency   = data.get("currency", "INR")
+    date_range = data.get("date_range", "")
+
+    if not client_id:
+        return jsonify({"error": "client_id required"}), 400
+
+    db = get_db()
+    client   = get_client(db, client_id)
+    currency = currency or (client or {}).get("currency", "INR")
+
+    analysis = {}
+    if upload_id:
+        campaigns   = get_campaigns_for_upload(db, upload_id)
+        funnel_rows = get_funnel_for_upload(db, upload_id)
+        upload      = get_upload(db, upload_id)
+        platforms   = json.loads(upload.get("platforms") or "[]") if upload else []
+        analysis    = _reconstruct_analysis(campaigns, funnel_rows, platforms, upload_id)
+
+    open_anomalies = get_anomalies(db, client_id, status="open", limit=20)
+    raw_context    = (client or {}).get("context", "") or ""
+    client_context = format_client_context(parse_context_from_json(raw_context))
+    client_name    = (client or {}).get("name", "client")
+
+    def generate():
+        full_text = []
+
+        for event_type, text in stream_narrative(analysis, open_anomalies, tone, date_range, currency, client_context):
+            if event_type == 'chunk':
+                full_text.append(text)
+                yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
+            elif event_type in ('done', 'fallback'):
+                narrative_md = text or "".join(full_text)
+                from src.renderer import markdown_to_html
+                narrative_html = markdown_to_html(narrative_md)
+                ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                html_filename = f"narrative_{client_name.lower().replace(' ', '_')}_{ts}.html"
+                html_path = str(REPORTS_DIR / html_filename)
+                _write_narrative_html(narrative_html, tone, date_range, client_name, html_path)
+                with app.app_context():
+                    conn2 = get_connection()
+                    report_id = save_report(
+                        conn2, client_id, upload_id, "narrative",
+                        f"Weekly Narrative - {client_name} - {datetime.now().strftime('%d/%b/%Y')}",
+                        html_path=html_path, tone=tone,
+                    )
+                    conn2.close()
+                yield f"data: {json.dumps({'type': 'done', 'report_id': report_id, 'report_url': f'/report/{html_filename}', 'narrative_html': narrative_html, 'used_claude': event_type == 'done', 'tone': tone})}\n\n"
+                return
+
+    return Response(generate(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 def _write_narrative_html(content_html: str, tone: str, date_range: str,
@@ -1750,6 +2018,66 @@ def api_budget_agent():
         "table_html":       table_html,
         "used_claude":      used_claude,
     })
+
+
+@app.post("/api/budget-agent/stream")
+def api_budget_agent_stream():
+    data      = request.get_json()
+    upload_id = data.get("upload_id")
+    client_id = data.get("client_id")
+    currency  = data.get("currency", "INR")
+
+    if not client_id:
+        return jsonify({"error": "client_id required"}), 400
+
+    db       = get_db()
+    client   = get_client(db, client_id)
+    currency = currency or (client or {}).get("currency", "INR")
+    rules    = get_budget_rules(db, client_id)
+
+    analysis = {}
+    if upload_id:
+        campaigns   = get_campaigns_for_upload(db, upload_id)
+        funnel_rows = get_funnel_for_upload(db, upload_id)
+        upload      = get_upload(db, upload_id)
+        platforms   = json.loads(upload.get("platforms") or "[]") if upload else []
+        analysis    = _reconstruct_analysis(campaigns, funnel_rows, platforms, upload_id)
+
+    raw_context   = (client or {}).get("context", "") or ""
+    ctx_dict      = parse_context_from_json(raw_context)
+    client_context = format_client_context(ctx_dict)
+    campaign_tags  = ctx_dict.get("campaign_tags", {})
+    client_name    = (client or {}).get("name", "client")
+
+    def generate():
+        for event_type, payload in stream_budget_agent(
+            analysis, rules, client_id, db, currency,
+            business_context=client_context, campaign_tags=campaign_tags
+        ):
+            if event_type == 'chunk':
+                yield f"data: {json.dumps({'type': 'chunk', 'text': payload})}\n\n"
+            elif event_type in ('done', 'fallback'):
+                recs, explanation_md = payload
+                from src.renderer import markdown_to_html
+                explanation_html = markdown_to_html(explanation_md)
+                table_html = format_reallocation_table(recs, currency)
+                ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                html_filename = f"budget_{client_name.lower().replace(' ', '_')}_{ts}.html"
+                html_path = str(REPORTS_DIR / html_filename)
+                _write_budget_html(table_html, explanation_html, recs, client_name, currency, html_path)
+                with app.app_context():
+                    conn2 = get_connection()
+                    report_id = save_report(
+                        conn2, client_id, upload_id, "budget",
+                        f"Budget Reallocation - {client_name} - {datetime.now().strftime('%d/%b/%Y')}",
+                        html_path=html_path,
+                    )
+                    conn2.close()
+                yield f"data: {json.dumps({'type': 'done', 'report_id': report_id, 'report_url': f'/report/{html_filename}', 'recommendations': recs, 'explanation_html': explanation_html, 'table_html': table_html, 'used_claude': event_type == 'done'})}\n\n"
+                return
+
+    return Response(generate(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 def _write_budget_html(table_html: str, explanation_html: str,

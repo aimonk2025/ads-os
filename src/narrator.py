@@ -5,6 +5,7 @@ Performance Narrator - generates client-ready narrative reports via Claude CLI.
 import json
 import subprocess
 from typing import Optional
+from .claude_client import stream_prompt
 
 
 NARRATOR_SYSTEM_PROMPT = """You are a senior performance marketing analyst writing a weekly performance narrative for a client report. Your tone must match the requested style exactly.
@@ -28,6 +29,33 @@ Do not include headers or preamble before ## This Week in Numbers.
 Output markdown only."""
 
 
+def stream_narrative(
+    analysis_data: dict,
+    anomalies: list,
+    tone: str = "executive",
+    date_range: str = None,
+    currency: str = "INR",
+    business_context: str = "",
+):
+    """Yields ('chunk', text), ('done', full_text), or ('fallback', fallback_text)."""
+    payload = _build_payload(analysis_data, anomalies, tone, date_range, currency)
+    context_section = (
+        f"\n\nBusiness Context (use this to interpret campaign intent and tailor recommendations):\n{business_context.strip()}"
+        if business_context and business_context.strip() else ""
+    )
+    prompt = f"{NARRATOR_SYSTEM_PROMPT}\n\nData:\n{json.dumps(payload, indent=2)}{context_section}"
+
+    for event_type, text in stream_prompt(prompt):
+        if event_type == 'chunk':
+            yield ('chunk', text)
+        elif event_type == 'done':
+            yield ('done', text)
+            return
+        elif event_type == 'fallback':
+            yield ('fallback', _fallback_narrative(payload, tone, currency))
+            return
+
+
 def generate_narrative(
     analysis_data: dict,
     anomalies: list,
@@ -45,8 +73,8 @@ def generate_narrative(
 
     try:
         result = subprocess.run(
-            ["claude", "--print", prompt],
-            capture_output=True, text=True, timeout=90
+            ["claude", "--print", "--output-format", "text", prompt],
+            capture_output=True, text=True, encoding="utf-8", timeout=90
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip(), True

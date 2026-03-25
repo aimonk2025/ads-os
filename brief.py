@@ -96,8 +96,8 @@ def run_claude(payload: dict) -> tuple[str, bool]:
     prompt = BRIEF_PROMPT + json.dumps(payload, indent=2)
     try:
         result = subprocess.run(
-            ["claude", "--print", prompt],
-            capture_output=True, text=True, timeout=90
+            ["claude", "--print", "--output-format", "text", prompt],
+            capture_output=True, text=True, encoding="utf-8", timeout=90
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip(), True

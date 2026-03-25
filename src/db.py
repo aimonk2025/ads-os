@@ -209,19 +209,6 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
             scraped_at           VARCHAR
         );
 
-        CREATE SEQUENCE IF NOT EXISTS pixel_health_seq START 1;
-        CREATE TABLE IF NOT EXISTS pixel_health_reports (
-            id            INTEGER PRIMARY KEY DEFAULT nextval('pixel_health_seq'),
-            client_id     INTEGER NOT NULL,
-            pixel_id      VARCHAR,
-            pixel_name    VARCHAR,
-            overall_score INTEGER,
-            health_label  VARCHAR,
-            checks_json   VARCHAR,
-            stats_json    VARCHAR,
-            run_at        VARCHAR
-        );
-
         CREATE SEQUENCE IF NOT EXISTS structured_audits_seq START 1;
         CREATE TABLE IF NOT EXISTS structured_audits (
             id                   INTEGER PRIMARY KEY DEFAULT nextval('structured_audits_seq'),
@@ -296,12 +283,6 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
     if "context" not in existing_client_cols:
         conn.execute("ALTER TABLE clients ADD COLUMN context VARCHAR")
         conn.commit()
-    if "meta_pixel_id" not in existing_client_cols:
-        conn.execute("ALTER TABLE clients ADD COLUMN meta_pixel_id VARCHAR")
-        conn.commit()
-    if "meta_pixel_token" not in existing_client_cols:
-        conn.execute("ALTER TABLE clients ADD COLUMN meta_pixel_token VARCHAR")
-        conn.commit()
 
     existing_rules_cols = {r[0] for r in conn.execute(
         "SELECT column_name FROM information_schema.columns WHERE table_name='budget_rules'"
@@ -366,25 +347,6 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
                 persona              VARCHAR,
                 insight              VARCHAR,
                 scraped_at           VARCHAR
-            )
-        """)
-        conn.commit()
-
-    # pixel_health_reports migration
-    existing_tables = {r[0] for r in conn.execute("SHOW TABLES").fetchall()}
-    if 'pixel_health_reports' not in existing_tables:
-        conn.execute("""
-            CREATE SEQUENCE IF NOT EXISTS pixel_health_seq START 1;
-            CREATE TABLE pixel_health_reports (
-                id            INTEGER PRIMARY KEY DEFAULT nextval('pixel_health_seq'),
-                client_id     INTEGER NOT NULL,
-                pixel_id      VARCHAR,
-                pixel_name    VARCHAR,
-                overall_score INTEGER,
-                health_label  VARCHAR,
-                checks_json   VARCHAR,
-                stats_json    VARCHAR,
-                run_at        VARCHAR
             )
         """)
         conn.commit()

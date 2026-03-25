@@ -6,6 +6,7 @@ Rules always enforced. Claude adds explanation and nuance.
 import json
 import subprocess
 from typing import Optional
+from .claude_client import stream_prompt
 
 
 BUDGET_AGENT_PROMPT = """You are a performance marketing budget strategist. You receive campaign metrics and client-defined rules.
@@ -46,6 +47,35 @@ Confidence score (0-100): based on data quality, history depth, and rule alignme
 Currency: use the currency symbol provided."""
 
 
+def stream_budget_agent(
+    analysis_data: dict, rules: dict,
+    client_id: int, conn,
+    currency: str = "INR",
+    business_context: str = "",
+    campaign_tags: dict = None,
+):
+    """Yields ('chunk', text), ('done', (recs, full_text)), or ('fallback', (rule_recs, explanation))."""
+    rule_recs = _compute_rule_based(analysis_data, rules, campaign_tags=campaign_tags or {})
+    payload = _build_payload(analysis_data, rules, rule_recs, currency, campaign_tags=campaign_tags or {})
+    context_section = (
+        f"\n\nBusiness Context (use this to interpret campaign intent and budget priorities):\n{business_context.strip()}"
+        if business_context and business_context.strip() else ""
+    )
+    prompt = f"{BUDGET_AGENT_PROMPT}\n\nData:\n{json.dumps(payload, indent=2)}{context_section}"
+
+    for event_type, text in stream_prompt(prompt):
+        if event_type == 'chunk':
+            yield ('chunk', text)
+        elif event_type == 'done':
+            parsed = _parse_claude_output(text, rule_recs)
+            yield ('done', (parsed, text))
+            return
+        elif event_type == 'fallback':
+            explanation = _fallback_explanation(rule_recs, rules, currency)
+            yield ('fallback', (rule_recs, explanation))
+            return
+
+
 def run_budget_agent(analysis_data: dict, rules: dict,
                      client_id: int, conn,
                      currency: str = "INR",
@@ -61,7 +91,7 @@ def run_budget_agent(analysis_data: dict, rules: dict,
 
     try:
         result = subprocess.run(
-            ["claude", "--print", prompt],
+            ["claude", "--print", "--output-format", "text", prompt],
             capture_output=True, text=True, encoding="utf-8", timeout=90
         )
         if result.returncode == 0 and result.stdout.strip():

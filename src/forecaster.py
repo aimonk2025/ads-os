@@ -8,6 +8,7 @@ import json
 import subprocess
 from datetime import date
 from .db import _q, _q1
+from .claude_client import stream_prompt
 
 
 # Weights for WMA: most recent period gets highest weight
@@ -224,16 +225,11 @@ def run_forecast(conn, client_id: int, horizon_days: int = 30) -> dict:
     }
 
 
-def generate_forecast_narrative(forecast: dict, client_name: str, currency: str, business_context: str = "") -> str:
-    """Ask Claude to narrate the forecast. Returns markdown string."""
-    if not forecast or "error" in forecast:
-        return ""
-
+def _build_forecast_prompt(forecast: dict, client_name: str, currency: str, business_context: str = "") -> tuple[str, dict, str]:
+    """Returns (prompt, acc, sym) for reuse by both blocking and streaming variants."""
     acc = forecast["account"]
-    camps = forecast["campaigns"][:5]  # top 5 by projected spend
-
+    camps = forecast["campaigns"][:5]
     sym = {"INR": "Rs", "USD": "$", "GBP": "£", "EUR": "€", "AED": "AED"}.get(currency, currency)
-
     payload = (
         f"Client: {client_name}\n"
         f"Forecast horizon: {acc['horizon_days']} days\n"
@@ -252,9 +248,7 @@ def generate_forecast_narrative(forecast: dict, client_name: str, currency: str,
             for c in camps
         )
     )
-
     context_block = f"\n\n{business_context}" if business_context else ""
-
     prompt = (
         "You are a senior performance marketing strategist. "
         "Based on the following forecast data, write a concise 'What to Expect Next' narrative "
@@ -262,23 +256,12 @@ def generate_forecast_narrative(forecast: dict, client_name: str, currency: str,
         "Highlight the projected spend and ROAS, flag any trend concerns, "
         "and give 1-2 concrete actions the team should take before the period starts. "
         "Be direct. No preamble.\n\n"
-        + payload
-        + context_block
+        + payload + context_block
     )
+    return prompt, acc, sym
 
-    try:
-        result = subprocess.run(
-            ["claude", "--print", prompt],
-            capture_output=True, text=True, encoding="utf-8", timeout=60
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            import re as _re
-            cleaned = _re.sub(r"^#{1,4}\s+.+\n?", "", result.stdout.strip(), flags=_re.MULTILINE).strip()
-            return cleaned
-    except Exception:
-        pass
 
-    # Fallback narrative
+def _forecast_fallback(acc: dict, sym: str) -> str:
     trend_label = {"up": "improving", "down": "declining", "flat": "stable"}.get(acc["spend_trend"], "stable")
     return (
         f"**{acc['horizon_days']}-Day Forecast**\n\n"
@@ -289,3 +272,40 @@ def generate_forecast_narrative(forecast: dict, client_name: str, currency: str,
         f"A seasonality factor of **{acc['season_factor']}x** has been applied based on historical monthly patterns.\n\n"
         f"Review top campaigns before the period begins and adjust budgets to align with these projections."
     )
+
+
+def stream_forecast_narrative(forecast: dict, client_name: str, currency: str, business_context: str = ""):
+    """Yields ('chunk', text), ('done', full_text), or ('fallback', fallback_text)."""
+    if not forecast or "error" in forecast:
+        yield ('fallback', "")
+        return
+    prompt, acc, sym = _build_forecast_prompt(forecast, client_name, currency, business_context)
+    for event_type, text in stream_prompt(prompt):
+        if event_type == 'chunk':
+            yield ('chunk', text)
+        elif event_type == 'done':
+            import re as _re
+            cleaned = _re.sub(r"^#{1,4}\s+.+\n?", "", text, flags=_re.MULTILINE).strip()
+            yield ('done', cleaned)
+            return
+        elif event_type == 'fallback':
+            yield ('fallback', _forecast_fallback(acc, sym))
+            return
+
+
+def generate_forecast_narrative(forecast: dict, client_name: str, currency: str, business_context: str = "") -> str:
+    """Ask Claude to narrate the forecast. Returns markdown string."""
+    if not forecast or "error" in forecast:
+        return ""
+    prompt, acc, sym = _build_forecast_prompt(forecast, client_name, currency, business_context)
+    try:
+        result = subprocess.run(
+            ["claude", "--print", "--output-format", "text", prompt],
+            capture_output=True, text=True, encoding="utf-8", timeout=60
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            import re as _re
+            return _re.sub(r"^#{1,4}\s+.+\n?", "", result.stdout.strip(), flags=_re.MULTILINE).strip()
+    except Exception:
+        pass
+    return _forecast_fallback(acc, sym)

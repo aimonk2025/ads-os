@@ -99,18 +99,18 @@ No configuration files to edit.
 |---------|-------------|
 | **Overview** | Multi-client health dashboard. ROAS, spend, anomaly count, budget health, and onboarding setup progress per client. "Run All Clients" triggers bulk reporting. |
 | **Executive Dashboard** | KPI cards (ROAS, MER, CPA, Total Spend, Conversions), P&L waterfall, Revenue vs Spend trend chart, channel allocation split. Date range: 7 / 30 / 90 days / all. |
-| **Revenue Forecast** | WMA-based forward projection per campaign. Projected spend, ROAS, conversions, trend direction. Claude narrative. Seasonality adjustment. 7 / 30 / 60 day windows. |
-| **Structured Audit** | 50+ checkpoints across 6 categories (Tracking, Architecture, Ad Set Config, Creative, Cost Diagnostics, Account Health). Scored 0-100. Action items auto-pushed to Action Plan. Claude executive summary. |
-| **Pixel Health** | Meta Pixel and CAPI health monitor via Meta Graph API. 11 checks: event tracking, deduplication ratio, event match quality, CAPI freshness. Scored 0-100. |
-| **Audit** | Upload CSVs, run AI-powered audit, download HTML or PDF report. Supports Google Ads, Meta Ads, GA4, Funnel data, and compare periods. |
+| **Revenue Forecast** | WMA-based forward projection per campaign. Projected spend, ROAS, conversions, trend direction. Claude narrative streamed in real time. Seasonality adjustment. 7 / 30 / 60 day windows. |
+| **Structured Audit** | 50+ checkpoints across 6 categories (Tracking, Architecture, Ad Set Config, Creative, Cost Diagnostics, Account Health). Scored 0-100. Action items auto-pushed to Action Plan. Claude executive summary streamed in real time. |
+| **Pixel Health** | Removed. Pixel health monitoring has been removed from this release. |
+| **Audit** | Upload CSVs, run AI-powered audit with streaming output, download HTML or PDF report. Supports Google Ads, Meta Ads, GA4, Funnel data, and compare periods. |
 | **Anomaly Spotter** | Flags CPL spikes, ROAS drops, CTR drops, spend pacing anomalies vs rolling median baseline. Open / Acknowledged / Resolved status tracking. |
-| **Narrator** | Executive narrative in three tones: Executive, Detailed, or Urgent. |
-| **Budget Agent** | Rule-based + Claude reasoning for budget reallocation with confidence scores. Campaign-type overrides supported. |
+| **Narrator** | Executive narrative in three tones: Executive, Detailed, or Urgent. Streamed in real time. |
+| **Budget Agent** | Rule-based + Claude reasoning for budget reallocation with confidence scores. Campaign-type overrides supported. Streamed in real time. |
 | **Action Plan** | Consolidated to-do from audit, budget, anomaly, and structured audit sources. Filter by priority and source. Mark done, add notes. |
 | **Context** | Per-client business context: business type, goals, audience, attribution model, campaign type tags, per-campaign targets. |
 | **History** | Time-series campaign trends. Multi-period comparison table (up to 4 uploads side by side). |
 | **Reports** | Viewer for all saved HTML and PDF reports per client. |
-| **Settings** | Client management, budget rules, campaign type overrides, pixel credentials, agency branding. |
+| **Settings** | Client management, budget rules, campaign type overrides, agency branding. |
 
 ---
 
@@ -220,32 +220,6 @@ Action items from the structured audit are automatically pushed to the Action Pl
 
 ---
 
-## Meta Pixel Health Monitor
-
-Available as a sub-section of Structured Audit. Requires Meta Pixel ID and access token (entered in Settings per client).
-
-### 11 health checks
-
-| Check | What it measures |
-|-------|-----------------|
-| Pixel Active | Pixel is live and firing |
-| PageView Events | PageView fires present and recent |
-| Purchase Events | Purchase events tracked |
-| AddToCart Events | AddToCart events tracked |
-| ViewContent Events | ViewContent events tracked |
-| InitiateCheckout Events | InitiateCheckout events tracked |
-| CAPI Events | Server-side events received |
-| CAPI Freshness | Last server event within 24 hours |
-| Event Match Quality | EMQ scores per event type |
-| Deduplication Ratio | Browser vs server event overlap |
-| Domain Verification | Pixel verified against domain |
-
-Each check: **Good / Warning / Critical** + reason + score
-
-**Overall pixel health score:** 0-100 with label (Healthy / Warning / Critical)
-
----
-
 ## Client Onboarding Wizard
 
 Triggered when you create a new client, or launched via the **Setup** button on the Overview table.
@@ -290,7 +264,7 @@ Brief is saved to `reports/` and viewable from the Reports section.
 5. Set a Period Label and Start / End dates (used for historical tracking)
 6. Optionally enable **Compare Periods** and upload a previous period CSV
 7. Click **Upload and Analyze** - a cleaning report and data quality summary appear within seconds
-8. Claude runs the audit and builds the report (20-90 seconds)
+8. Claude streams the audit analysis in real time as it generates
 9. View the report inline or click **Download PDF**
 
 KPI Alerts run automatically after every upload.
@@ -368,11 +342,11 @@ Campaigns tagged `brand` or `test` are excluded. Seasonal patterns (same calenda
 
 ## Data Storage
 
-All data is stored locally in `data/adaudit.duckdb`. Nothing is sent to any external server. The only external calls are to your local Claude Code CLI and (optionally) the Meta Graph API for Pixel Health.
+All data is stored locally in `data/adaudit.duckdb`. Nothing is sent to any external server. The only external calls are to your local Claude Code CLI.
 
 | Table | Contents |
 |-------|----------|
-| `clients` | Client records with currency, context, pixel credentials |
+| `clients` | Client records with currency and context |
 | `uploads` | One row per upload with period dates, platform list, granularity |
 | `campaigns` | Campaign-level metrics per upload |
 | `granular_rows` | Keyword / ad group / ad / placement rows |
@@ -384,7 +358,6 @@ All data is stored locally in `data/adaudit.duckdb`. Nothing is sent to any exte
 | `budget_rules` | Per-client thresholds for budget agent and KPI alerts |
 | `forecasts` | WMA forecast results per client and horizon |
 | `structured_audits` | 50+ checkpoint results with category scores |
-| `pixel_health_reports` | Meta Pixel health check results |
 | `competitors` | Per-client competitor brand list |
 | `competitor_ads` | Scraped and Claude-analyzed ads per competitor |
 | `onboarding_status` | Per-client wizard step completion tracking |
@@ -531,9 +504,6 @@ Verify you are running Python 3.9+ and that `src/claude_client.py` and `src/budg
 **Forecast shows no projections**
 At least 2 historical upload periods are required. Import historical data via **Import History** on the Audit page.
 
-**Pixel Health returns errors**
-Verify the Meta Pixel ID and access token are correctly entered in Settings for this client. The token requires `ads_read` and `pixel` permissions on the Meta app.
-
 **Database errors on startup**
 Delete `data/adaudit.duckdb` and restart. The schema is recreated automatically. You will lose stored history and reports.
 
@@ -554,14 +524,13 @@ src/
   detector.py          Platform auto-detection from column headers
   calculator.py        Metric computation (ROAS, CAC, CTR, CPL)
   context.py           Per-client business context formatting
-  claude_client.py     Claude CLI subprocess wrapper
+  claude_client.py     Claude CLI subprocess wrapper (blocking + streaming via stream-json)
   renderer.py          Markdown-to-HTML rendering pipeline
   anomaly_detector.py  Rolling median anomaly detection
-  narrator.py          Performance narrative generation
-  budget_agent.py      Rule-based + Claude budget reallocation
-  forecaster.py        WMA forecasting engine
-  structured_audit.py  50+ checkpoint structured audit
-  pixel_monitor.py     Meta Pixel and CAPI health monitor
+  narrator.py          Performance narrative generation (blocking + streaming)
+  budget_agent.py      Rule-based + Claude budget reallocation (blocking + streaming)
+  forecaster.py        WMA forecasting engine (blocking + streaming)
+  structured_audit.py  50+ checkpoint structured audit (blocking + streaming)
   alert_engine.py      KPI alert threshold checks and persistence
   bulk_reporter.py     Multi-client bulk report runner
   onboarding.py        Client onboarding wizard logic and brief generation

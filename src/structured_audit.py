@@ -8,6 +8,7 @@ Pushes action items to action_items table and saves results to structured_audits
 import json
 import subprocess
 from datetime import datetime
+from .claude_client import stream_prompt
 from .db import _q, _q1, upsert_action_items
 from .context import parse_context_from_json
 
@@ -701,16 +702,11 @@ def run_structured_audit(conn, client_id: int, upload_id: int = None) -> dict:
     }
 
 
-def generate_audit_summary(result: dict, business_context: str = "") -> str:
-    """Ask Claude for a 1-paragraph executive summary of the structured audit. Returns markdown."""
-    if not result or "error" in result:
-        return ""
-
+def _build_audit_summary_prompt(result: dict, business_context: str = "") -> str:
     score = result["overall_score"]
     fails = result["fail_count"]
     warns = result["warning_count"]
     top_recs = result["recommendations"][:5]
-
     payload = (
         f"Client: {result['client_name']}\n"
         f"Overall account health score: {score}/100\n"
@@ -721,30 +717,22 @@ def generate_audit_summary(result: dict, business_context: str = "") -> str:
         + "\n\nTop issues:\n"
         + "\n".join(f"  [{r['priority'].upper()}] {r['check']}: {r['reason']}" for r in top_recs)
     )
-
     context_block = f"\n\n{business_context}" if business_context else ""
-
-    prompt = (
+    return (
         "You are a senior performance marketing auditor. "
         "Write a concise 2-paragraph executive summary of this ad account structured audit. "
         "Paragraph 1: overall health assessment with score context. "
         "Paragraph 2: 2-3 most critical action items. "
         "Be direct. No preamble. Clean markdown.\n\n"
-        + payload
-        + context_block
+        + payload + context_block
     )
 
-    try:
-        result_proc = subprocess.run(
-            ["claude", "--print", prompt],
-            capture_output=True, text=True, encoding="utf-8", timeout=60
-        )
-        if result_proc.returncode == 0 and result_proc.stdout.strip():
-            return result_proc.stdout.strip()
-    except Exception:
-        pass
 
-    # Fallback
+def _audit_summary_fallback(result: dict) -> str:
+    score = result["overall_score"]
+    fails = result["fail_count"]
+    warns = result["warning_count"]
+    top_recs = result["recommendations"][:5]
     health = "excellent" if score >= 80 else "good" if score >= 60 else "needs attention" if score >= 40 else "critical"
     return (
         f"**Account Health Score: {score}/100 - {health.title()}**\n\n"
@@ -753,3 +741,37 @@ def generate_audit_summary(result: dict, business_context: str = "") -> str:
         f"{result['pass_count']} checks passed.\n\n"
         + (f"**Top Priority:** {top_recs[0]['action']}" if top_recs else "Review the recommendations table for all action items.")
     )
+
+
+def stream_audit_summary(result: dict, business_context: str = ""):
+    """Yields ('chunk', text), ('done', full_text), or ('fallback', fallback_text)."""
+    if not result or "error" in result:
+        yield ('fallback', "")
+        return
+    prompt = _build_audit_summary_prompt(result, business_context)
+    for event_type, text in stream_prompt(prompt):
+        if event_type == 'chunk':
+            yield ('chunk', text)
+        elif event_type == 'done':
+            yield ('done', text)
+            return
+        elif event_type == 'fallback':
+            yield ('fallback', _audit_summary_fallback(result))
+            return
+
+
+def generate_audit_summary(result: dict, business_context: str = "") -> str:
+    """Ask Claude for a 1-paragraph executive summary of the structured audit. Returns markdown."""
+    if not result or "error" in result:
+        return ""
+    prompt = _build_audit_summary_prompt(result, business_context)
+    try:
+        result_proc = subprocess.run(
+            ["claude", "--print", "--output-format", "text", prompt],
+            capture_output=True, text=True, encoding="utf-8", timeout=60
+        )
+        if result_proc.returncode == 0 and result_proc.stdout.strip():
+            return result_proc.stdout.strip()
+    except Exception:
+        pass
+    return _audit_summary_fallback(result)
