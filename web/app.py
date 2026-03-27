@@ -1487,15 +1487,19 @@ def api_audit_stream():
     def generate():
         claude_output = []
 
-        for event_type, text in analyze_stream(analysis, business_context=client_context,
-                                               benchmarks_context=benchmarks_ctx,
-                                               period_notes=upload_period_notes):
-            if event_type == 'chunk':
-                claude_output.append(text)
-                yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
-            elif event_type == 'done':
-                if not claude_output:
+        try:
+            for event_type, text in analyze_stream(analysis, business_context=client_context,
+                                                   benchmarks_context=benchmarks_ctx,
+                                                   period_notes=upload_period_notes):
+                if event_type == 'chunk':
                     claude_output.append(text)
+                    yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
+                elif event_type == 'done':
+                    if not claude_output:
+                        claude_output.append(text)
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+            return
 
         full_output = "".join(claude_output).strip()
 

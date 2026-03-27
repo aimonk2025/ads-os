@@ -1579,6 +1579,68 @@
   [data-theme="dark"] #drilldown-inner { background: #1e293b; border-color: #334155; }
 
   /* ---- Actions Panel ---- */
+  /* ---- Claude Live Panel ---- */
+  #claude-live-panel {
+    margin-top: 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .claude-live-header {
+    background: var(--midnight);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .claude-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--blue);
+    flex-shrink: 0;
+  }
+  .claude-live-dot.running {
+    animation: claude-pulse 1.2s ease-in-out infinite;
+  }
+  .claude-live-dot.done {
+    background: #16a34a;
+    animation: none;
+  }
+  @keyframes claude-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .claude-live-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+    flex: 1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .claude-live-tokens {
+    font-size: 11px;
+    color: #94a3b8;
+    font-variant-numeric: tabular-nums;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .claude-live-output {
+    background: #0a1628;
+    padding: 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #cbd5e1;
+    max-height: 340px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .claude-live-output::-webkit-scrollbar { width: 6px; }
+  .claude-live-output::-webkit-scrollbar-track { background: transparent; }
+  .claude-live-output::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
   #audit-actions-panel {
     margin-top: 20px;
   }
@@ -2380,6 +2442,16 @@
             <div class="funnel-steps" id="funnel-steps"></div>
             <div class="funnel-labels" id="funnel-labels"></div>
           </div>
+        </div>
+
+        <!-- Claude Live Panel (shown during and after audit) -->
+        <div id="claude-live-panel" style="display:none;">
+          <div class="claude-live-header">
+            <div class="claude-live-dot running" id="claude-live-dot"></div>
+            <div class="claude-live-title" id="claude-live-title">Claude is writing...</div>
+            <div class="claude-live-tokens" id="claude-live-tokens">0 tokens</div>
+          </div>
+          <div class="claude-live-output" id="claude-live-output"></div>
         </div>
 
         <!-- Actions Panel (shown after audit completes) -->
@@ -4859,8 +4931,7 @@ async function runUploadAndAudit() {
     showReportPreview(auditData.report_url);
     loadAuditActions(auditData.report_id);
 
-    const msg = auditData.used_claude ? 'Audit complete (AI-powered)' : 'Audit complete';
-    showToast(msg, 'success');
+    showToast('Audit complete', 'success');
     if (auditData.anomalies_detected > 0) {
       showToast(`${auditData.anomalies_detected} anomalies detected`, 'info');
     }
@@ -5133,17 +5204,35 @@ function renderMorningBrief(brief) {
 
 // Shared streaming audit helper - returns a promise that resolves with auditData
 function runStreamingAudit(uploadId, clientId, currency) {
+  // Show and reset the Claude live panel
+  const panel     = document.getElementById('claude-live-panel');
+  const dot       = document.getElementById('claude-live-dot');
+  const titleEl   = document.getElementById('claude-live-title');
+  const tokensEl  = document.getElementById('claude-live-tokens');
+  const outputEl  = document.getElementById('claude-live-output');
+
+  outputEl.textContent = '';
+  dot.className = 'claude-live-dot running';
+  titleEl.textContent = 'Claude is writing...';
+  tokensEl.textContent = '0 tokens';
+  panel.style.display = '';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  let tokenCount = 0;
+
   return new Promise((resolve, reject) => {
     fetch('/api/audit/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ upload_id: uploadId, client_id: clientId, currency: currency || 'INR' })
     }).then(res => {
-      if (!res.ok) { return res.json().then(d => reject(new Error(d.error || 'Audit failed'))); }
+      if (!res.ok) {
+        panel.style.display = 'none';
+        return res.json().then(d => reject(new Error(d.error || 'Audit failed')));
+      }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let chunkCount = 0;
 
       function read() {
         reader.read().then(({ done, value }) => {
@@ -5156,20 +5245,32 @@ function runStreamingAudit(uploadId, clientId, currency) {
             try {
               const event = JSON.parse(line.slice(6));
               if (event.type === 'chunk') {
-                chunkCount++;
-                // After first chunk arrives, update loader text so user knows it's working
-                if (chunkCount === 1) setLoaderText('AI is writing the report...');
+                if (tokenCount === 0) setLoaderText('Claude is writing...');
+                // Append raw text to output
+                outputEl.textContent += event.text;
+                // Auto-scroll to bottom
+                outputEl.scrollTop = outputEl.scrollHeight;
+                // Estimate tokens (approx 4 chars per token)
+                tokenCount += Math.max(1, Math.round(event.text.length / 4));
+                tokensEl.textContent = tokenCount.toLocaleString() + ' tokens';
               } else if (event.type === 'done') {
+                dot.className = 'claude-live-dot done';
+                titleEl.textContent = 'Claude finished';
+                tokensEl.textContent = tokenCount.toLocaleString() + ' tokens';
                 resolve(event);
+                return;
+              } else if (event.type === 'error') {
+                panel.style.display = 'none';
+                reject(new Error(event.error || 'Claude error'));
                 return;
               }
             } catch(_) {}
           }
           read();
-        }).catch(reject);
+        }).catch(err => { panel.style.display = 'none'; reject(err); });
       }
       read();
-    }).catch(reject);
+    }).catch(err => { panel.style.display = 'none'; reject(err); });
   });
 }
 
