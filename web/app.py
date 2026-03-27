@@ -50,7 +50,7 @@ from src.budget_agent import run_budget_agent, stream_budget_agent, format_reall
 from src.learning import run_learning, get_benchmarks
 from src.bulk_splitter import split_bulk_file, df_to_tempfile, detect_client_column, match_or_create_client
 from src.dashboard import get_dashboard_data
-from src.copilot import ask_copilot
+from src.copilot import ask_copilot, stream_copilot
 from src.forecaster import run_forecast, generate_forecast_narrative, stream_forecast_narrative
 from src.structured_audit import run_structured_audit, generate_audit_summary, stream_audit_summary
 from src.bulk_reporter import start_bulk_report, get_bulk_status
@@ -196,6 +196,37 @@ def api_copilot_chat():
     except Exception as e:
         logger.exception("Copilot error")
         return jsonify({"error": str(e)}), 500
+
+
+@app.post("/api/copilot/stream")
+def api_copilot_stream():
+    data = request.get_json()
+    client_id = data.get("client_id")
+    question = (data.get("question") or "").strip()
+    history = data.get("history") or []
+
+    if not client_id:
+        return jsonify({"error": "client_id is required"}), 400
+    if not question:
+        return jsonify({"error": "question is required"}), 400
+
+    db = get_db()
+
+    def generate():
+        try:
+            for event_type, payload in stream_copilot(db, int(client_id), question, history):
+                if event_type == 'chunk':
+                    yield f"data: {json.dumps({'type': 'chunk', 'text': payload})}\n\n"
+                elif event_type == 'done':
+                    answer, action = payload
+                    yield f"data: {json.dumps({'type': 'done', 'answer': answer, 'action': action})}\n\n"
+                    return
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+            return
+
+    return Response(generate(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 # ---- Forecast ----
@@ -1894,29 +1925,32 @@ def api_narrator_stream():
 
     def generate():
         full_text = []
-
-        for event_type, text in stream_narrative(analysis, open_anomalies, tone, date_range, currency, client_context):
-            if event_type == 'chunk':
-                full_text.append(text)
-                yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
-            elif event_type == 'done':
-                narrative_md = text or "".join(full_text)
-                from src.renderer import markdown_to_html
-                narrative_html = markdown_to_html(narrative_md)
-                ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-                html_filename = f"narrative_{client_name.lower().replace(' ', '_')}_{ts}.html"
-                html_path = str(REPORTS_DIR / html_filename)
-                _write_narrative_html(narrative_html, tone, date_range, client_name, html_path)
-                with app.app_context():
-                    conn2 = get_connection()
-                    report_id = save_report(
-                        conn2, client_id, upload_id, "narrative",
-                        f"Weekly Narrative - {client_name} - {datetime.now().strftime('%d/%b/%Y')}",
-                        html_path=html_path, tone=tone,
-                    )
-                    conn2.close()
-                yield f"data: {json.dumps({'type': 'done', 'report_id': report_id, 'report_url': f'/report/{html_filename}', 'narrative_html': narrative_html, 'tone': tone})}\n\n"
-                return
+        try:
+            for event_type, text in stream_narrative(analysis, open_anomalies, tone, date_range, currency, client_context):
+                if event_type == 'chunk':
+                    full_text.append(text)
+                    yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
+                elif event_type == 'done':
+                    narrative_md = text or "".join(full_text)
+                    from src.renderer import markdown_to_html
+                    narrative_html = markdown_to_html(narrative_md)
+                    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    html_filename = f"narrative_{client_name.lower().replace(' ', '_')}_{ts}.html"
+                    html_path = str(REPORTS_DIR / html_filename)
+                    _write_narrative_html(narrative_html, tone, date_range, client_name, html_path)
+                    with app.app_context():
+                        conn2 = get_connection()
+                        report_id = save_report(
+                            conn2, client_id, upload_id, "narrative",
+                            f"Weekly Narrative - {client_name} - {datetime.now().strftime('%d/%b/%Y')}",
+                            html_path=html_path, tone=tone,
+                        )
+                        conn2.close()
+                    yield f"data: {json.dumps({'type': 'done', 'report_id': report_id, 'report_url': f'/report/{html_filename}', 'narrative_html': narrative_html, 'tone': tone})}\n\n"
+                    return
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+            return
 
     return Response(generate(), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -2057,31 +2091,35 @@ def api_budget_agent_stream():
     client_name    = (client or {}).get("name", "client")
 
     def generate():
-        for event_type, payload in stream_budget_agent(
-            analysis, rules, client_id, db, currency,
-            business_context=client_context, campaign_tags=campaign_tags
-        ):
-            if event_type == 'chunk':
-                yield f"data: {json.dumps({'type': 'chunk', 'text': payload})}\n\n"
-            elif event_type == 'done':
-                recs, explanation_md = payload
-                from src.renderer import markdown_to_html
-                explanation_html = markdown_to_html(explanation_md)
-                table_html = format_reallocation_table(recs, currency)
-                ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-                html_filename = f"budget_{client_name.lower().replace(' ', '_')}_{ts}.html"
-                html_path = str(REPORTS_DIR / html_filename)
-                _write_budget_html(table_html, explanation_html, recs, client_name, currency, html_path)
-                with app.app_context():
-                    conn2 = get_connection()
-                    report_id = save_report(
-                        conn2, client_id, upload_id, "budget",
-                        f"Budget Reallocation - {client_name} - {datetime.now().strftime('%d/%b/%Y')}",
-                        html_path=html_path,
-                    )
-                    conn2.close()
-                yield f"data: {json.dumps({'type': 'done', 'report_id': report_id, 'report_url': f'/report/{html_filename}', 'recommendations': recs, 'explanation_html': explanation_html, 'table_html': table_html})}\n\n"
-                return
+        try:
+            for event_type, payload in stream_budget_agent(
+                analysis, rules, client_id, db, currency,
+                business_context=client_context, campaign_tags=campaign_tags
+            ):
+                if event_type == 'chunk':
+                    yield f"data: {json.dumps({'type': 'chunk', 'text': payload})}\n\n"
+                elif event_type == 'done':
+                    recs, explanation_md = payload
+                    from src.renderer import markdown_to_html
+                    explanation_html = markdown_to_html(explanation_md)
+                    table_html = format_reallocation_table(recs, currency)
+                    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    html_filename = f"budget_{client_name.lower().replace(' ', '_')}_{ts}.html"
+                    html_path = str(REPORTS_DIR / html_filename)
+                    _write_budget_html(table_html, explanation_html, recs, client_name, currency, html_path)
+                    with app.app_context():
+                        conn2 = get_connection()
+                        report_id = save_report(
+                            conn2, client_id, upload_id, "budget",
+                            f"Budget Reallocation - {client_name} - {datetime.now().strftime('%d/%b/%Y')}",
+                            html_path=html_path,
+                        )
+                        conn2.close()
+                    yield f"data: {json.dumps({'type': 'done', 'report_id': report_id, 'report_url': f'/report/{html_filename}', 'recommendations': recs, 'explanation_html': explanation_html, 'table_html': table_html})}\n\n"
+                    return
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+            return
 
     return Response(generate(), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

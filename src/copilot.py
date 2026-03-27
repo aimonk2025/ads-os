@@ -7,6 +7,7 @@ import json
 import subprocess
 from .db import _q, _q1
 from .context import format_client_context, parse_context_from_json
+from .claude_client import stream_prompt
 
 
 COPILOT_SYSTEM = """You are an expert ad performance analyst and strategist with deep knowledge of Google Ads, Meta Ads, and performance marketing. You have direct access to a client's real campaign data.
@@ -218,7 +219,6 @@ def ask_copilot(conn, client_id: int, question: str, history: list) -> dict:
             capture_output=True,
             text=True,
             encoding="utf-8",
-            timeout=60
         )
         if result.returncode == 0 and result.stdout.strip():
             raw = result.stdout.strip()
@@ -249,3 +249,37 @@ def ask_copilot(conn, client_id: int, question: str, history: list) -> dict:
             "action": None,
             "used_claude": False
         }
+
+
+def stream_copilot(conn, client_id: int, question: str, history: list):
+    """
+    Stream a copilot answer via Claude CLI.
+    Yields ('chunk', text) or ('done', (answer, action)).
+    Raises on failure.
+    """
+    context = build_context(conn, client_id)
+
+    history_text = ""
+    if history:
+        for msg in history[-6:]:
+            role = "User" if msg["role"] == "user" else "Assistant"
+            history_text += f"\n{role}: {msg['content']}\n"
+
+    full_prompt = (
+        f"{COPILOT_SYSTEM}\n\n"
+        f"=== LIVE CLIENT DATA ===\n{context}\n"
+        f"=== END DATA ===\n"
+        + (f"\nConversation so far:{history_text}" if history_text else "")
+        + f"\nUser: {question}\nAssistant:"
+    )
+
+    full_text = []
+    for event_type, text in stream_prompt(full_prompt):
+        if event_type == 'chunk':
+            full_text.append(text)
+            yield 'chunk', text
+        elif event_type == 'done':
+            raw = text or "".join(full_text)
+            answer, action = parse_action(raw)
+            yield 'done', (answer, action)
+            return

@@ -194,7 +194,7 @@ Keep it professional, concise, and actionable. This is a document they will shar
     try:
         result = subprocess.run(
             ["claude", "--print", "--output-format", "text", prompt],
-            capture_output=True, text=True, encoding="utf-8", timeout=90
+            capture_output=True, text=True, encoding="utf-8",
         )
         brief_text = result.stdout.strip() or "Brief generation failed - please try again."
     except Exception as e:

@@ -332,7 +332,7 @@ def generate_forecast_narrative(forecast: dict, client_name: str, currency: str,
     prompt, acc, sym = _build_forecast_prompt(forecast, client_name, currency, business_context)
     result = subprocess.run(
         ["claude", "--print", "--output-format", "text", prompt],
-        capture_output=True, text=True, encoding="utf-8", timeout=60
+        capture_output=True, text=True, encoding="utf-8",
     )
     if result.returncode != 0 or not result.stdout.strip():
         err = result.stderr.strip() if result.stderr else "No output returned"

@@ -748,7 +748,7 @@ def generate_audit_summary(result: dict, business_context: str = "") -> str:
     prompt = _build_audit_summary_prompt(result, business_context)
     result_proc = subprocess.run(
         ["claude", "--print", "--output-format", "text", prompt],
-        capture_output=True, text=True, encoding="utf-8", timeout=60
+        capture_output=True, text=True, encoding="utf-8",
     )
     if result_proc.returncode != 0 or not result_proc.stdout.strip():
         err = result_proc.stderr.strip() if result_proc.stderr else "No output returned"

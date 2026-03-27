@@ -1640,6 +1640,44 @@
   .claude-live-output::-webkit-scrollbar { width: 6px; }
   .claude-live-output::-webkit-scrollbar-track { background: transparent; }
   .claude-live-output::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  .claude-live-status {
+    padding: 14px 16px 0;
+    background: #0a1628;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .claude-live-status-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    color: #64748b;
+    transition: color 0.3s;
+  }
+  .claude-live-status-step.active {
+    color: #38bdf8;
+  }
+  .claude-live-status-step.done-step {
+    color: #16a34a;
+  }
+  .claude-live-status-step::before {
+    content: '›';
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0.5;
+  }
+  .claude-live-status-step.active::before {
+    content: '▸';
+    opacity: 1;
+    animation: claude-pulse 0.8s ease-in-out infinite;
+  }
+  .claude-live-status-step.done-step::before {
+    content: '✓';
+    opacity: 1;
+    animation: none;
+  }
 
   #audit-actions-panel {
     margin-top: 20px;
@@ -2095,6 +2133,16 @@
 
           <!-- KPI cards -->
           <div class="dash-kpi-grid" id="forecast-kpis"></div>
+
+          <!-- Claude Live Panel -->
+          <div id="forecast-live-panel" class="claude-live-panel" style="display:none;margin-top:24px;">
+            <div class="claude-live-header">
+              <span class="claude-live-dot" id="forecast-live-dot"></span>
+              <span class="claude-live-title">Claude is writing forecast...</span>
+              <span class="claude-live-tokens" id="forecast-live-tokens">0 tokens</span>
+            </div>
+            <div class="claude-live-output" id="forecast-live-output"></div>
+          </div>
 
           <!-- History chart + narrative -->
           <div class="dash-charts-row" style="margin-top:24px;">
@@ -2607,6 +2655,16 @@
           </div>
         </div>
 
+        <!-- Claude Live Panel -->
+        <div id="narrator-live-panel" class="claude-live-panel" style="display:none;">
+          <div class="claude-live-header">
+            <span class="claude-live-dot" id="narrator-live-dot"></span>
+            <span class="claude-live-title">Claude is writing...</span>
+            <span class="claude-live-tokens" id="narrator-live-tokens">0 tokens</span>
+          </div>
+          <div class="claude-live-output" id="narrator-live-output"></div>
+        </div>
+
         <!-- Result -->
         <div id="narrator-result-wrap" style="display:none;">
           <div class="section-header">
@@ -2689,6 +2747,16 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             Run Budget Agent
           </button>
+        </div>
+
+        <!-- Claude Live Panel -->
+        <div id="budget-live-panel" class="claude-live-panel" style="display:none;">
+          <div class="claude-live-header">
+            <span class="claude-live-dot" id="budget-live-dot"></span>
+            <span class="claude-live-title">Claude is analysing...</span>
+            <span class="claude-live-tokens" id="budget-live-tokens">0 tokens</span>
+          </div>
+          <div class="claude-live-output" id="budget-live-output"></div>
         </div>
 
         <!-- Result -->
@@ -5240,7 +5308,19 @@ function runStreamingAudit(uploadId, clientId, currency) {
   panel.style.display = '';
   panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
+  // Synthetic status steps
+  let statusEl = panel.querySelector('.claude-live-status');
+  if (!statusEl) { statusEl = document.createElement('div'); statusEl.className = 'claude-live-status'; outputEl.before(statusEl); }
+  else { statusEl.style.display = ''; }
+  const stopStatus = startLiveStatus(statusEl, [
+    { label: 'Loading campaign data...', delay: 0 },
+    { label: 'Building performance context...', delay: 1200 },
+    { label: 'Sending to Claude...', delay: 2800 },
+    { label: 'Analysing campaigns...', delay: 4500 },
+  ]);
+
   let tokenCount = 0;
+  const auditETA = createETATracker(900);
 
   return new Promise((resolve, reject) => {
     fetch('/api/audit/stream', {
@@ -5250,6 +5330,7 @@ function runStreamingAudit(uploadId, clientId, currency) {
     }).then(res => {
       if (!res.ok) {
         panel.style.display = 'none';
+        stopStatus();
         return res.json().then(d => reject(new Error(d.error || 'Audit failed')));
       }
       const reader = res.body.getReader();
@@ -5267,18 +5348,17 @@ function runStreamingAudit(uploadId, clientId, currency) {
             try {
               const event = JSON.parse(line.slice(6));
               if (event.type === 'chunk') {
-                if (tokenCount === 0) setLoaderText('Claude is writing...');
-                // Append raw text to output
+                if (tokenCount === 0) { setLoaderText('Claude is writing...'); stopStatus(); }
                 outputEl.textContent += event.text;
-                // Auto-scroll to bottom
                 outputEl.scrollTop = outputEl.scrollHeight;
-                // Estimate tokens (approx 4 chars per token)
-                tokenCount += Math.max(1, Math.round(event.text.length / 4));
-                tokensEl.textContent = tokenCount.toLocaleString() + ' tokens';
+                const newTokens = Math.max(1, Math.round(event.text.length / 4));
+                tokenCount += newTokens;
+                auditETA.onChunk(newTokens);
+                auditETA.formatETA(tokensEl, tokenCount);
               } else if (event.type === 'done') {
                 dot.className = 'claude-live-dot done';
                 titleEl.textContent = 'Claude finished';
-                tokensEl.textContent = tokenCount.toLocaleString() + ' tokens';
+                auditETA.onDone(tokensEl, tokenCount);
                 resolve(event);
                 return;
               } else if (event.type === 'error') {
@@ -5372,13 +5452,26 @@ async function generateMorningBrief() {
   wrap.style.display = '';
   wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
+  // Status steps
+  let briefStatusEl = livePanel.querySelector('.claude-live-status');
+  if (!briefStatusEl) { briefStatusEl = document.createElement('div'); briefStatusEl.className = 'claude-live-status'; liveOutput.before(briefStatusEl); }
+  else { briefStatusEl.style.display = ''; briefStatusEl.innerHTML = ''; }
+  const briefStopStatus = startLiveStatus(briefStatusEl, [
+    { label: 'Fetching open anomalies...', delay: 0 },
+    { label: 'Scanning campaign performance...', delay: 1000 },
+    { label: 'Claude is writing brief...', delay: 2500 },
+  ]);
+
   let briefTokenCount = 0;
+  let briefStreaming = false;
+  const briefETA = createETATracker(300);
 
   try {
     const res = await fetch(`/api/morning-brief/${currentClientId}`, { method: 'POST' });
     if (!res.ok) {
       livePanel.style.display = 'none';
       liveTokens.style.display = 'none';
+      briefStopStatus();
       showToast('Failed to generate brief', 'error');
       return;
     }
@@ -5400,13 +5493,17 @@ async function generateMorningBrief() {
         try { evt = JSON.parse(line.slice(6)); } catch { continue; }
 
         if (evt.type === 'chunk') {
+          if (!briefStreaming) { briefStopStatus(); briefStreaming = true; }
           liveOutput.textContent += evt.text;
           liveOutput.scrollTop = liveOutput.scrollHeight;
-          briefTokenCount += Math.max(1, Math.round(evt.text.length / 4));
-          liveTokens.textContent = briefTokenCount.toLocaleString() + ' tokens';
+          const brToks = Math.max(1, Math.round(evt.text.length / 4));
+          briefTokenCount += brToks;
+          briefETA.onChunk(brToks);
+          briefETA.formatETA(liveTokens, briefTokenCount);
         } else if (evt.type === 'done') {
           liveDot.className = 'claude-live-dot done';
           liveTitle.textContent = 'Claude finished';
+          briefETA.onDone(liveTokens, briefTokenCount);
           card.className = 'morning-brief ' + (evt.severity || 'info');
           titleEl.textContent = 'Morning Brief - ' +
             new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -5458,10 +5555,23 @@ async function generateNarrative() {
     { label: 'Writing with Claude AI',       delay: 3000 },
   ]);
 
-  const resultEl = document.getElementById('narrator-result-html');
+  const resultEl   = document.getElementById('narrator-result-html');
   const resultWrap = document.getElementById('narrator-result-wrap');
+  const livePanel  = document.getElementById('narrator-live-panel');
+  const liveDot    = document.getElementById('narrator-live-dot');
+  const liveOutput = document.getElementById('narrator-live-output');
+  const liveTokens = document.getElementById('narrator-live-tokens');
+
   resultEl.innerHTML = '';
   resultWrap.style.display = 'none';
+  livePanel.style.display = 'none';
+  liveOutput.textContent = '';
+  liveTokens.textContent = '0 tokens';
+  liveDot.classList.remove('done');
+
+  let narratorTokenCount = 0;
+  let narratorStopStatus = null;
+  const narratorETA = createETATracker(700);
 
   try {
     const res = await fetch('/api/narrator/stream', {
@@ -5498,19 +5608,37 @@ async function generateNarrative() {
           if (!streaming) {
             completeLoaderSteps();
             hideLoader();
-            resultEl._streamBuffer = '';
-            resultWrap.style.display = 'block';
+            livePanel.style.display = 'block';
             streaming = true;
+            const statusEl = document.createElement('div');
+            statusEl.className = 'claude-live-status';
+            liveOutput.before(statusEl);
+            narratorStopStatus = startLiveStatus(statusEl, [
+              { label: 'Loading client context...', delay: 0 },
+              { label: 'Preparing narrative prompt...', delay: 800 },
+              { label: 'Claude is writing...', delay: 2000 },
+            ]);
+            narratorStopStatus();
           }
-          resultEl._streamBuffer = (resultEl._streamBuffer || '') + evt.text;
-          resultEl.innerHTML = renderMarkdownLive(resultEl._streamBuffer);
+          liveOutput.textContent += evt.text;
+          liveOutput.scrollTop = liveOutput.scrollHeight;
+          const nToks = Math.max(1, Math.round((evt.text || '').length / 4));
+          narratorTokenCount += nToks;
+          narratorETA.onChunk(nToks);
+          narratorETA.formatETA(liveTokens, narratorTokenCount);
         } else if (evt.type === 'done') {
+          liveDot.classList.add('done');
+          narratorETA.onDone(liveTokens, narratorTokenCount);
           currentNarrativeReportId = evt.report_id;
-          resultEl.innerHTML = evt.narrative_html || resultEl.innerHTML;
+          resultEl.innerHTML = evt.narrative_html || '';
           resultEl._streamBuffer = '';
           resultWrap.style.display = 'block';
           if (!streaming) { completeLoaderSteps(); hideLoader(); }
           showToast('Narrative generated', 'success');
+        } else if (evt.type === 'error') {
+          showToast('Claude error: ' + evt.error, 'error');
+          hideLoader();
+          livePanel.style.display = 'none';
         }
       }
     }
@@ -5617,9 +5745,32 @@ async function runBudgetAgent() {
     { label: 'Writing with Claude AI',      delay: 3000 },
   ]);
 
-  const expWrap = document.getElementById('budget-explanation-html');
+  const expWrap    = document.getElementById('budget-explanation-html');
+  const livePanel  = document.getElementById('budget-live-panel');
+  const liveDot    = document.getElementById('budget-live-dot');
+  const liveOutput = document.getElementById('budget-live-output');
+  const liveTokens = document.getElementById('budget-live-tokens');
+
   expWrap.innerHTML = '';
   document.getElementById('budget-result-wrap').style.display = 'none';
+  liveOutput.textContent = '';
+  liveTokens.textContent = '0 tokens';
+  liveDot.classList.remove('done');
+
+  // Show live panel immediately with status steps
+  livePanel.style.display = 'block';
+  let statusEl = livePanel.querySelector('.claude-live-status');
+  if (!statusEl) { statusEl = document.createElement('div'); statusEl.className = 'claude-live-status'; liveOutput.before(statusEl); }
+  else { statusEl.style.display = ''; statusEl.innerHTML = ''; }
+  const budgetStopStatus = startLiveStatus(statusEl, [
+    { label: 'Loading campaign data...', delay: 0 },
+    { label: 'Applying budget rules...', delay: 1200 },
+    { label: 'Calculating reallocation...', delay: 2800 },
+    { label: 'Claude is writing analysis...', delay: 4500 },
+  ]);
+
+  let budgetTokenCount = 0;
+  const budgetETA = createETATracker(800);
 
   try {
     const res = await fetch('/api/budget-agent/stream', {
@@ -5654,21 +5805,30 @@ async function runBudgetAgent() {
           if (!streaming) {
             completeLoaderSteps();
             hideLoader();
-            expWrap._streamBuffer = '';
-            document.getElementById('budget-result-wrap').style.display = 'block';
+            budgetStopStatus();
             streaming = true;
           }
-          expWrap._streamBuffer = (expWrap._streamBuffer || '') + evt.text;
-          expWrap.innerHTML = renderMarkdownLive(expWrap._streamBuffer);
+          liveOutput.textContent += evt.text;
+          liveOutput.scrollTop = liveOutput.scrollHeight;
+          const bToks = Math.max(1, Math.round((evt.text || '').length / 4));
+          budgetTokenCount += bToks;
+          budgetETA.onChunk(bToks);
+          budgetETA.formatETA(liveTokens, budgetTokenCount);
         } else if (evt.type === 'done') {
+          liveDot.classList.add('done');
+          budgetETA.onDone(liveTokens, budgetTokenCount);
           currentBudgetReportId = evt.report_id;
           document.getElementById('budget-table-html').innerHTML =
             evt.table_html || '<p class="text-muted" style="padding:16px;">No reallocation data available.</p>';
-          expWrap.innerHTML = evt.explanation_html || expWrap.innerHTML;
+          expWrap.innerHTML = evt.explanation_html || '';
           expWrap._streamBuffer = '';
           document.getElementById('budget-result-wrap').style.display = 'block';
           if (!streaming) { completeLoaderSteps(); hideLoader(); }
           showToast('Budget analysis complete', 'success');
+        } else if (evt.type === 'error') {
+          showToast('Claude error: ' + evt.error, 'error');
+          hideLoader();
+          livePanel.style.display = 'none';
         }
       }
     }
@@ -7343,6 +7503,89 @@ function completeLoaderSteps() {
 }
 
 // ============================================================
+// CLAUDE LIVE PANEL HELPERS
+// ============================================================
+/**
+ * Start synthetic status steps inside a claude-live-panel before tokens arrive.
+ * steps: [{label, delay}] — delay in ms from call time
+ * Returns a cleanup function to call when first token arrives.
+ */
+function startLiveStatus(statusEl, steps) {
+  if (!statusEl) return () => {};
+  statusEl.innerHTML = '';
+  const els = steps.map(s => {
+    const div = document.createElement('div');
+    div.className = 'claude-live-status-step';
+    div.textContent = s.label;
+    statusEl.appendChild(div);
+    return div;
+  });
+  const timers = [];
+  steps.forEach((s, i) => {
+    timers.push(setTimeout(() => {
+      els.forEach(e => e.classList.remove('active'));
+      if (i > 0) els[i - 1].classList.add('done-step');
+      els[i].classList.add('active');
+    }, s.delay));
+  });
+  return function stopLiveStatus() {
+    timers.forEach(t => clearTimeout(t));
+    els.forEach(e => { e.classList.remove('active'); e.classList.add('done-step'); });
+    setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 400);
+  };
+}
+
+function makeLiveStatus(panelEl) {
+  const div = document.createElement('div');
+  div.className = 'claude-live-status';
+  panelEl.querySelector('.claude-live-output').before(div);
+  return div;
+}
+
+/**
+ * ETA tracker for live panels.
+ * expectedTokens: rough estimate of total tokens for this task type.
+ * Returns { onChunk(newTokens), onDone(), getETA() }
+ */
+function createETATracker(expectedTokens) {
+  const startTime = Date.now();
+  let totalTokens = 0;
+
+  function onChunk(newTokens) {
+    totalTokens += newTokens;
+  }
+
+  function getETA() {
+    const elapsed = (Date.now() - startTime) / 1000;
+    if (elapsed < 2 || totalTokens < 10) return null;
+    const rate = totalTokens / elapsed; // tokens per second
+    const remaining = Math.max(0, expectedTokens - totalTokens);
+    const etaSecs = Math.round(remaining / rate);
+    return { elapsed: Math.round(elapsed), etaSecs, rate: Math.round(rate) };
+  }
+
+  function formatETA(tokensEl, totalTokens) {
+    const eta = getETA();
+    if (!eta) {
+      tokensEl.textContent = totalTokens.toLocaleString() + ' tokens';
+      return;
+    }
+    if (eta.etaSecs > 0) {
+      tokensEl.textContent = totalTokens.toLocaleString() + ' tokens  ~' + eta.etaSecs + 's remaining';
+    } else {
+      tokensEl.textContent = totalTokens.toLocaleString() + ' tokens  finishing...';
+    }
+  }
+
+  function onDone(tokensEl, totalTokens) {
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
+    tokensEl.textContent = totalTokens.toLocaleString() + ' tokens  done in ' + elapsed + 's';
+  }
+
+  return { onChunk, getETA, formatETA, onDone };
+}
+
+// ============================================================
 // INIT
 // ============================================================
 // ============================================================
@@ -8013,6 +8256,18 @@ async function loadForecast() {
   document.getElementById('forecast-error').style.display = 'none';
   document.getElementById('forecast-content').style.display = 'none';
 
+  const livePanel  = document.getElementById('forecast-live-panel');
+  const liveDot    = document.getElementById('forecast-live-dot');
+  const liveOutput = document.getElementById('forecast-live-output');
+  const liveTokens = document.getElementById('forecast-live-tokens');
+  livePanel.style.display = 'none';
+  liveOutput.textContent = '';
+  liveTokens.textContent = '0 tokens';
+  liveDot.classList.remove('done');
+
+  let forecastTokenCount = 0;
+  const forecastETA = createETATracker(500);
+
   try {
     const res = await fetch(`/api/forecast/stream/${currentClientId}?horizon=${forecastHorizon}`);
     if (!res.ok) {
@@ -8043,27 +8298,43 @@ async function loadForecast() {
           document.getElementById('forecast-error').textContent = evt.error || 'Forecast failed.';
           document.getElementById('forecast-error').style.display = '';
           document.getElementById('forecast-loading').style.display = 'none';
+          livePanel.style.display = 'none';
           return;
         } else if (evt.type === 'forecast') {
-          // Render charts/KPIs immediately without waiting for narrative
           forecastData = evt.data;
           renderForecastKPIs(forecastData);
           renderForecastCampaigns(forecastData);
           document.getElementById('forecast-content').style.display = '';
           document.getElementById('forecast-loading').style.display = 'none';
           requestAnimationFrame(() => renderForecastChart(forecastData));
+          livePanel.style.display = 'block';
+          let fStatusEl = livePanel.querySelector('.claude-live-status');
+          if (!fStatusEl) { fStatusEl = document.createElement('div'); fStatusEl.className = 'claude-live-status'; liveOutput.before(fStatusEl); }
+          else { fStatusEl.style.display = ''; fStatusEl.innerHTML = ''; }
+          livePanel._stopStatus = startLiveStatus(fStatusEl, [
+            { label: 'Running forecast model...', delay: 0 },
+            { label: 'Computing projections...', delay: 800 },
+            { label: 'Claude is writing narrative...', delay: 2000 },
+          ]);
         } else if (evt.type === 'chunk') {
-          // Stream narrative text as it arrives
+          if (livePanel._stopStatus) { livePanel._stopStatus(); livePanel._stopStatus = null; }
+          liveOutput.textContent += evt.text;
+          liveOutput.scrollTop = liveOutput.scrollHeight;
+          const fToks = Math.max(1, Math.round((evt.text || '').length / 4));
+          forecastTokenCount += fToks;
+          forecastETA.onChunk(fToks);
+          forecastETA.formatETA(liveTokens, forecastTokenCount);
           if (forecastData) {
             if (!forecastData._narrativeStreaming) {
               forecastData._narrativeStreaming = true;
               forecastData.narrative = '';
-              renderForecastNarrative(forecastData);
             }
             forecastData.narrative += evt.text;
             renderForecastNarrative(forecastData);
           }
         } else if (evt.type === 'done') {
+          liveDot.classList.add('done');
+          forecastETA.onDone(liveTokens, forecastTokenCount);
           if (forecastData) {
             forecastData.narrative = evt.narrative;
             renderForecastNarrative(forecastData);
@@ -8325,6 +8596,7 @@ async function loadLatestStructuredAudit() {
 }
 
 let saTokenCount = 0;
+let saETA = null;
 
 async function runStructuredAudit() {
   if (!currentClientId) { showToast('Select a client first', 'error'); return; }
@@ -8417,27 +8689,45 @@ async function runStructuredAudit() {
           auditData.summary = '';
           renderStructuredAudit(auditData);
           document.getElementById('sa-loading').style.display = 'none';
-          // Show the live panel now that content is rendered
-          document.getElementById('sa-live-panel').style.display = '';
+          // Show the live panel
+          const saLivePanel = document.getElementById('sa-live-panel');
+          const saLiveOutput = document.getElementById('sa-live-output');
+          saLivePanel.style.display = '';
           document.getElementById('sa-live-tokens').style.display = '';
-          document.getElementById('sa-live-output').textContent = '';
+          saLiveOutput.textContent = '';
           document.getElementById('sa-live-dot').className = 'claude-live-dot running';
           document.getElementById('sa-live-title').textContent = 'Claude is writing...';
           document.getElementById('sa-live-tokens').textContent = '0 tokens';
           saTokenCount = 0;
+          saETA = createETATracker(400);
+          // Status steps
+          let saStatusEl = saLivePanel.querySelector('.claude-live-status');
+          if (!saStatusEl) { saStatusEl = document.createElement('div'); saStatusEl.className = 'claude-live-status'; saLiveOutput.before(saStatusEl); }
+          else { saStatusEl.style.display = ''; saStatusEl.innerHTML = ''; }
+          saLivePanel._stopStatus = startLiveStatus(saStatusEl, [
+            { label: 'Scoring campaigns...', delay: 0 },
+            { label: 'Evaluating account structure...', delay: 1000 },
+            { label: 'Claude is writing summary...', delay: 2500 },
+          ]);
         } else if (evt.type === 'chunk') {
+          if (document.getElementById('sa-live-panel')._stopStatus) {
+            document.getElementById('sa-live-panel')._stopStatus();
+            document.getElementById('sa-live-panel')._stopStatus = null;
+          }
           const outputEl = document.getElementById('sa-live-output');
           if (outputEl) {
             outputEl.textContent += evt.text;
             outputEl.scrollTop = outputEl.scrollHeight;
           }
-          saTokenCount += Math.max(1, Math.round(evt.text.length / 4));
+          const saToks = Math.max(1, Math.round(evt.text.length / 4));
+          saTokenCount += saToks;
           const tokensEl = document.getElementById('sa-live-tokens');
-          if (tokensEl) tokensEl.textContent = saTokenCount.toLocaleString() + ' tokens';
+          if (saETA && tokensEl) { saETA.onChunk(saToks); saETA.formatETA(tokensEl, saTokenCount); }
         } else if (evt.type === 'done') {
-          // Mark live panel as done
           document.getElementById('sa-live-dot').className = 'claude-live-dot done';
           document.getElementById('sa-live-title').textContent = 'Claude finished';
+          const saDoneTokensEl = document.getElementById('sa-live-tokens');
+          if (saETA && saDoneTokensEl) saETA.onDone(saDoneTokensEl, saTokenCount);
           // Show final summary text below the live panel
           if (auditData) {
             auditData.summary = evt.summary;
@@ -8895,17 +9185,30 @@ async function sendCopilot() {
   // Show typing indicator
   copilotTyping = true;
   document.getElementById('copilot-send').disabled = true;
-  const typingId = 'copilot-typing-' + Date.now();
   const msgs = document.getElementById('copilot-messages');
+  const typingId = 'copilot-typing-' + Date.now();
   msgs.innerHTML += `<div class="copilot-msg copilot-assistant" id="${typingId}">
     <div class="copilot-typing">
       <div class="copilot-dot"></div><div class="copilot-dot"></div><div class="copilot-dot"></div>
     </div>
+    <div class="copilot-status-steps" id="${typingId}-steps" style="font-family:'SF Mono','Fira Code',monospace;font-size:11px;color:#94a3b8;padding:4px 0 0;display:flex;flex-direction:column;gap:3px;"></div>
   </div>`;
   msgs.scrollTop = msgs.scrollHeight;
+  const copilotStepsEl = document.getElementById(typingId + '-steps');
+  const copilotStopStatus = startLiveStatus(copilotStepsEl, [
+    { label: 'Loading campaign context...', delay: 0 },
+    { label: 'Sending to Claude...', delay: 1200 },
+    { label: 'Thinking...', delay: 3000 },
+  ]);
+
+  const tokenCountEl = document.getElementById('copilot-token-count');
+  tokenCountEl.style.display = '';
+  tokenCountEl.textContent = '0 tokens';
+  let copilotTokens = 0;
+  const copilotETA = createETATracker(400);
 
   try {
-    const res = await fetch('/api/copilot/chat', {
+    const res = await fetch('/api/copilot/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -8914,23 +9217,80 @@ async function sendCopilot() {
         history: copilotHistory.slice(-10)
       })
     });
-    const data = await res.json();
 
-    // Remove typing indicator
-    const typingEl = document.getElementById(typingId);
-    if (typingEl) typingEl.remove();
+    if (!res.ok) {
+      const typingEl = document.getElementById(typingId);
+      if (typingEl) typingEl.remove();
+      appendCopilotMsg('assistant', 'Request failed. Please try again.');
+      return;
+    }
 
-    if (data.error) {
-      appendCopilotMsg('assistant', 'Sorry, an error occurred: ' + data.error);
-    } else {
-      const answer = data.answer || '';
-      copilotHistory.push({ role: 'assistant', content: answer });
-      appendCopilotMsg('assistant', answer, data.action);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let streamBubble = null;
+    let streamBuffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        let evt;
+        try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+
+        if (evt.type === 'chunk') {
+          // On first chunk replace typing indicator with streaming bubble
+          if (!streamBubble) {
+            copilotStopStatus();
+            const typingEl = document.getElementById(typingId);
+            if (typingEl) typingEl.remove();
+            const div = document.createElement('div');
+            div.className = 'copilot-msg copilot-assistant';
+            div.innerHTML = '<div class="copilot-bubble-msg" id="copilot-stream-bubble"></div>';
+            msgs.appendChild(div);
+            streamBubble = document.getElementById('copilot-stream-bubble');
+          }
+          streamBuffer += evt.text;
+          streamBubble.innerHTML = renderMarkdownLive(streamBuffer);
+          msgs.scrollTop = msgs.scrollHeight;
+          const cpToks = Math.max(1, Math.round((evt.text || '').length / 4));
+          copilotTokens += cpToks;
+          copilotETA.onChunk(cpToks);
+          copilotETA.formatETA(tokenCountEl, copilotTokens);
+        } else if (evt.type === 'done') {
+          copilotETA.onDone(tokenCountEl, copilotTokens);
+          const answer = evt.answer || streamBuffer;
+          const action = evt.action || null;
+          // Replace stream bubble with final rendered message
+          if (streamBubble) {
+            streamBubble.closest('.copilot-msg').remove();
+          } else {
+            const typingEl = document.getElementById(typingId);
+            if (typingEl) typingEl.remove();
+          }
+          copilotHistory.push({ role: 'assistant', content: answer });
+          appendCopilotMsg('assistant', answer, action);
+          tokenCountEl.textContent = copilotTokens.toLocaleString() + ' tokens';
+        } else if (evt.type === 'error') {
+          copilotStopStatus();
+          const typingEl = document.getElementById(typingId);
+          if (typingEl) typingEl.remove();
+          if (streamBubble) streamBubble.closest('.copilot-msg').remove();
+          appendCopilotMsg('assistant', 'Claude error: ' + evt.error);
+          tokenCountEl.style.display = 'none';
+        }
+      }
     }
   } catch(e) {
     const typingEl = document.getElementById(typingId);
     if (typingEl) typingEl.remove();
     appendCopilotMsg('assistant', 'Network error. Please try again.');
+    tokenCountEl.style.display = 'none';
   } finally {
     copilotTyping = false;
     document.getElementById('copilot-send').disabled = false;
@@ -9308,6 +9668,7 @@ function copyActions() {
       <span id="copilot-client-name" style="font-size:11px;color:#94a3b8;margin-left:2px;"></span>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
+      <span id="copilot-token-count" style="font-size:10px;color:#94a3b8;display:none;"></span>
       <button onclick="clearCopilot()" title="Clear chat" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;line-height:1;padding:0;">&#8635;</button>
       <button onclick="toggleCopilot()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;line-height:1;padding:0;">&times;</button>
     </div>

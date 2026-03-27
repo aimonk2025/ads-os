@@ -110,7 +110,6 @@ def analyze(analysis_data: dict, business_context: str = "",
         capture_output=True,
         text=True,
         encoding="utf-8",
-        timeout=120
     )
     if result.returncode != 0 or not result.stdout.strip():
         err = result.stderr.strip() if result.stderr else "No output returned"
@@ -160,7 +159,7 @@ def stream_prompt(prompt: str):
                 full_text = [result_text]
             break
 
-    proc.wait(timeout=10)
+    proc.wait()
     combined = "".join(full_text).strip()
     if not combined:
         raise RuntimeError("Claude CLI returned no output")
@@ -212,7 +211,7 @@ def analyze_stream(analysis_data: dict, business_context: str = "",
                 full_text = [result_text]
             break
 
-    proc.wait(timeout=10)
+    proc.wait()
     combined = "".join(full_text).strip()
     if not combined:
         raise RuntimeError("Claude CLI returned no output")
