@@ -2169,7 +2169,18 @@
 
             <!-- Summary text -->
             <div style="padding:0 8px;border-left:1px solid var(--border);border-right:1px solid var(--border);">
-              <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">AI Analysis</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);">AI Analysis</div>
+                <div class="claude-live-tokens" id="sa-live-tokens" style="display:none;"></div>
+              </div>
+              <!-- Live stream panel (shown while Claude writes) -->
+              <div id="sa-live-panel" style="display:none;border-radius:8px;overflow:hidden;margin-bottom:8px;">
+                <div class="claude-live-header" style="padding:8px 12px;">
+                  <div class="claude-live-dot running" id="sa-live-dot"></div>
+                  <div class="claude-live-title" id="sa-live-title" style="font-size:11px;">Claude is writing...</div>
+                </div>
+                <div class="claude-live-output" id="sa-live-output" style="max-height:180px;font-size:12px;padding:12px;"></div>
+              </div>
               <div id="sa-summary-text" style="font-size:13px;line-height:1.7;color:var(--text-secondary);"></div>
             </div>
 
@@ -8274,6 +8285,8 @@ async function loadLatestStructuredAudit() {
   } catch(e) {}
 }
 
+let saTokenCount = 0;
+
 async function runStructuredAudit() {
   if (!currentClientId) { showToast('Select a client first', 'error'); return; }
   const uploadSel = document.getElementById('sa-upload-select');
@@ -8282,6 +8295,10 @@ async function runStructuredAudit() {
   document.getElementById('sa-loading').style.display = '';
   document.getElementById('sa-error').style.display = 'none';
   document.getElementById('sa-content').style.display = 'none';
+  document.getElementById('sa-live-panel').style.display = 'none';
+  document.getElementById('sa-live-tokens').style.display = 'none';
+  document.getElementById('sa-summary-text').textContent = '';
+  saTokenCount = 0;
 
   const saStepDefs = [
     { label: 'Loading campaign data',         delay: 0 },
@@ -8361,14 +8378,28 @@ async function runStructuredAudit() {
           auditData.summary = '';
           renderStructuredAudit(auditData);
           document.getElementById('sa-loading').style.display = 'none';
+          // Show the live panel now that content is rendered
+          document.getElementById('sa-live-panel').style.display = '';
+          document.getElementById('sa-live-tokens').style.display = '';
+          document.getElementById('sa-live-output').textContent = '';
+          document.getElementById('sa-live-dot').className = 'claude-live-dot running';
+          document.getElementById('sa-live-title').textContent = 'Claude is writing...';
+          document.getElementById('sa-live-tokens').textContent = '0 tokens';
+          saTokenCount = 0;
         } else if (evt.type === 'chunk') {
-          // Stream summary text into the summary element
-          if (auditData) {
-            auditData.summary = (auditData.summary || '') + evt.text;
-            const summaryEl = document.getElementById('sa-summary-text');
-            if (summaryEl) summaryEl.textContent = auditData.summary;
+          const outputEl = document.getElementById('sa-live-output');
+          if (outputEl) {
+            outputEl.textContent += evt.text;
+            outputEl.scrollTop = outputEl.scrollHeight;
           }
+          saTokenCount += Math.max(1, Math.round(evt.text.length / 4));
+          const tokensEl = document.getElementById('sa-live-tokens');
+          if (tokensEl) tokensEl.textContent = saTokenCount.toLocaleString() + ' tokens';
         } else if (evt.type === 'done') {
+          // Mark live panel as done
+          document.getElementById('sa-live-dot').className = 'claude-live-dot done';
+          document.getElementById('sa-live-title').textContent = 'Claude finished';
+          // Show final summary text below the live panel
           if (auditData) {
             auditData.summary = evt.summary;
             const summaryEl = document.getElementById('sa-summary-text');
