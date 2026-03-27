@@ -76,14 +76,11 @@ def _is_seasonal_pattern(current_value: float, history: list,
         pd_date = h.get("period_start") or h.get("period_date")
         if pd_date is None:
             continue
-        try:
-            if hasattr(pd_date, "month"):
-                month = pd_date.month
-            else:
-                from datetime import datetime as _dt
-                month = _dt.fromisoformat(str(pd_date)[:10]).month
-        except (ValueError, TypeError):
-            continue
+        if hasattr(pd_date, "month"):
+            month = pd_date.month
+        else:
+            from datetime import datetime as _dt
+            month = _dt.fromisoformat(str(pd_date)[:10]).month
         if month == current_period_month:
             val = h.get(metric_key)
             if val is not None:
@@ -233,14 +230,11 @@ def detect_anomalies(current_upload_id: int, client_id: int,
     if upload_row:
         ps = upload_row.get("period_start")
         if ps is not None:
-            try:
-                if hasattr(ps, "month"):
-                    current_period_month = ps.month
-                else:
-                    from datetime import datetime as _dt
-                    current_period_month = _dt.fromisoformat(str(ps)[:10]).month
-            except (ValueError, TypeError):
-                pass
+            if hasattr(ps, "month"):
+                current_period_month = ps.month
+            else:
+                from datetime import datetime as _dt
+                current_period_month = _dt.fromisoformat(str(ps)[:10]).month
 
     # Build campaign targets lookup {campaign_name_lower: target_dict}
     campaign_targets = {}

@@ -277,10 +277,7 @@ def trigger_alerts_for_upload(conn, client_id: int, upload_id: int) -> int:
     raw_context = row.get("context") or ""
     context_dict = {}
     if raw_context:
-        try:
-            context_dict = json.loads(raw_context)
-        except Exception:
-            pass
+        context_dict = json.loads(raw_context)
     alerts = run_alert_checks(conn, client_id, upload_id, context_dict=context_dict)
     return persist_alerts(conn, alerts)
 

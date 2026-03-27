@@ -54,7 +54,7 @@ def stream_budget_agent(
     business_context: str = "",
     campaign_tags: dict = None,
 ):
-    """Yields ('chunk', text), ('done', (recs, full_text)), or ('fallback', (rule_recs, explanation))."""
+    """Yields ('chunk', text) or ('done', (recs, full_text)). Raises on failure."""
     rule_recs = _compute_rule_based(analysis_data, rules, campaign_tags=campaign_tags or {})
     payload = _build_payload(analysis_data, rules, rule_recs, currency, campaign_tags=campaign_tags or {})
     context_section = (
@@ -70,17 +70,14 @@ def stream_budget_agent(
             parsed = _parse_claude_output(text, rule_recs)
             yield ('done', (parsed, text))
             return
-        elif event_type == 'fallback':
-            explanation = _fallback_explanation(rule_recs, rules, currency)
-            yield ('fallback', (rule_recs, explanation))
-            return
 
 
 def run_budget_agent(analysis_data: dict, rules: dict,
                      client_id: int, conn,
                      currency: str = "INR",
                      business_context: str = "",
-                     campaign_tags: dict = None) -> tuple[dict, str, bool]:
+                     campaign_tags: dict = None) -> tuple[dict, str]:
+    """Returns (recs, explanation_text). Raises on failure."""
     rule_recs = _compute_rule_based(analysis_data, rules, campaign_tags=campaign_tags or {})
     payload = _build_payload(analysis_data, rules, rule_recs, currency, campaign_tags=campaign_tags or {})
     context_section = (
@@ -89,26 +86,15 @@ def run_budget_agent(analysis_data: dict, rules: dict,
     )
     prompt = f"{BUDGET_AGENT_PROMPT}\n\nData:\n{json.dumps(payload, indent=2)}{context_section}"
 
-    try:
-        result = subprocess.run(
-            ["claude", "--print", "--output-format", "text", prompt],
-            capture_output=True, text=True, encoding="utf-8", timeout=90
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            parsed = _parse_claude_output(result.stdout.strip(), rule_recs)
-            return parsed, result.stdout.strip(), True
-        else:
-            import logging
-            logging.getLogger("ads-os").warning(
-                "Budget agent Claude call failed (rc=%s): %s",
-                result.returncode, result.stderr.strip() if result.stderr else "no output"
-            )
-    except Exception as e:
-        import logging
-        logging.getLogger("ads-os").warning("Budget agent Claude call exception: %s", e)
-
-    explanation = _fallback_explanation(rule_recs, rules, currency)
-    return rule_recs, explanation, False
+    result = subprocess.run(
+        ["claude", "--print", "--output-format", "text", prompt],
+        capture_output=True, text=True, encoding="utf-8", timeout=90
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        err = result.stderr.strip() if result.stderr else "No output returned"
+        raise RuntimeError(f"Claude CLI error: {err}")
+    parsed = _parse_claude_output(result.stdout.strip(), rule_recs)
+    return parsed, result.stdout.strip()
 
 
 def _build_payload(analysis_data: dict, rules: dict,
@@ -243,43 +229,8 @@ def _parse_claude_output(output: str, fallback: dict) -> dict:
     import re
     match = re.search(r"```json\s*([\s\S]+?)\s*```", output)
     if match:
-        try:
-            return json.loads(match.group(1))
-        except json.JSONDecodeError:
-            pass
+        return json.loads(match.group(1))
     return fallback
-
-
-def _fallback_explanation(recs: dict, rules: dict, currency: str) -> str:
-    sym = "Rs" if currency == "INR" else currency
-    lines = []
-    lines.append("## Reallocation Summary")
-
-    if not recs["recommendations"]:
-        lines.append("All campaigns are within acceptable thresholds. No reallocation needed this cycle.")
-    else:
-        lines.append(f"{len(recs['recommendations'])} campaign(s) flagged for budget changes.")
-        for r in recs["recommendations"]:
-            lines.append(f"- **{r['campaign']}** ({r['platform'].title()}): "
-                        f"{r['action'].title()} by {r['shift_pct']}%. {r['reason']}")
-
-    lines.append("")
-    lines.append("## Risk Flags")
-    pauses = [r for r in recs["recommendations"] if r["action"] == "pause"]
-    if pauses:
-        lines.append(f"- {len(pauses)} campaign(s) recommended for pause. "
-                    "Verify these are not brand-critical before pausing.")
-    else:
-        lines.append("- No high-risk actions required.")
-
-    lines.append("")
-    lines.append("## Confidence Notes")
-    lines.append(f"- Rules-based analysis only (Claude unavailable).")
-    lines.append(f"- Thresholds used: Google min ROAS {rules.get('google_min_roas', 2.0)}x, "
-                f"Meta min ROAS {rules.get('meta_min_roas', 2.0)}x.")
-    lines.append(f"- Max single-cycle shift capped at {rules.get('max_shift_pct', 20)}%.")
-
-    return "\n".join(lines)
 
 
 def format_reallocation_table(recs: dict, currency: str = "INR") -> str:

@@ -37,7 +37,7 @@ def stream_narrative(
     currency: str = "INR",
     business_context: str = "",
 ):
-    """Yields ('chunk', text), ('done', full_text), or ('fallback', fallback_text)."""
+    """Yields ('chunk', text) or ('done', full_text). Raises on failure."""
     payload = _build_payload(analysis_data, anomalies, tone, date_range, currency)
     context_section = (
         f"\n\nBusiness Context (use this to interpret campaign intent and tailor recommendations):\n{business_context.strip()}"
@@ -51,9 +51,6 @@ def stream_narrative(
         elif event_type == 'done':
             yield ('done', text)
             return
-        elif event_type == 'fallback':
-            yield ('fallback', _fallback_narrative(payload, tone, currency))
-            return
 
 
 def generate_narrative(
@@ -63,7 +60,8 @@ def generate_narrative(
     date_range: str = None,
     currency: str = "INR",
     business_context: str = "",
-) -> tuple[str, bool]:
+) -> str:
+    """Returns Claude narrative text. Raises on failure."""
     payload = _build_payload(analysis_data, anomalies, tone, date_range, currency)
     context_section = (
         f"\n\nBusiness Context (use this to interpret campaign intent and tailor recommendations):\n{business_context.strip()}"
@@ -71,16 +69,14 @@ def generate_narrative(
     )
     prompt = f"{NARRATOR_SYSTEM_PROMPT}\n\nData:\n{json.dumps(payload, indent=2)}{context_section}"
 
-    try:
-        result = subprocess.run(
-            ["claude", "--print", "--output-format", "text", prompt],
-            capture_output=True, text=True, encoding="utf-8", timeout=90
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip(), True
-        return _fallback_narrative(payload, tone, currency), False
-    except Exception:
-        return _fallback_narrative(payload, tone, currency), False
+    result = subprocess.run(
+        ["claude", "--print", "--output-format", "text", prompt],
+        capture_output=True, text=True, encoding="utf-8", timeout=90
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        err = result.stderr.strip() if result.stderr else "No output returned"
+        raise RuntimeError(f"Claude CLI error: {err}")
+    return result.stdout.strip()
 
 
 def _build_payload(analysis_data: dict, anomalies: list, tone: str,
@@ -135,60 +131,3 @@ def _build_payload(analysis_data: dict, anomalies: list, tone: str,
     return payload
 
 
-def _fallback_narrative(payload: dict, tone: str, currency: str) -> str:
-    sym = "Rs" if currency == "INR" else currency
-
-    lines = []
-    lines.append("## This Week in Numbers")
-
-    spend_parts = []
-    for platform in ["google", "meta"]:
-        p = payload.get(platform)
-        if p:
-            spend_parts.append(
-                f"{platform.title()} Ads: {sym} {p['total_spend']:,.0f} spend, "
-                f"{p['overall_roas']:.2f}x ROAS"
-            )
-    if spend_parts:
-        lines.append(" | ".join(spend_parts) + ".")
-
-    funnel = payload.get("funnel")
-    if funnel:
-        if funnel.get("cost_per_lead"):
-            lines.append(f"Cost per Lead: {sym} {funnel['cost_per_lead']:,.0f}.")
-        if funnel.get("cost_per_customer"):
-            lines.append(f"Cost per Customer: {sym} {funnel['cost_per_customer']:,.0f}.")
-    lines.append("")
-
-    lines.append("## What Worked")
-    for platform in ["google", "meta"]:
-        p = payload.get(platform)
-        if p and p.get("top_campaigns"):
-            for c in p["top_campaigns"][:2]:
-                lines.append(f"- **{c['name']}** ({platform.title()}): {c['roas']:.2f}x ROAS")
-    if not any(payload.get(p, {}).get("top_campaigns") for p in ["google", "meta"]):
-        lines.append("No campaigns exceeded the 2x ROAS threshold this period.")
-    lines.append("")
-
-    lines.append("## What Needs Attention")
-    anomalies = payload.get("anomalies", [])
-    if anomalies:
-        for a in anomalies[:3]:
-            lines.append(f"- **{a['campaign']}**: {a['description']}")
-    else:
-        for platform in ["google", "meta"]:
-            p = payload.get(platform)
-            if p and p.get("worst_campaigns"):
-                for c in p["worst_campaigns"][:2]:
-                    lines.append(f"- **{c['name']}** ({platform.title()}): {c['roas']:.2f}x ROAS - below threshold")
-    lines.append("")
-
-    lines.append("## Recommended Actions for Next Week")
-    lines.append("1. Pause campaigns with ROAS below 1.0x immediately to stop wasted spend.")
-    lines.append("2. Increase budget on campaigns exceeding 3x ROAS by 10-15%.")
-    lines.append("3. Review audience targeting on underperforming campaigns before reactivating.")
-    if funnel and funnel.get("lead_to_mql_rate") and funnel["lead_to_mql_rate"] < 30:
-        lines.append("4. Improve lead qualification - current lead-to-MQL rate is below 30%.")
-    lines.append("")
-
-    return "\n".join(lines)

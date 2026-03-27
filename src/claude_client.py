@@ -76,20 +76,6 @@ Banned phrases - NEVER use these: "it is important to", "it is worth noting", "l
 Output format: Clean markdown only. No preamble. Start directly with ## Executive Summary. Be concise — the entire output should not exceed 600 words. Prioritise numbers and actions over explanation."""
 
 
-def is_claude_available() -> bool:
-    try:
-        result = subprocess.run(
-            ["claude", "--version"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            timeout=10
-        )
-        return result.returncode == 0
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return False
-
-
 def _build_prompt(analysis_data: dict, business_context: str = "",
                   benchmarks_context: str = "", period_notes: str = "") -> str:
     payload = {k: v for k, v in analysis_data.items()
@@ -116,294 +102,118 @@ def _build_prompt(analysis_data: dict, business_context: str = "",
 
 
 def analyze(analysis_data: dict, business_context: str = "",
-            benchmarks_context: str = "", period_notes: str = "") -> tuple[str, bool]:
-    """
-    Call Claude CLI with the analysis data.
-    Returns (output_text, used_claude) tuple.
-    used_claude is False if fallback was used.
-    """
-    if not is_claude_available():
-        print("  WARNING: Claude CLI not found - using fallback analysis template")
-        return fallback_template(analysis_data), False
-
+            benchmarks_context: str = "", period_notes: str = "") -> str:
+    """Call Claude CLI with the analysis data. Returns output text. Raises on failure."""
     full_prompt = _build_prompt(analysis_data, business_context, benchmarks_context, period_notes)
-
-    try:
-        result = subprocess.run(
-            ["claude", "--print", "--output-format", "text", full_prompt],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            timeout=120
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip(), True
-        else:
-            err = result.stderr.strip() if result.stderr else "No output returned"
-            print(f"  WARNING: Claude returned error: {err} - using fallback")
-            return fallback_template(analysis_data), False
-    except subprocess.TimeoutExpired:
-        print("  WARNING: Claude timed out - using fallback")
-        return fallback_template(analysis_data), False
-    except Exception as e:
-        print(f"  WARNING: Claude call failed ({e}) - using fallback")
-        return fallback_template(analysis_data), False
+    result = subprocess.run(
+        ["claude", "--print", "--output-format", "text", full_prompt],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=120
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        err = result.stderr.strip() if result.stderr else "No output returned"
+        raise RuntimeError(f"Claude CLI error: {err}")
+    return result.stdout.strip()
 
 
 def stream_prompt(prompt: str):
     """
     Stream any prompt through Claude CLI.
-    Yields tuples: ('chunk', text) or ('done', full_text) or ('fallback', None)
+    Yields tuples: ('chunk', text) or ('done', full_text).
+    Raises on failure.
     """
-    if not is_claude_available():
-        yield ('fallback', None)
-        return
+    proc = subprocess.Popen(
+        ["claude", "--print", "--output-format", "stream-json",
+         "--verbose", "--include-partial-messages", prompt],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+    )
 
-    try:
-        proc = subprocess.Popen(
-            ["claude", "--print", "--output-format", "stream-json",
-             "--verbose", "--include-partial-messages", prompt],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            encoding="utf-8",
-        )
+    full_text = []
+    for line in proc.stdout:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
 
-        full_text = []
-        for line in proc.stdout:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                event = json.loads(line)
-            except json.JSONDecodeError:
-                continue
+        etype = event.get("type")
 
-            etype = event.get("type")
+        if etype == "assistant":
+            msg = event.get("message") or {}
+            for block in msg.get("content") or []:
+                if block.get("type") == "text":
+                    chunk = block.get("text", "")
+                    if chunk:
+                        full_text.append(chunk)
+                        yield ('chunk', chunk)
 
-            if etype == "assistant":
-                msg = event.get("message") or {}
-                for block in msg.get("content") or []:
-                    if block.get("type") == "text":
-                        chunk = block.get("text", "")
-                        if chunk:
-                            full_text.append(chunk)
-                            yield ('chunk', chunk)
+        elif etype == "result":
+            result_text = event.get("result", "").strip()
+            if result_text:
+                full_text = [result_text]
+            break
 
-            elif etype == "result":
-                result_text = event.get("result", "").strip()
-                if result_text:
-                    full_text = [result_text]
-                break
-
-        proc.wait(timeout=10)
-        combined = "".join(full_text).strip()
-        if combined:
-            yield ('done', combined)
-        else:
-            yield ('fallback', None)
-
-    except Exception as e:
-        print(f"  WARNING: Claude stream_prompt failed ({e})")
-        yield ('fallback', None)
+    proc.wait(timeout=10)
+    combined = "".join(full_text).strip()
+    if not combined:
+        raise RuntimeError("Claude CLI returned no output")
+    yield ('done', combined)
 
 
 def analyze_stream(analysis_data: dict, business_context: str = "",
                    benchmarks_context: str = "", period_notes: str = ""):
     """
     Stream Claude CLI output using --output-format stream-json --include-partial-messages.
-    Yields tuples: ('chunk', text) or ('done', full_text) or ('fallback', full_text)
+    Yields tuples: ('chunk', text) or ('done', full_text).
+    Raises on failure.
     """
-    if not is_claude_available():
-        yield ('fallback', fallback_template(analysis_data))
-        return
-
     full_prompt = _build_prompt(analysis_data, business_context, benchmarks_context, period_notes)
 
-    try:
-        proc = subprocess.Popen(
-            ["claude", "--print", "--output-format", "stream-json",
-             "--verbose", "--include-partial-messages", full_prompt],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            encoding="utf-8",
-        )
-
-        full_text = []
-        for line in proc.stdout:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                event = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-
-            etype = event.get("type")
-
-            if etype == "assistant":
-                # Partial message chunk - extract text from content blocks
-                msg = event.get("message") or {}
-                for block in msg.get("content") or []:
-                    if block.get("type") == "text":
-                        chunk = block.get("text", "")
-                        if chunk:
-                            full_text.append(chunk)
-                            yield ('chunk', chunk)
-
-            elif etype == "result":
-                # Final event - result text is authoritative
-                result_text = event.get("result", "").strip()
-                if result_text:
-                    # Use result text directly (avoids duplicate partial chunks)
-                    full_text = [result_text]
-                break
-
-        proc.wait(timeout=10)
-        combined = "".join(full_text).strip()
-        if combined:
-            yield ('done', combined)
-        else:
-            yield ('fallback', fallback_template(analysis_data))
-
-    except Exception as e:
-        print(f"  WARNING: Claude stream failed ({e}) - using fallback")
-        yield ('fallback', fallback_template(analysis_data))
-
-
-def fallback_template(data: dict) -> str:
-    """Generate a basic markdown report from raw metrics when Claude is unavailable."""
-    lines = []
-
-    lines.append("## Executive Summary")
-    platforms = data.get("platforms", [])
-    total_spend = 0
-    roas_vals = []
-
-    if data.get("google"):
-        g = data["google"]
-        total_spend += g["total_spend"]
-        roas_vals.append(g["overall_roas"])
-
-    if data.get("meta"):
-        m = data["meta"]
-        total_spend += m["total_spend"]
-        roas_vals.append(m["overall_roas"])
-
-    avg_roas = sum(roas_vals) / len(roas_vals) if roas_vals else 0
-    lines.append(
-        f"This audit covers {', '.join(p.title() for p in platforms)} Ads with a total spend of "
-        f"Rs {total_spend:,.0f}. The blended ROAS is {avg_roas:.2f}x. "
-        f"Immediate action is required on campaigns with ROAS below 1.0x to stop wasted spend."
+    proc = subprocess.Popen(
+        ["claude", "--print", "--output-format", "stream-json",
+         "--verbose", "--include-partial-messages", full_prompt],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
     )
-    lines.append("")
 
-    lines.append("## Wasted Spend Analysis")
-    for platform in platforms:
-        pdata = data.get(platform, {})
-        if not pdata:
+    full_text = []
+    for line in proc.stdout:
+        line = line.strip()
+        if not line:
             continue
-        critical = [c for c in pdata.get("campaigns", []) if c["severity"] == "critical"]
-        if critical:
-            lines.append(f"**{platform.title()} Ads - Critical Campaigns:**")
-            for c in critical:
-                lines.append(f"- **{c['name']}**: ROAS {c['roas']}x, Spend Rs {c['spend']:,.0f} (100% wasted)")
-        else:
-            lines.append(f"No critical campaigns found in {platform.title()} Ads.")
-    lines.append("")
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
 
-    lines.append("## Underperforming Campaigns")
-    all_campaigns = []
-    for platform in platforms:
-        pdata = data.get(platform, {})
-        if pdata:
-            for c in pdata.get("campaigns", []):
-                all_campaigns.append((platform, c))
-    all_campaigns.sort(key=lambda x: x[1]["roas"])
-    for i, (platform, c) in enumerate(all_campaigns[:5], 1):
-        lines.append(f"{i}. **{c['name']}** ({platform.title()}) - ROAS: {c['roas']}x, CAC: Rs {c['cac']:,.0f}")
-    lines.append("")
+        etype = event.get("type")
 
-    # Funnel analysis section
-    funnel = data.get("funnel_summary")
-    if funnel and funnel.get("stages_available"):
-        lines.append("## Funnel Analysis")
-        stages = funnel.get("stages_available", [])
-        if "leads" in stages:
-            lines.append(f"- **Total Leads:** {funnel.get('total_leads', 0):,.0f} | Cost per Lead: Rs {funnel.get('cost_per_lead', 0):,.0f}")
-        if "mqls" in stages:
-            lines.append(f"- **Total MQLs:** {funnel.get('total_mqls', 0):,.0f} | Cost per MQL: Rs {funnel.get('cost_per_mql', 0):,.0f}")
-            if funnel.get("lead_to_mql_rate"):
-                lines.append(f"- Lead to MQL rate: {funnel['lead_to_mql_rate']}%")
-        if "sqls" in stages:
-            lines.append(f"- **Total SQLs:** {funnel.get('total_sqls', 0):,.0f} | Cost per SQL: Rs {funnel.get('cost_per_sql', 0):,.0f}")
-            if funnel.get("mql_to_sql_rate"):
-                lines.append(f"- MQL to SQL rate: {funnel['mql_to_sql_rate']}%")
-        if "customers" in stages:
-            lines.append(f"- **Total Customers:** {funnel.get('total_customers', 0):,.0f} | Cost per Customer: Rs {funnel.get('cost_per_customer', 0):,.0f}")
-            if funnel.get("sql_to_customer_rate"):
-                lines.append(f"- SQL to Customer rate: {funnel['sql_to_customer_rate']}%")
-        if funnel.get("overall_conversion_rate"):
-            lines.append(f"- Overall lead-to-customer rate: {funnel['overall_conversion_rate']}%")
-        lines.append("")
+        if etype == "assistant":
+            msg = event.get("message") or {}
+            for block in msg.get("content") or []:
+                if block.get("type") == "text":
+                    chunk = block.get("text", "")
+                    if chunk:
+                        full_text.append(chunk)
+                        yield ('chunk', chunk)
 
-    lines.append("## Budget Reallocation")
-    lines.append(
-        "Pause all campaigns with ROAS below 1.0x immediately. Reallocate that budget to your "
-        "top-performing campaigns. Review campaigns with ROAS between 1.0-2.0x and set tighter "
-        "audience targeting before scaling."
-    )
-    if funnel and "customers" in (funnel.get("stages_available") or []):
-        lines.append(
-            " Prioritize campaigns with the lowest cost per customer when reallocating budget."
-        )
-    lines.append("")
+        elif etype == "result":
+            result_text = event.get("result", "").strip()
+            if result_text:
+                full_text = [result_text]
+            break
 
-    lines.append("## Recommendations")
-    critical_all = []
-    warning_all = []
-    has_google = bool(data.get("google"))
-    has_meta = bool(data.get("meta"))
-    has_funnel = bool(data.get("funnel_summary") and data["funnel_summary"].get("stages_available"))
-    has_ga4 = any(
-        c.get("ga") for platform in platforms
-        for c in (data.get(platform) or {}).get("campaigns", [])
-    )
-    has_keywords = bool(data.get("granularity_level") in ("keyword", "ad_group"))
-
-    for platform in platforms:
-        pdata = data.get(platform, {})
-        if pdata:
-            for c in pdata.get("campaigns", []):
-                if c["severity"] == "critical":
-                    critical_all.append((platform, c))
-                elif c["severity"] == "warning":
-                    warning_all.append((platform, c))
-
-    recs = []
-    if critical_all:
-        c = critical_all[0][1]
-        recs.append(f"**Pause {c['name']}** ({critical_all[0][0].title()}) - ROAS is {c['roas']}x. Pause immediately and audit targeting before reactivating. [Confidence: High]")
-    if warning_all:
-        c = warning_all[0][1]
-        recs.append(f"**Reduce budget on {c['name']}** ({warning_all[0][0].title()}) - ROAS {c['roas']}x is below target. Cut spend by 25% while testing optimizations. [Confidence: High]")
-    if has_keywords:
-        recs.append("**Review keyword match types** - Switch broad match keywords on low-ROAS campaigns to phrase or exact match to reduce irrelevant traffic. [Confidence: Medium]")
-    if has_google and not has_keywords:
-        recs.append("**Upload keyword-level data** - Run a search terms report in Google Ads and upload for more specific recommendations. [Confidence: High]")
-    if has_ga4:
-        recs.append("**Address high bounce rates** - Campaigns with bounce rate above 70% likely have landing page or audience mismatch. Review and align ad copy with landing page. [Confidence: Medium]")
-    if has_funnel:
-        recs.append("**Focus on funnel leakage** - Identify the stage with the worst conversion rate and invest in fixing it before scaling spend. [Confidence: Medium]")
-    if has_google:
-        recs.append("**Enable Target ROAS bidding** - For Google campaigns with 30+ conversions/month, switch to Target ROAS to let Smart Bidding optimize toward your goal. [Confidence: Medium]")
-    if has_meta:
-        recs.append("**Test broad audience targeting** - Meta's Advantage+ Audiences often outperform narrow interest targeting. Run a 30-day test with Advantage+ enabled. [Confidence: Low]")
-    if not recs:
-        recs.append("**Upload additional data** - Connect GA4 data, keyword reports, or funnel data for more specific recommendations. [Confidence: High]")
-
-    for i, rec in enumerate(recs, 1):
-        lines.append(f"{i}. {rec}")
-
-    return "\n".join(lines)
+    proc.wait(timeout=10)
+    combined = "".join(full_text).strip()
+    if not combined:
+        raise RuntimeError("Claude CLI returned no output")
+    yield ('done', combined)

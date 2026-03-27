@@ -310,24 +310,10 @@ def _build_forecast_prompt(forecast: dict, client_name: str, currency: str, busi
     return prompt, acc, sym
 
 
-def _forecast_fallback(acc: dict, sym: str) -> str:
-    trend_label = {"up": "improving", "down": "declining", "flat": "stable"}.get(acc["spend_trend"], "stable")
-    return (
-        f"**{acc['horizon_days']}-Day Forecast**\n\n"
-        f"Based on {acc['periods_used']} historical periods, projected spend is "
-        f"**{sym} {acc['proj_spend']:,.0f}** with a blended ROAS of **{acc['proj_roas']}x** "
-        f"and an estimated **{acc['proj_conversions']:,.0f} conversions**.\n\n"
-        f"Spend trend is **{trend_label}**. "
-        f"A seasonality factor of **{acc['season_factor']}x** has been applied based on historical monthly patterns.\n\n"
-        f"Review top campaigns before the period begins and adjust budgets to align with these projections."
-    )
-
-
 def stream_forecast_narrative(forecast: dict, client_name: str, currency: str, business_context: str = ""):
-    """Yields ('chunk', text), ('done', full_text), or ('fallback', fallback_text)."""
+    """Yields ('chunk', text) or ('done', full_text). Raises on failure."""
     if not forecast or "error" in forecast:
-        yield ('fallback', "")
-        return
+        raise ValueError("Forecast data is empty or contains an error")
     prompt, acc, sym = _build_forecast_prompt(forecast, client_name, currency, business_context)
     for event_type, text in stream_prompt(prompt):
         if event_type == 'chunk':
@@ -337,24 +323,19 @@ def stream_forecast_narrative(forecast: dict, client_name: str, currency: str, b
             cleaned = _re.sub(r"^#{1,4}\s+.+\n?", "", text, flags=_re.MULTILINE).strip()
             yield ('done', cleaned)
             return
-        elif event_type == 'fallback':
-            yield ('fallback', _forecast_fallback(acc, sym))
-            return
 
 
 def generate_forecast_narrative(forecast: dict, client_name: str, currency: str, business_context: str = "") -> str:
-    """Ask Claude to narrate the forecast. Returns markdown string."""
+    """Ask Claude to narrate the forecast. Raises on failure."""
     if not forecast or "error" in forecast:
-        return ""
+        raise ValueError("Forecast data is empty or contains an error")
     prompt, acc, sym = _build_forecast_prompt(forecast, client_name, currency, business_context)
-    try:
-        result = subprocess.run(
-            ["claude", "--print", "--output-format", "text", prompt],
-            capture_output=True, text=True, encoding="utf-8", timeout=60
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            import re as _re
-            return _re.sub(r"^#{1,4}\s+.+\n?", "", result.stdout.strip(), flags=_re.MULTILINE).strip()
-    except Exception:
-        pass
-    return _forecast_fallback(acc, sym)
+    result = subprocess.run(
+        ["claude", "--print", "--output-format", "text", prompt],
+        capture_output=True, text=True, encoding="utf-8", timeout=60
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        err = result.stderr.strip() if result.stderr else "No output returned"
+        raise RuntimeError(f"Claude CLI error: {err}")
+    import re as _re
+    return _re.sub(r"^#{1,4}\s+.+\n?", "", result.stdout.strip(), flags=_re.MULTILINE).strip()

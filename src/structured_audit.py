@@ -728,26 +728,10 @@ def _build_audit_summary_prompt(result: dict, business_context: str = "") -> str
     )
 
 
-def _audit_summary_fallback(result: dict) -> str:
-    score = result["overall_score"]
-    fails = result["fail_count"]
-    warns = result["warning_count"]
-    top_recs = result["recommendations"][:5]
-    health = "excellent" if score >= 80 else "good" if score >= 60 else "needs attention" if score >= 40 else "critical"
-    return (
-        f"**Account Health Score: {score}/100 - {health.title()}**\n\n"
-        f"The structured audit ran {result['total_checks']} checks across {len(result['platforms'])} platform(s). "
-        f"Found {fails} critical issues and {warns} warnings. "
-        f"{result['pass_count']} checks passed.\n\n"
-        + (f"**Top Priority:** {top_recs[0]['action']}" if top_recs else "Review the recommendations table for all action items.")
-    )
-
-
 def stream_audit_summary(result: dict, business_context: str = ""):
-    """Yields ('chunk', text), ('done', full_text), or ('fallback', fallback_text)."""
+    """Yields ('chunk', text) or ('done', full_text). Raises on failure."""
     if not result or "error" in result:
-        yield ('fallback', "")
-        return
+        raise ValueError("Audit result is empty or contains an error")
     prompt = _build_audit_summary_prompt(result, business_context)
     for event_type, text in stream_prompt(prompt):
         if event_type == 'chunk':
@@ -755,23 +739,18 @@ def stream_audit_summary(result: dict, business_context: str = ""):
         elif event_type == 'done':
             yield ('done', text)
             return
-        elif event_type == 'fallback':
-            yield ('fallback', _audit_summary_fallback(result))
-            return
 
 
 def generate_audit_summary(result: dict, business_context: str = "") -> str:
-    """Ask Claude for a 1-paragraph executive summary of the structured audit. Returns markdown."""
+    """Ask Claude for a 1-paragraph executive summary of the structured audit. Raises on failure."""
     if not result or "error" in result:
-        return ""
+        raise ValueError("Audit result is empty or contains an error")
     prompt = _build_audit_summary_prompt(result, business_context)
-    try:
-        result_proc = subprocess.run(
-            ["claude", "--print", "--output-format", "text", prompt],
-            capture_output=True, text=True, encoding="utf-8", timeout=60
-        )
-        if result_proc.returncode == 0 and result_proc.stdout.strip():
-            return result_proc.stdout.strip()
-    except Exception:
-        pass
-    return _audit_summary_fallback(result)
+    result_proc = subprocess.run(
+        ["claude", "--print", "--output-format", "text", prompt],
+        capture_output=True, text=True, encoding="utf-8", timeout=60
+    )
+    if result_proc.returncode != 0 or not result_proc.stdout.strip():
+        err = result_proc.stderr.strip() if result_proc.stderr else "No output returned"
+        raise RuntimeError(f"Claude CLI error: {err}")
+    return result_proc.stdout.strip()

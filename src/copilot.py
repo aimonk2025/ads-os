@@ -115,12 +115,9 @@ def build_context(conn, client_id: int) -> str:
     lines = [f"CLIENT: {client_name} | Currency: {currency} | Period: {period}"]
 
     if context_raw:
-        try:
-            briefing = format_client_context(parse_context_from_json(context_raw))
-            if briefing:
-                lines.append(f"\n{briefing}")
-        except Exception:
-            pass
+        briefing = format_client_context(parse_context_from_json(context_raw))
+        if briefing:
+            lines.append(f"\n{briefing}")
 
     lines.append(f"\nACCOUNT SUMMARY ({period}):")
     lines.append(f"  Total Spend: {currency} {summary.get('total_spend', 0):,.0f}")

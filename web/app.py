@@ -300,7 +300,7 @@ def api_forecast_stream(client_id):
             for event_type, text in stream_forecast_narrative(forecast, client_name, currency, business_context):
                 if event_type == 'chunk':
                     yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
-                elif event_type in ('done', 'fallback'):
+                elif event_type == 'done':
                     yield f"data: {json.dumps({'type': 'done', 'narrative': text})}\n\n"
                     return
 
@@ -342,7 +342,7 @@ def api_structured_audit_stream():
             for event_type, text in stream_audit_summary(result, business_context):
                 if event_type == 'chunk':
                     yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
-                elif event_type in ('done', 'fallback'):
+                elif event_type == 'done':
                     yield f"data: {json.dumps({'type': 'done', 'summary': text})}\n\n"
                     return
 
@@ -1171,8 +1171,8 @@ def api_bulk_upload():
                         raw_context = (client or {}).get("context", "") or ""
                         client_context = format_client_context(parse_context_from_json(raw_context))
                         benchmarks_ctx = get_benchmarks(db, client_id) or ""
-                        claude_output, used_claude = analyze(analysis, business_context=client_context,
-                                                             benchmarks_context=benchmarks_ctx)
+                        claude_output = analyze(analysis, business_context=client_context,
+                                            benchmarks_context=benchmarks_ctx)
 
                         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
                         safe_name = (client_result["client_name"] or detected_name).lower().replace(" ", "_")
@@ -1314,9 +1314,9 @@ def api_audit():
     client_context = format_client_context(parse_context_from_json(raw_context))
     benchmarks_ctx = get_benchmarks(db, client_id) or ""
     upload_period_notes = (upload or {}).get("period_notes") or ""
-    claude_output, used_claude = analyze(analysis, business_context=client_context,
-                                         benchmarks_context=benchmarks_ctx,
-                                         period_notes=upload_period_notes)
+    claude_output = analyze(analysis, business_context=client_context,
+                            benchmarks_context=benchmarks_ctx,
+                            period_notes=upload_period_notes)
 
     # Build granular insights from stored rows for report template
     all_gran_rows = get_granular_rows(db, upload_id)
@@ -1416,7 +1416,6 @@ def api_audit():
     return jsonify({
         "report_id":    report_id,
         "report_url":   f"/report/{html_filename}",
-        "used_claude":  used_claude,
         "anomalies_detected": len(anomalies_found),
         "morning_brief": format_morning_brief(anomalies_found),
     })
@@ -1487,17 +1486,14 @@ def api_audit_stream():
 
     def generate():
         claude_output = []
-        used_claude = False
 
         for event_type, text in analyze_stream(analysis, business_context=client_context,
                                                benchmarks_context=benchmarks_ctx,
                                                period_notes=upload_period_notes):
             if event_type == 'chunk':
-                used_claude = True
                 claude_output.append(text)
                 yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
-            elif event_type in ('done', 'fallback'):
-                used_claude = (event_type == 'done')
+            elif event_type == 'done':
                 if not claude_output:
                     claude_output.append(text)
 
@@ -1578,7 +1574,7 @@ def api_audit_stream():
         except Exception as e:
             logger.warning("Alert engine failed for upload %s: %s", upload_id, e)
 
-        yield f"data: {json.dumps({'type': 'done', 'report_id': report_id, 'report_url': f'/report/{html_filename}', 'used_claude': used_claude, 'anomalies_detected': len(anomalies_found), 'morning_brief': format_morning_brief(anomalies_found)})}\n\n"
+        yield f"data: {json.dumps({'type': 'done', 'report_id': report_id, 'report_url': f'/report/{html_filename}', 'anomalies_detected': len(anomalies_found), 'morning_brief': format_morning_brief(anomalies_found)})}\n\n"
 
     return Response(generate(), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -1785,37 +1781,18 @@ Rules:
 Data:
 """
 
-    def _fallback_brief():
-        lines = []
-        if not anomalies:
-            lines.append(f"All Clear - no open anomalies for {client.get('name')}.")
-            lines.append("Recommendation: Run a fresh audit to check latest data.")
-        else:
-            lines.append(f"{crit_count} critical, {warn_count} warnings detected for {client.get('name')}.")
-            for a in anomalies[:5]:
-                lines.append(f"[{a['severity'].upper()}] {a['campaign_name']} ({a['platform']}): {a['description']}")
-            lines.append("Recommended: Review critical campaigns first, then warnings.")
-        return "\n".join(lines)
-
     def generate():
         prompt = BRIEF_PROMPT + json.dumps(payload, indent=2)
         full_text = []
-        used_claude = False
 
         for event_type, text in stream_prompt(prompt):
             if event_type == 'chunk':
-                used_claude = True
                 full_text.append(text)
                 yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
             elif event_type == 'done':
                 brief = text or "".join(full_text)
-                yield f"data: {json.dumps({'type': 'done', 'brief': brief, 'used_claude': True, 'severity': severity, 'summary': summary})}\n\n"
+                yield f"data: {json.dumps({'type': 'done', 'brief': brief, 'severity': severity, 'summary': summary})}\n\n"
                 return
-            elif event_type == 'fallback':
-                break
-
-        # Fallback if Claude unavailable or returned nothing
-        yield f"data: {json.dumps({'type': 'done', 'brief': _fallback_brief(), 'used_claude': False, 'severity': severity, 'summary': summary})}\n\n"
 
     return Response(generate(), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -1850,7 +1827,7 @@ def api_narrator():
     open_anomalies = get_anomalies(db, client_id, status="open", limit=20)
     raw_context = (client or {}).get("context", "") or ""
     client_context = format_client_context(parse_context_from_json(raw_context))
-    narrative_md, used_claude = generate_narrative(
+    narrative_md = generate_narrative(
         analysis, open_anomalies, tone, date_range, currency,
         business_context=client_context
     )
@@ -1875,7 +1852,6 @@ def api_narrator():
         "report_id":     report_id,
         "report_url":    f"/report/{html_filename}",
         "narrative_html": narrative_html,
-        "used_claude":   used_claude,
         "tone":          tone,
     })
 
@@ -1916,7 +1892,7 @@ def api_narrator_stream():
             if event_type == 'chunk':
                 full_text.append(text)
                 yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
-            elif event_type in ('done', 'fallback'):
+            elif event_type == 'done':
                 narrative_md = text or "".join(full_text)
                 from src.renderer import markdown_to_html
                 narrative_html = markdown_to_html(narrative_md)
@@ -1932,7 +1908,7 @@ def api_narrator_stream():
                         html_path=html_path, tone=tone,
                     )
                     conn2.close()
-                yield f"data: {json.dumps({'type': 'done', 'report_id': report_id, 'report_url': f'/report/{html_filename}', 'narrative_html': narrative_html, 'used_claude': event_type == 'done', 'tone': tone})}\n\n"
+                yield f"data: {json.dumps({'type': 'done', 'report_id': report_id, 'report_url': f'/report/{html_filename}', 'narrative_html': narrative_html, 'tone': tone})}\n\n"
                 return
 
     return Response(generate(), mimetype="text/event-stream",
@@ -2012,7 +1988,7 @@ def api_budget_agent():
     ctx_dict = parse_context_from_json(raw_context)
     client_context = format_client_context(ctx_dict)
     campaign_tags = ctx_dict.get("campaign_tags", {})
-    recs, explanation_md, used_claude = run_budget_agent(
+    recs, explanation_md = run_budget_agent(
         analysis, rules, client_id, db, currency,
         business_context=client_context,
         campaign_tags=campaign_tags,
@@ -2041,7 +2017,6 @@ def api_budget_agent():
         "recommendations":  recs,
         "explanation_html": explanation_html,
         "table_html":       table_html,
-        "used_claude":      used_claude,
     })
 
 
@@ -2081,7 +2056,7 @@ def api_budget_agent_stream():
         ):
             if event_type == 'chunk':
                 yield f"data: {json.dumps({'type': 'chunk', 'text': payload})}\n\n"
-            elif event_type in ('done', 'fallback'):
+            elif event_type == 'done':
                 recs, explanation_md = payload
                 from src.renderer import markdown_to_html
                 explanation_html = markdown_to_html(explanation_md)
@@ -2098,7 +2073,7 @@ def api_budget_agent_stream():
                         html_path=html_path,
                     )
                     conn2.close()
-                yield f"data: {json.dumps({'type': 'done', 'report_id': report_id, 'report_url': f'/report/{html_filename}', 'recommendations': recs, 'explanation_html': explanation_html, 'table_html': table_html, 'used_claude': event_type == 'done'})}\n\n"
+                yield f"data: {json.dumps({'type': 'done', 'report_id': report_id, 'report_url': f'/report/{html_filename}', 'recommendations': recs, 'explanation_html': explanation_html, 'table_html': table_html})}\n\n"
                 return
 
     return Response(generate(), mimetype="text/event-stream",

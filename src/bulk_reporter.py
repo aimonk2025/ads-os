@@ -235,17 +235,14 @@ def run_bulk_report_sync(agency_name: str = "") -> None:
             }
 
             # Try to get the latest report URL for this client
-            try:
-                latest_report = _q1(conn, """
-                    SELECT html_path FROM reports
-                    WHERE client_id = ? AND report_type = 'audit'
-                    ORDER BY created_at DESC LIMIT 1
-                """, [client["client_id"]])
-                if latest_report and latest_report.get("html_path"):
-                    p = Path(latest_report["html_path"])
-                    row["report_url"] = f"/report/{p.name}"
-            except Exception:
-                pass
+            latest_report = _q1(conn, """
+                SELECT html_path FROM reports
+                WHERE client_id = ? AND report_type = 'audit'
+                ORDER BY created_at DESC LIMIT 1
+            """, [client["client_id"]])
+            if latest_report and latest_report.get("html_path"):
+                p = Path(latest_report["html_path"])
+                row["report_url"] = f"/report/{p.name}"
 
             results.append(row)
 
@@ -266,10 +263,7 @@ def run_bulk_report_sync(agency_name: str = "") -> None:
     finally:
         _bulk_state["running"] = False
         if conn:
-            try:
-                conn.close()
-            except Exception:
-                pass
+            conn.close()
 
 
 def start_bulk_report(agency_name: str = "") -> None:
