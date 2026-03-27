@@ -526,9 +526,10 @@ def check_duplicate_upload(conn, client_id: int, period_start: str,
 
 
 def delete_upload(conn, upload_id: int) -> None:
-    """Delete an upload and all associated data (campaigns, funnel, granular rows, anomalies)."""
-    for table in ["granular_rows", "campaigns", "funnel_data", "anomalies"]:
+    """Delete an upload and all associated data."""
+    for table in ["granular_rows", "campaigns", "funnel_data", "anomalies", "kpi_alerts", "structured_audits", "reports"]:
         conn.execute(f"DELETE FROM {table} WHERE upload_id = ?", [upload_id])
+    conn.execute("UPDATE action_items SET snapshot_upload_id = NULL WHERE snapshot_upload_id = ?", [upload_id])
     conn.execute("DELETE FROM uploads WHERE id = ?", [upload_id])
     conn.commit()
 

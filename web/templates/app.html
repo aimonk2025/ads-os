@@ -5702,7 +5702,8 @@ function renderHistory(reports) {
         ${r.report_url ? `<button class="btn btn-sm btn-secondary" onclick="openShareModal('${escHtml(r.report_url)}', ${JSON.stringify(r.title || 'Report')}, ${r.id}, ${r.upload_id || 'null'})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share</button>` : ''}
         ${(r.report_type === 'audit' && r.upload_id) ? `<button class="btn btn-sm btn-secondary" onclick="openDrilldown(${r.upload_id}, ${JSON.stringify(r.title || '')})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Campaigns</button>` : ''}
         <button class="btn btn-sm btn-secondary" onclick="downloadPdf(${r.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteReport(${r.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> Delete</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteReport(${r.id})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> Delete Report</button>
+        ${r.upload_id ? `<button class="btn btn-sm btn-danger" onclick="deleteUpload(${r.upload_id})" title="Delete this upload period and all its data"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> Delete Upload</button>` : ''}
       </div>
     </div>
   `).join('');
@@ -5767,6 +5768,21 @@ async function deleteReport(reportId) {
     loadHistory();
   } catch(e) {
     showToast('Failed to delete report', 'error');
+  }
+}
+
+async function deleteUpload(uploadId) {
+  if (!confirm('Delete this upload and all its data? This removes campaign data, anomalies, and any reports tied to this period. This cannot be undone.')) return;
+  try {
+    const res = await fetch(`/api/uploads/${uploadId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Failed to delete upload', 'error'); return; }
+    showToast('Upload deleted', 'success');
+    loadHistory();
+    loadTrendChart();
+    loadCompareSelectors();
+  } catch(e) {
+    showToast('Failed to delete upload', 'error');
   }
 }
 

@@ -122,6 +122,11 @@ def index():
     return render_template("app.html")
 
 
+@app.route("/deck")
+def deck():
+    return render_template("carousel.html")
+
+
 # ---- Clients ----
 
 @app.post("/api/clients")
@@ -2162,6 +2167,21 @@ def api_delete_report(report_id):
                 Path(p).unlink(missing_ok=True)
             except Exception:
                 pass
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/uploads/<int:upload_id>")
+def api_delete_upload(upload_id):
+    db = get_db()
+    row = get_upload(db, upload_id)
+    if not row:
+        return jsonify({"error": "Upload not found"}), 404
+    client_id = row["client_id"]
+    delete_upload(db, upload_id)
+    try:
+        run_learning(db, client_id, None)
+    except Exception:
+        pass
     return jsonify({"ok": True})
 
 
