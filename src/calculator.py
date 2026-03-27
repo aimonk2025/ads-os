@@ -62,37 +62,59 @@ def calculate_meta_metrics(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _campaigns_to_list(df: pd.DataFrame, name_col: str, spend_col: str, revenue_col: Optional[str]) -> list:
+def _compute_trend(current_roas: float, prior_roas: Optional[float]) -> str:
+    if prior_roas is None or prior_roas == 0:
+        return "unknown"
+    pct_change = (current_roas - prior_roas) / prior_roas
+    if pct_change > 0.05:
+        return "improving"
+    elif pct_change < -0.05:
+        return "declining"
+    return "stable"
+
+
+def _campaigns_to_list(df: pd.DataFrame, name_col: str, spend_col: str, revenue_col: Optional[str],
+                       prior_roas_map: Optional[dict] = None) -> list:
     rows = []
     for _, row in df.iterrows():
         reach     = float(row["reach"]) if "reach" in df.columns and not pd.isna(row.get("reach", float("nan"))) else None
         frequency = float(row["frequency"]) if "frequency" in df.columns and not pd.isna(row.get("frequency", float("nan"))) else None
+        campaign_name = str(row[name_col])
+        current_roas = round(float(row["roas"]), 2)
+        prior_roas = (prior_roas_map or {}).get(campaign_name)
+        trend = _compute_trend(current_roas, prior_roas)
         rows.append({
-            "name": str(row[name_col]),
+            "name": campaign_name,
             "spend": float(row[spend_col]),
             "revenue": float(row[revenue_col]) if revenue_col else None,
-            "roas": round(float(row["roas"]), 2),
+            "roas": current_roas,
             "cac": round(float(row["cac"]), 2),
             "ctr": round(float(row["ctr"]), 2),
             "cpc": round(float(row["cpc"]), 2),
             "efficiency": round(float(row["efficiency"]), 3),
             "conversions": int(row.get("conversions", row.get("results", 0))),
+            "learning_phase": (
+                False if row.get("impressions") is None
+                else bool(row.get("impressions", 0) < 1000 and int(row.get("conversions", row.get("results", 0))) < 10)
+            ),
             "severity": row["severity"],
             "wasted": float(row["wasted"]),
             "reach": reach,
             "frequency": round(frequency, 2) if frequency else None,
+            "trend": trend,
         })
     return sorted(rows, key=lambda x: x["roas"])
 
 
 def _platform_summary(df: pd.DataFrame, spend_col: str, revenue_col: Optional[str],
-                       conversion_col: str, name_col: str) -> dict:
+                       conversion_col: str, name_col: str,
+                       prior_roas_map: Optional[dict] = None) -> dict:
     total_spend = float(df[spend_col].sum())
     total_revenue = float(df[revenue_col].sum()) if revenue_col else None
     total_conversions = float(df[conversion_col].sum())
     overall_roas = round(safe_divide(total_revenue or 0, total_spend), 2) if revenue_col else round(float(df["roas"].mean()), 2)
     wasted = float(df["wasted"].sum())
-    campaigns = _campaigns_to_list(df, name_col, spend_col, revenue_col)
+    campaigns = _campaigns_to_list(df, name_col, spend_col, revenue_col, prior_roas_map=prior_roas_map)
     critical = [c for c in campaigns if c["severity"] == "critical"]
     warning = [c for c in campaigns if c["severity"] == "warning"]
     ok = [c for c in campaigns if c["severity"] == "ok"]
@@ -132,17 +154,36 @@ def build_summary(
         "comparison": None,
     }
 
+    # Build prior ROAS lookup maps when prior period data is available
+    prior_google_roas_map: Optional[dict] = None
+    if prev_google_df is not None:
+        _prev_g = calculate_google_metrics(prev_google_df.copy())
+        prior_google_roas_map = {
+            str(row["campaign"]): round(float(row["roas"]), 2)
+            for _, row in _prev_g.iterrows()
+        }
+
+    prior_meta_roas_map: Optional[dict] = None
+    if prev_meta_df is not None:
+        _prev_m = calculate_meta_metrics(prev_meta_df.copy())
+        prior_meta_roas_map = {
+            str(row["campaign name"]): round(float(row["roas"]), 2)
+            for _, row in _prev_m.iterrows()
+        }
+
     if google_df is not None:
         result["platforms"].append("google")
         result["google"] = _platform_summary(
-            google_df, "cost", "conversion value", "conversions", "campaign"
+            google_df, "cost", "conversion value", "conversions", "campaign",
+            prior_roas_map=prior_google_roas_map,
         )
 
     if meta_df is not None:
         result["platforms"].append("meta")
         meta_rev_col = "purchase value" if "purchase value" in meta_df.columns else None
         result["meta"] = _platform_summary(
-            meta_df, "amount spent", meta_rev_col, "results", "campaign name"
+            meta_df, "amount spent", meta_rev_col, "results", "campaign name",
+            prior_roas_map=prior_meta_roas_map,
         )
 
     # Funnel enrichment

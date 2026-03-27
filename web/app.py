@@ -47,6 +47,7 @@ from src.renderer import render_report
 from src.anomaly_detector import detect_anomalies, format_morning_brief
 from src.narrator import generate_narrative, stream_narrative
 from src.budget_agent import run_budget_agent, stream_budget_agent, format_reallocation_table
+from src.learning import run_learning, get_benchmarks
 from src.bulk_splitter import split_bulk_file, df_to_tempfile, detect_client_column, match_or_create_client
 from src.dashboard import get_dashboard_data
 from src.copilot import ask_copilot
@@ -732,6 +733,7 @@ def api_upload():
         period_label = request.form.get("period_label", "").strip() or None
         period_start = request.form.get("period_start", "").strip() or None
         period_end   = request.form.get("period_end", "").strip() or None
+        period_notes = request.form.get("period_notes", "").strip() or None
 
         # Parse optional column_mappings JSON
         # Format: {"google": {"Original Col": "canonical"}, "meta": {...}, ...}
@@ -865,7 +867,8 @@ def api_upload():
 
         upload_id = create_upload(db, client_id, platforms,
                                   bool(funnel_data), period_label, gran_level,
-                                  period_start=period_start, period_end=period_end)
+                                  period_start=period_start, period_end=period_end,
+                                  period_notes=period_notes)
 
         if google_df is not None:
             insert_campaigns(db, upload_id, client_id, "google",
@@ -896,6 +899,9 @@ def api_upload():
                     gdf = meta_gran.get(level_key)
                     if gdf is not None and len(gdf):
                         insert_granular_rows(db, upload_id, client_id, "meta", db_level, gdf)
+
+        # Run learning (benchmarks + outcome tracking) after all data is committed
+        run_learning(db, client_id, upload_id)
 
         # Quick stats
         total_spend = total_wasted = 0.0
@@ -1038,6 +1044,7 @@ def api_bulk_upload():
     period_label     = request.form.get("period_label", "").strip() or None
     period_start     = request.form.get("period_start", "").strip() or None
     period_end       = request.form.get("period_end", "").strip() or None
+    period_notes     = request.form.get("period_notes", "").strip() or None
     currency         = request.form.get("currency", "INR").strip()
     run_audit_flag   = request.form.get("run_audit", "true").lower() != "false"
 
@@ -1125,6 +1132,7 @@ def api_bulk_upload():
                         db, client_id, platforms_list,
                         False, period_label, gran_level,
                         period_start=period_start, period_end=period_end,
+                        period_notes=period_notes,
                     )
 
                     if platform == "google" and google_df is not None:
@@ -1147,6 +1155,8 @@ def api_bulk_upload():
                                 if gdf is not None and len(gdf):
                                     insert_granular_rows(db, upload_id, client_id, "meta", db_level, gdf)
 
+                    run_learning(db, client_id, upload_id)
+
                     client_result["upload_id"] = upload_id
                     pdata = analysis.get(platform) or {}
                     client_result["campaign_count"] = pdata.get("campaign_count", 0)
@@ -1155,7 +1165,9 @@ def api_bulk_upload():
                     if run_audit_flag:
                         raw_context = (client or {}).get("context", "") or ""
                         client_context = format_client_context(parse_context_from_json(raw_context))
-                        claude_output, used_claude = analyze(analysis, business_context=client_context)
+                        benchmarks_ctx = get_benchmarks(db, client_id) or ""
+                        claude_output, used_claude = analyze(analysis, business_context=client_context,
+                                                             benchmarks_context=benchmarks_ctx)
 
                         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
                         safe_name = (client_result["client_name"] or detected_name).lower().replace(" ", "_")
@@ -1295,7 +1307,11 @@ def api_audit():
 
     raw_context = (client or {}).get("context", "") or ""
     client_context = format_client_context(parse_context_from_json(raw_context))
-    claude_output, used_claude = analyze(analysis, business_context=client_context)
+    benchmarks_ctx = get_benchmarks(db, client_id) or ""
+    upload_period_notes = (upload or {}).get("period_notes") or ""
+    claude_output, used_claude = analyze(analysis, business_context=client_context,
+                                         benchmarks_context=benchmarks_ctx,
+                                         period_notes=upload_period_notes)
 
     # Build granular insights from stored rows for report template
     all_gran_rows = get_granular_rows(db, upload_id)
@@ -1461,12 +1477,16 @@ def api_audit_stream():
 
     raw_context = (client or {}).get("context", "") or ""
     client_context = format_client_context(parse_context_from_json(raw_context))
+    benchmarks_ctx = get_benchmarks(db, client_id) or ""
+    upload_period_notes = (upload or {}).get("period_notes") or ""
 
     def generate():
         claude_output = []
         used_claude = False
 
-        for event_type, text in analyze_stream(analysis, business_context=client_context):
+        for event_type, text in analyze_stream(analysis, business_context=client_context,
+                                               benchmarks_context=benchmarks_ctx,
+                                               period_notes=upload_period_notes):
             if event_type == 'chunk':
                 used_claude = True
                 claude_output.append(text)

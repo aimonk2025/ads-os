@@ -275,4 +275,22 @@ def build_funnel_summary(campaigns: list) -> Optional[dict]:
     if "leads" in available and "customers" in available and totals["leads"]:
         summary["overall_conversion_rate"] = round(safe_divide_f(totals["customers"], totals["leads"]) * 100, 2)
 
+    # Find worst funnel stage
+    lead_to_mql_rate = summary.get("lead_to_mql_rate")
+    mql_to_sql_rate = summary.get("mql_to_sql_rate")
+    sql_to_customer_rate = summary.get("sql_to_customer_rate")
+    worst_stage = None
+    worst_rate = 100.0
+    if lead_to_mql_rate is not None and lead_to_mql_rate < worst_rate:
+        worst_rate = lead_to_mql_rate
+        worst_stage = "lead_to_mql"
+    if mql_to_sql_rate is not None and mql_to_sql_rate < worst_rate:
+        worst_rate = mql_to_sql_rate
+        worst_stage = "mql_to_sql"
+    if sql_to_customer_rate is not None and sql_to_customer_rate < worst_rate:
+        worst_rate = sql_to_customer_rate
+        worst_stage = "sql_to_customer"
+    summary["worst_funnel_stage"] = worst_stage
+    summary["worst_funnel_rate"] = round(worst_rate, 1)
+
     return summary

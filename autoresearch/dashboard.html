@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ads OS Autoresearch Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fb; color: #1a1a2e; font-size: 14px; }
+
+  header { background: #1a1a2e; color: #fff; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  header .meta { font-size: 12px; color: #8892b0; }
+
+  .status-bar { background: #e8f4fd; border-left: 4px solid #4a90d9; padding: 10px 28px; font-size: 13px; color: #1a4971; display: flex; align-items: center; gap: 8px; }
+  .status-bar.complete { background: #e8f8f0; border-color: #27ae60; color: #155724; }
+  .status-bar .dot { width: 8px; height: 8px; border-radius: 50%; background: #4a90d9; animation: pulse 1.4s infinite; }
+  .status-bar.complete .dot { background: #27ae60; animation: none; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; padding: 20px 28px 0; }
+  .card { background: #fff; border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .card .label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: #888; margin-bottom: 6px; }
+  .card .value { font-size: 28px; font-weight: 700; color: #1a1a2e; }
+  .card .value.green { color: #27ae60; }
+  .card .value.blue { color: #4a90d9; }
+  .card .sub { font-size: 11px; color: #aaa; margin-top: 4px; }
+
+  .chart-section { padding: 20px 28px 0; display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  .chart-card { background: #fff; border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .chart-card h2 { font-size: 13px; font-weight: 600; margin-bottom: 14px; color: #444; }
+  canvas { max-height: 220px; }
+
+  .eval-bar { margin-bottom: 10px; }
+  .eval-bar .top { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px; }
+  .eval-bar .name { color: #444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
+  .eval-bar .pct { font-weight: 600; }
+  .bar-track { height: 7px; background: #eef0f4; border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
+
+  .table-section { padding: 20px 28px 28px; }
+  .table-card { background: #fff; border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .table-card h2 { font-size: 13px; font-weight: 600; margin-bottom: 14px; color: #444; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #999; padding: 6px 10px; border-bottom: 1px solid #eee; }
+  td { padding: 9px 10px; border-bottom: 1px solid #f4f4f4; font-size: 13px; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafbfc; }
+
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+  .badge-baseline { background: #dbeafe; color: #1e40af; }
+  .badge-keep { background: #dcfce7; color: #166534; }
+  .badge-discard { background: #fee2e2; color: #991b1b; }
+  .badge-running { background: #fef9c3; color: #854d0e; }
+
+  .score-col { font-weight: 600; }
+  .desc-col { color: #555; max-width: 360px; }
+
+  .refresh-note { text-align: center; padding: 10px 0 20px; font-size: 11px; color: #bbb; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Ads OS Autoresearch - Audit Prompt Optimizer</h1>
+  <div class="meta" id="last-updated">Loading...</div>
+</header>
+
+<div class="status-bar" id="status-bar">
+  <div class="dot"></div>
+  <span id="status-text">Loading results...</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="label">Baseline</div>
+    <div class="value blue" id="baseline-score">-</div>
+    <div class="sub">pass rate</div>
+  </div>
+  <div class="card">
+    <div class="label">Best Score</div>
+    <div class="value green" id="best-score">-</div>
+    <div class="sub">pass rate</div>
+  </div>
+  <div class="card">
+    <div class="label">Experiments</div>
+    <div class="value" id="exp-count">-</div>
+    <div class="sub">total run</div>
+  </div>
+  <div class="card">
+    <div class="label">Keep Rate</div>
+    <div class="value" id="keep-rate">-</div>
+    <div class="sub">mutations kept</div>
+  </div>
+</div>
+
+<div class="chart-section">
+  <div class="chart-card">
+    <h2>Score Progression</h2>
+    <canvas id="scoreChart"></canvas>
+  </div>
+  <div class="chart-card">
+    <h2>Eval Breakdown</h2>
+    <div id="eval-breakdown"></div>
+  </div>
+</div>
+
+<div class="table-section">
+  <div class="table-card">
+    <h2>Experiment Log</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Status</th>
+          <th>Score</th>
+          <th>Pass Rate</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody id="exp-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="refresh-note">Auto-refreshes every 10 seconds &bull; Data from results/results.json</div>
+
+<script>
+let chart = null;
+
+function barColor(pct) {
+  if (pct >= 80) return '#27ae60';
+  if (pct >= 60) return '#f39c12';
+  return '#e74c3c';
+}
+
+function render(data) {
+  // Status bar
+  const bar = document.getElementById('status-bar');
+  const statusText = document.getElementById('status-text');
+  if (data.status === 'complete') {
+    bar.className = 'status-bar complete';
+    statusText.textContent = 'Run complete. Final best score: ' + data.best_score + '%';
+  } else {
+    bar.className = 'status-bar';
+    statusText.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1) +
+      ' | Max score per run: ' + data.max_score + ' (' + data.eval_count + ' evals x ' +
+      data.runs_per_experiment + ' runs x ' + data.test_count + ' inputs)';
+  }
+
+  document.getElementById('last-updated').textContent =
+    'Updated ' + new Date(data.last_updated).toLocaleTimeString();
+
+  // Summary cards
+  document.getElementById('baseline-score').textContent = data.baseline_score + '%';
+  document.getElementById('best-score').textContent = data.best_score + '%';
+  document.getElementById('exp-count').textContent = data.experiments.length;
+
+  const kept = data.experiments.filter(e => e.status === 'keep').length;
+  const mutations = data.experiments.filter(e => e.status !== 'baseline').length;
+  document.getElementById('keep-rate').textContent =
+    mutations > 0 ? Math.round(kept / mutations * 100) + '%' : '-';
+
+  // Score chart
+  const labels = data.experiments.map(e => 'Exp ' + e.id);
+  const scores = data.experiments.map(e => e.pass_rate);
+  const colors = data.experiments.map(e => {
+    if (e.status === 'baseline') return '#4a90d9';
+    if (e.status === 'keep') return '#27ae60';
+    if (e.status === 'discard') return '#e74c3c';
+    return '#f39c12';
+  });
+
+  if (chart) {
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = scores;
+    chart.data.datasets[0].pointBackgroundColor = colors;
+    chart.data.datasets[0].pointBorderColor = colors;
+    chart.update('none');
+  } else {
+    const ctx = document.getElementById('scoreChart').getContext('2d');
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: scores,
+          borderColor: '#4a90d9',
+          borderWidth: 2,
+          pointBackgroundColor: colors,
+          pointBorderColor: colors,
+          pointRadius: 6,
+          tension: 0.3,
+          fill: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: {
+            min: 0, max: 100,
+            ticks: { callback: v => v + '%', font: { size: 11 } },
+            grid: { color: '#f0f0f0' }
+          },
+          x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // Eval breakdown
+  const container = document.getElementById('eval-breakdown');
+  container.innerHTML = '';
+  (data.eval_breakdown || []).forEach(ev => {
+    const pct = ev.total > 0 ? Math.round(ev.pass_count / ev.total * 100) : 0;
+    const color = barColor(pct);
+    container.innerHTML += `
+      <div class="eval-bar">
+        <div class="top">
+          <span class="name">${ev.name}</span>
+          <span class="pct" style="color:${color}">${pct}%</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </div>`;
+  });
+
+  // Experiment table
+  const tbody = document.getElementById('exp-table');
+  tbody.innerHTML = '';
+  [...data.experiments].reverse().forEach(e => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${e.id}</td>
+        <td><span class="badge badge-${e.status}">${e.status}</span></td>
+        <td class="score-col">${e.score}/${e.max_score}</td>
+        <td class="score-col" style="color:${barColor(e.pass_rate)}">${e.pass_rate}%</td>
+        <td class="desc-col">${e.description}</td>
+      </tr>`;
+  });
+}
+
+async function fetchAndRender() {
+  try {
+    const res = await fetch('results/results.json?t=' + Date.now());
+    if (!res.ok) {
+      document.getElementById('status-text').textContent =
+        'Waiting for runner to start... (results/results.json not found yet)';
+      return;
+    }
+    const data = await res.json();
+    render(data);
+  } catch (e) {
+    document.getElementById('status-text').textContent = 'Error loading data: ' + e.message;
+  }
+}
+
+fetchAndRender();
+setInterval(fetchAndRender, 10000);
+</script>
+</body>
+</html>

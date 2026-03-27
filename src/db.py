@@ -276,6 +276,9 @@ def init_schema(conn: duckdb.DuckDBPyConnection) -> None:
     if "period_end" not in existing_upload_cols:
         conn.execute("ALTER TABLE uploads ADD COLUMN period_end DATE")
         conn.commit()
+    if "period_notes" not in existing_upload_cols:
+        conn.execute("ALTER TABLE uploads ADD COLUMN period_notes VARCHAR")
+        conn.commit()
 
     existing_client_cols = {r[0] for r in conn.execute(
         "SELECT column_name FROM information_schema.columns WHERE table_name='clients'"
@@ -533,10 +536,11 @@ def delete_upload(conn, upload_id: int) -> None:
 def create_upload(conn, client_id: int, platforms: list,
                   has_funnel: bool, period_label: str = None,
                   granularity_level: str = None,
-                  period_start: str = None, period_end: str = None) -> int:
+                  period_start: str = None, period_end: str = None,
+                  period_notes: str = None) -> int:
     conn.execute(
-        "INSERT INTO uploads (client_id, platforms, has_funnel, period_label, granularity_level, period_start, period_end) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [client_id, json.dumps(platforms), has_funnel, period_label, granularity_level, period_start, period_end]
+        "INSERT INTO uploads (client_id, platforms, has_funnel, period_label, granularity_level, period_start, period_end, period_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        [client_id, json.dumps(platforms), has_funnel, period_label, granularity_level, period_start, period_end, period_notes]
     )
     conn.commit()
     row = _q1(conn, "SELECT id FROM uploads WHERE client_id = ? ORDER BY uploaded_at DESC LIMIT 1", [client_id])

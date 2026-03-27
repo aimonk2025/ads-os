@@ -22,6 +22,10 @@ reports/
 # Sample data (local only)
 sample_data/
 
+# Autoresearch results (local experiment outputs, not committed)
+autoresearch/results/
+autoresearch/results_round*/
+
 # Docs (internal only)
 docs/
 

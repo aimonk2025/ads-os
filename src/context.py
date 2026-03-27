@@ -120,6 +120,31 @@ BUSINESS_TYPE_PROFILES = {
 }
 
 
+USER_TYPE_LABELS = {
+    "in_house":  "In-house marketer",
+    "agency":    "Agency",
+    "freelancer": "Freelancer",
+}
+
+USER_TYPE_INSTRUCTIONS = {
+    "in_house":   "The user is an in-house marketer. Explain the reasoning behind recommendations clearly — they may not have deep paid media expertise.",
+    "agency":     "The user is an agency. Write sharp, directive recommendations with no hand-holding. Skip theory, go straight to actions and numbers.",
+    "freelancer": "The user is a freelancer. Prioritise the highest-impact recommendations tightly — they have limited bandwidth.",
+}
+
+MATURITY_LABELS = {
+    "new":     "New account (0-6 months)",
+    "growing": "Growing account (6-18 months)",
+    "mature":  "Mature account (18+ months)",
+}
+
+MATURITY_INSTRUCTIONS = {
+    "new":     "This is a new account. Focus on foundational fixes and learning phase campaigns. Do not suggest advanced bid strategies or audience layering.",
+    "growing": "This account is in a growth phase. Balance foundational health with optimisation. Flag structural issues alongside performance improvements.",
+    "mature":  "This is a mature account. Skip basic setup issues. Focus on marginal optimisation, budget efficiency, and strategic reallocation.",
+}
+
+
 def format_client_context(context: dict) -> str:
     """
     Convert structured client context dict into a formatted briefing block
@@ -139,6 +164,31 @@ def format_client_context(context: dict) -> str:
     lines.append(f"Business type: {profile['label']}")
     if profile["implied"]:
         lines.append(f"Implied context: {profile['implied']}")
+
+    # Account maturity
+    maturity = context.get("account_maturity", "").strip()
+    if maturity and maturity in MATURITY_LABELS:
+        lines.append(f"Account maturity: {MATURITY_LABELS[maturity]}")
+        lines.append(f"Maturity guidance: {MATURITY_INSTRUCTIONS[maturity]}")
+
+    # User type
+    user_type = context.get("user_type", "").strip()
+    if user_type and user_type in USER_TYPE_LABELS:
+        lines.append(f"Report recipient: {USER_TYPE_LABELS[user_type]}")
+        lines.append(f"Tone guidance: {USER_TYPE_INSTRUCTIONS[user_type]}")
+
+    # Monthly budget
+    monthly_budget = context.get("monthly_budget_total", "").strip() if context.get("monthly_budget_total") else ""
+    if monthly_budget:
+        budget_line = f"Monthly budget: {monthly_budget}"
+        google_budget = (context.get("monthly_budget_google") or "").strip()
+        meta_budget   = (context.get("monthly_budget_meta") or "").strip()
+        if google_budget or meta_budget:
+            splits = []
+            if google_budget: splits.append(f"Google {google_budget}")
+            if meta_budget:   splits.append(f"Meta {meta_budget}")
+            budget_line += f" ({', '.join(splits)})"
+        lines.append(budget_line)
 
     # Primary goal
     goal = context.get("goal", "").strip()
@@ -206,28 +256,36 @@ def format_client_context(context: dict) -> str:
     # Benchmark ranges for the business type
     benchmarks = BENCHMARK_RANGES.get(business_type)
     if benchmarks:
-        blines = [f"Industry benchmarks for {benchmarks['label']} (rough orientation only):"]
+        blines = [
+            f"Industry benchmarks for {benchmarks['label']} (target direction — compare against account history below):",
+            "  Use these as the goal to close toward, not as a pass/fail threshold.",
+        ]
         if benchmarks.get("google_roas"):
             r = benchmarks["google_roas"]
-            blines.append(f"  Google ROAS: low {r['low']}x | median {r['median']}x | high {r['high']}x")
+            blines.append(f"  Google ROAS target range: low {r['low']}x | median {r['median']}x | high {r['high']}x")
         if benchmarks.get("meta_roas"):
             r = benchmarks["meta_roas"]
-            blines.append(f"  Meta ROAS: low {r['low']}x | median {r['median']}x | high {r['high']}x")
+            blines.append(f"  Meta ROAS target range: low {r['low']}x | median {r['median']}x | high {r['high']}x")
         if benchmarks.get("google_cpl"):
             r = benchmarks["google_cpl"]
-            blines.append(f"  Google CPL: low {r['low']} | median {r['median']} | high {r['high']}")
+            blines.append(f"  Google CPL target range: low {r['low']} | median {r['median']} | high {r['high']}")
         if benchmarks.get("meta_cpl"):
             r = benchmarks["meta_cpl"]
-            blines.append(f"  Meta CPL: low {r['low']} | median {r['median']} | high {r['high']}")
+            blines.append(f"  Meta CPL target range: low {r['low']} | median {r['median']} | high {r['high']}")
         if benchmarks.get("google_cpi"):
             r = benchmarks["google_cpi"]
-            blines.append(f"  Google CPI: low {r['low']} | median {r['median']} | high {r['high']}")
+            blines.append(f"  Google CPI target range: low {r['low']} | median {r['median']} | high {r['high']}")
         if benchmarks.get("meta_cpi"):
             r = benchmarks["meta_cpi"]
-            blines.append(f"  Meta CPI: low {r['low']} | median {r['median']} | high {r['high']}")
+            blines.append(f"  Meta CPI target range: low {r['low']} | median {r['median']} | high {r['high']}")
         if benchmarks.get("note"):
             blines.append(f"  Note: {benchmarks['note']}")
         lines.append("\n".join(blines))
+
+    # Competitive context
+    competitive = context.get("competitive_context", "").strip()
+    if competitive:
+        lines.append(f"Competitive context: {competitive}")
 
     # Free-form additional context
     extra = context.get("extra", "").strip()

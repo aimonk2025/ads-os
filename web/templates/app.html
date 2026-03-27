@@ -18,15 +18,17 @@
     --muted: #64748b;
     --text-secondary: #475569;
     --critical: #dc2626;
-    --critical-bg: var(--critical-bg);
+    --critical-bg: #fef2f2;
     --critical-border: #fca5a5;
     --warning: #d97706;
-    --warning-bg: var(--warning-bg);
-    --warning-border: var(--warning-border);
-    --warning-text: var(--warning-text);
+    --warning-bg: #fffbeb;
+    --warning-border: #fcd34d;
+    --warning-text: #b45309;
     --ok: #16a34a;
-    --ok-bg: var(--ok-bg);
-    --ok-border: var(--ok-border);
+    --ok-bg: #f0fdf4;
+    --ok-border: #86efac;
+    --primary: #3b82f6;
+    --bg-secondary: #f1f5f9;
   }
 
   /* ---- Reset ---- */
@@ -78,7 +80,7 @@
     align-items: center;
     gap: 10px;
     padding: 9px 20px;
-    color: #94a3b8;
+    color: #b0bdd0;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -92,7 +94,7 @@
   }
   .nav-item.active {
     border-left-color: var(--blue);
-    background: rgba(59,130,246,0.1);
+    background: rgba(59, 130, 246, 0.12);
     color: var(--blue);
   }
   .nav-item .nav-icon { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
@@ -404,8 +406,8 @@
     position: fixed;
     bottom: 88px;
     right: 28px;
-    width: 400px;
-    max-height: 580px;
+    width: min(400px, calc(100vw - 56px));
+    max-height: min(580px, calc(100vh - 120px));
     background: var(--white);
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -675,17 +677,11 @@
   }
   .btn-secondary:hover { border-color: var(--blue); color: var(--blue); }
   .btn-danger {
-    background: var(--white);
-    color: #dc2626;
-    border: 1px solid var(--critical-border);
-  }
-  .btn-danger:hover { background: var(--critical-bg); border-color: #dc2626; }
-  .btn-danger {
     background: var(--critical-bg);
     color: var(--critical);
-    border: 1px solid #fca5a5;
+    border: 1px solid var(--critical-border);
   }
-  .btn-danger:hover { background: #fee2e2; }
+  .btn-danger:hover { background: #fee2e2; border-color: var(--critical); }
   .btn-warning {
     background: #d97706;
     color: #fff;
@@ -2298,17 +2294,21 @@
           <!-- Period metadata -->
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
             <div class="form-group" style="margin:0">
-              <label class="form-label">Period Label</label>
+              <label class="form-label" for="period-label">Period Label</label>
               <input type="text" class="form-input" id="period-label" placeholder="e.g. Q1 2026, Jan 2026">
             </div>
             <div class="form-group" style="margin:0">
-              <label class="form-label">Period Start</label>
+              <label class="form-label" for="period-start">Period Start</label>
               <input type="date" class="form-input" id="period-start">
             </div>
             <div class="form-group" style="margin:0">
-              <label class="form-label">Period End</label>
+              <label class="form-label" for="period-end">Period End</label>
               <input type="date" class="form-input" id="period-end">
             </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Period Notes <span style="font-weight:400;color:var(--muted)">(optional - external factors during this period)</span></label>
+            <textarea class="form-input" id="period-notes" rows="2" placeholder="e.g. Landing page was down Oct 12-15. Budget cut by 30% on Oct 20. Competitor launched aggressive campaign. Diwali sale ran Oct 18-22."></textarea>
           </div>
 
           <!-- Actions -->
@@ -2689,6 +2689,36 @@
                 </select>
               </div>
 
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div class="form-group" style="margin:0">
+                  <label class="form-label">Account Maturity</label>
+                  <select class="form-input" id="ctx-account-maturity" onchange="updateContextPreview()">
+                    <option value="">Not specified</option>
+                    <option value="new">New (0-6 months)</option>
+                    <option value="growing">Growing (6-18 months)</option>
+                    <option value="mature">Mature (18+ months)</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin:0">
+                  <label class="form-label">Report Recipient</label>
+                  <select class="form-input" id="ctx-user-type" onchange="updateContextPreview()">
+                    <option value="">Not specified</option>
+                    <option value="in_house">In-house marketer</option>
+                    <option value="agency">Agency</option>
+                    <option value="freelancer">Freelancer</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Monthly Budget <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                  <input type="text" class="form-input" id="ctx-monthly-budget-total" placeholder="Total e.g. Rs 8,00,000" oninput="updateContextPreview()">
+                  <input type="text" class="form-input" id="ctx-monthly-budget-google" placeholder="Google split" oninput="updateContextPreview()">
+                  <input type="text" class="form-input" id="ctx-monthly-budget-meta" placeholder="Meta split" oninput="updateContextPreview()">
+                </div>
+              </div>
+
               <div class="form-group" id="ctx-field-goal">
                 <label class="form-label">Primary Goal</label>
                 <input type="text" class="form-input" id="ctx-goal" placeholder="e.g. Drive purchases, Generate leads, App installs" oninput="updateContextPreview()">
@@ -2722,6 +2752,11 @@
               <div class="form-group" id="ctx-field-budget-notes">
                 <label class="form-label">Budget Constraints <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
                 <textarea class="form-input" id="ctx-budget-notes" rows="2" placeholder="e.g. Fixed monthly budget Rs 2L, cannot shift more than 20% from Meta, Q4 budget locked" oninput="updateContextPreview()"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Competitive Context <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+                <textarea class="form-input" id="ctx-competitive-context" rows="2" placeholder="e.g. Competitor X launched aggressive Meta campaign in Oct. Competitor Y bidding on our brand keywords. New entrant dropped prices 20%." oninput="updateContextPreview()"></textarea>
               </div>
 
               <!-- Attribution Model -->
@@ -4754,6 +4789,8 @@ async function runUploadAndAudit() {
     const pe = document.getElementById('period-end').value;
     if (ps) fd.append('period_start', ps);
     if (pe) fd.append('period_end', pe);
+    const pn = document.getElementById('period-notes').value.trim();
+    if (pn) fd.append('period_notes', pn);
     ['google', 'meta', 'funnel', 'ga', 'google_prev', 'meta_prev'].forEach(k => {
       if (uploadFiles[k]) fd.append(k, uploadFiles[k]);
     });
@@ -5905,6 +5942,12 @@ async function loadContext() {
     document.getElementById('ctx-seasonal').value = ctx.seasonal || '';
     document.getElementById('ctx-campaign-notes').value = ctx.campaign_notes || '';
     document.getElementById('ctx-budget-notes').value = ctx.budget_notes || '';
+    document.getElementById('ctx-account-maturity').value = ctx.account_maturity || '';
+    document.getElementById('ctx-user-type').value = ctx.user_type || '';
+    document.getElementById('ctx-monthly-budget-total').value = ctx.monthly_budget_total || '';
+    document.getElementById('ctx-monthly-budget-google').value = ctx.monthly_budget_google || '';
+    document.getElementById('ctx-monthly-budget-meta').value = ctx.monthly_budget_meta || '';
+    document.getElementById('ctx-competitive-context').value = ctx.competitive_context || '';
     document.getElementById('ctx-anomaly-sensitivity').value = ctx.anomaly_sensitivity || 'medium';
     document.getElementById('ctx-attribution-model').value = ctx.attribution_model || '';
 
@@ -5935,10 +5978,16 @@ function updateContextPreview() {
     seasonal: document.getElementById('ctx-seasonal').value.trim(),
     campaign_notes: document.getElementById('ctx-campaign-notes').value.trim(),
     budget_notes: document.getElementById('ctx-budget-notes').value.trim(),
+    account_maturity: document.getElementById('ctx-account-maturity').value,
+    user_type: document.getElementById('ctx-user-type').value,
+    monthly_budget_total: document.getElementById('ctx-monthly-budget-total').value.trim(),
+    monthly_budget_google: document.getElementById('ctx-monthly-budget-google').value.trim(),
+    monthly_budget_meta: document.getElementById('ctx-monthly-budget-meta').value.trim(),
+    competitive_context: document.getElementById('ctx-competitive-context').value.trim(),
   };
 
   // Remove empty fields for display
-  const hasAny = ctx.goal || ctx.audience || ctx.seasonal || ctx.campaign_notes || ctx.budget_notes || ctx.sales_cycle_weeks || ctx.avg_order_value;
+  const hasAny = ctx.goal || ctx.audience || ctx.seasonal || ctx.campaign_notes || ctx.budget_notes || ctx.sales_cycle_weeks || ctx.avg_order_value || ctx.account_maturity || ctx.user_type || ctx.monthly_budget_total || ctx.competitive_context;
   const previewWrap = document.getElementById('ctx-preview-wrap');
   if (!hasAny) {
     previewWrap.style.display = 'none';
@@ -5955,7 +6004,21 @@ function updateContextPreview() {
     other: 'Other',
   };
 
+  const maturityLabels = { new: 'New (0-6 months)', growing: 'Growing (6-18 months)', mature: 'Mature (18+ months)' };
+  const userTypeLabels = { in_house: 'In-house marketer', agency: 'Agency', freelancer: 'Freelancer' };
   let preview = `=== CLIENT BRIEFING ===\nBusiness type: ${typeLabels[type] || type}`;
+  if (ctx.account_maturity) preview += `\nAccount maturity: ${maturityLabels[ctx.account_maturity] || ctx.account_maturity}`;
+  if (ctx.user_type) preview += `\nReport recipient: ${userTypeLabels[ctx.user_type] || ctx.user_type}`;
+  if (ctx.monthly_budget_total) {
+    let budgetLine = `\nMonthly budget: ${ctx.monthly_budget_total}`;
+    if (ctx.monthly_budget_google || ctx.monthly_budget_meta) {
+      const splits = [];
+      if (ctx.monthly_budget_google) splits.push(`Google ${ctx.monthly_budget_google}`);
+      if (ctx.monthly_budget_meta) splits.push(`Meta ${ctx.monthly_budget_meta}`);
+      budgetLine += ` (${splits.join(', ')})`;
+    }
+    preview += budgetLine;
+  }
   if (ctx.goal) preview += `\nPrimary goal: ${ctx.goal}`;
   if (ctx.audience) preview += `\nTarget audience: ${ctx.audience}`;
   if (ctx.sales_cycle_weeks) preview += `\nSales cycle: ${ctx.sales_cycle_weeks} weeks`;
@@ -5963,6 +6026,7 @@ function updateContextPreview() {
   if (ctx.seasonal) preview += `\nSeasonal context: ${ctx.seasonal}`;
   if (ctx.campaign_notes) preview += `\nCampaign notes:\n${ctx.campaign_notes}`;
   if (ctx.budget_notes) preview += `\nBudget constraints: ${ctx.budget_notes}`;
+  if (ctx.competitive_context) preview += `\nCompetitive context: ${ctx.competitive_context}`;
   preview += `\n=== END BRIEFING ===`;
 
   document.getElementById('ctx-preview').textContent = preview;
@@ -5982,6 +6046,12 @@ async function saveContext() {
     seasonal: document.getElementById('ctx-seasonal').value.trim() || null,
     campaign_notes: document.getElementById('ctx-campaign-notes').value.trim() || null,
     budget_notes: document.getElementById('ctx-budget-notes').value.trim() || null,
+    account_maturity: document.getElementById('ctx-account-maturity').value || null,
+    user_type: document.getElementById('ctx-user-type').value || null,
+    monthly_budget_total: document.getElementById('ctx-monthly-budget-total').value.trim() || null,
+    monthly_budget_google: document.getElementById('ctx-monthly-budget-google').value.trim() || null,
+    monthly_budget_meta: document.getElementById('ctx-monthly-budget-meta').value.trim() || null,
+    competitive_context: document.getElementById('ctx-competitive-context').value.trim() || null,
     anomaly_sensitivity: document.getElementById('ctx-anomaly-sensitivity').value || 'medium',
     attribution_model: document.getElementById('ctx-attribution-model').value || '',
     campaign_tags: contextCampaignTags || {},
@@ -6121,6 +6191,12 @@ async function clearContext() {
   document.getElementById('ctx-seasonal').value = '';
   document.getElementById('ctx-campaign-notes').value = '';
   document.getElementById('ctx-budget-notes').value = '';
+  document.getElementById('ctx-account-maturity').value = '';
+  document.getElementById('ctx-user-type').value = '';
+  document.getElementById('ctx-monthly-budget-total').value = '';
+  document.getElementById('ctx-monthly-budget-google').value = '';
+  document.getElementById('ctx-monthly-budget-meta').value = '';
+  document.getElementById('ctx-competitive-context').value = '';
   document.getElementById('ctx-anomaly-sensitivity').value = 'medium';
   document.getElementById('ctx-attribution-model').value = '';
   contextCampaignTags = {};
@@ -6920,18 +6996,42 @@ function fmtCurrency(val, currency) {
 
 function renderMarkdownLive(md) {
   if (!md) return '';
-  return md
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/^## (.+)$/gm, '<h2 style="font-size:15px;font-weight:700;margin:20px 0 8px;color:var(--text);">$1</h2>')
-    .replace(/^### (.+)$/gm, '<h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;color:var(--text);">$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^(\d+)\. (.+)$/gm, '<div style="display:flex;gap:8px;margin:4px 0;"><span style="min-width:18px;font-weight:600;color:var(--blue);">$1.</span><span>$2</span></div>')
-    .replace(/^- (.+)$/gm, '<div style="display:flex;gap:8px;margin:3px 0;"><span style="color:var(--blue);min-width:12px;">&#8226;</span><span>$1</span></div>')
+  // Escape HTML first
+  let html = md
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Headers
+  html = html.replace(/^#### (.+)$/gm, '<h4 style="font-size:12px;font-weight:700;margin:12px 0 4px;color:var(--text);">$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3 style="font-size:13px;font-weight:700;margin:14px 0 6px;color:var(--text);">$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 style="font-size:15px;font-weight:700;margin:20px 0 8px;color:var(--text);">$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1 style="font-size:17px;font-weight:700;margin:24px 0 10px;color:var(--text);">$1</h1>');
+
+  // Horizontal rule
+  html = html.replace(/^---$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">');
+
+  // Inline code (before bold/italic to avoid conflicts)
+  html = html.replace(/`([^`]+)`/g, '<code style="background:var(--bg-secondary);padding:1px 5px;border-radius:3px;font-size:12px;font-family:monospace;">$1</code>');
+
+  // Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Numbered lists
+  html = html.replace(/^(\d+)\. (.+)$/gm, '<div style="display:flex;gap:8px;margin:4px 0;"><span style="min-width:18px;font-weight:600;color:var(--blue);">$1.</span><span>$2</span></div>');
+
+  // Bullet lists
+  html = html.replace(/^- (.+)$/gm, '<div style="display:flex;gap:8px;margin:3px 0;"><span style="color:var(--blue);min-width:12px;">&#8226;</span><span>$1</span></div>');
+
+  // Paragraphs and line breaks
+  html = html
     .replace(/\n\n/g, '</p><p style="margin:0 0 10px;">')
     .replace(/\n/g, '<br>')
     .replace(/^/, '<p style="margin:0 0 10px;">')
     .replace(/$/, '</p>');
+
+  return html;
 }
 
 
@@ -8206,12 +8306,7 @@ function renderStructuredAudit(data) {
 
   // Summary
   if (data.summary) {
-    const rendered = data.summary
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/\n/g, '<br>');
-    document.getElementById('sa-summary-text').innerHTML = rendered;
+    document.getElementById('sa-summary-text').innerHTML = renderMarkdownLive(data.summary);
   } else {
     document.getElementById('sa-summary-text').textContent = 'Run a structured audit to get an AI-generated account analysis.';
   }
@@ -8660,13 +8755,8 @@ function appendCopilotMsg(role, text, action) {
   const div = document.createElement('div');
   div.className = `copilot-msg copilot-${role}`;
 
-  // Render markdown-style bold and line breaks
-  const rendered = text
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br>');
+  // Render markdown using shared renderer
+  const rendered = renderMarkdownLive(text);
 
   let actionHtml = '';
   if (action === 'run_budget_agent') {
@@ -8892,15 +8982,15 @@ function copyActions() {
 
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
           <div class="form-group" style="margin:0">
-            <label class="form-label">Period Label</label>
+            <label class="form-label" for="bulk-period-label">Period Label</label>
             <input type="text" class="form-input" id="bulk-period-label" placeholder="e.g. Q1 2026">
           </div>
           <div class="form-group" style="margin:0">
-            <label class="form-label">Period Start</label>
+            <label class="form-label" for="bulk-period-start">Period Start</label>
             <input type="date" class="form-input" id="bulk-period-start">
           </div>
           <div class="form-group" style="margin:0">
-            <label class="form-label">Period End</label>
+            <label class="form-label" for="bulk-period-end">Period End</label>
             <input type="date" class="form-input" id="bulk-period-end">
           </div>
         </div>

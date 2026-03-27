@@ -103,7 +103,8 @@ def _is_seasonal_pattern(current_value: float, history: list,
 
 
 def _make_anomaly(client_id, upload_id, campaign_name, platform,
-                  metric, current, baseline_val, pct_change, direction, severity, desc):
+                  metric, current, baseline_val, pct_change, direction, severity, desc,
+                  seasonal: bool = False):
     return {
         "client_id":      client_id,
         "upload_id":      upload_id,
@@ -116,6 +117,7 @@ def _make_anomaly(client_id, upload_id, campaign_name, platform,
         "direction":      direction,
         "severity":       severity,
         "description":    desc,
+        "seasonal":       seasonal,
     }
 
 
@@ -281,16 +283,17 @@ def detect_anomalies(current_upload_id: int, client_id: int,
             if baseline:
                 pct = _pct_diff(c["cac"], baseline["mean_7d"])
                 if pct > thresholds["cpl"]:
-                    if not _is_seasonal_pattern(c["cac"], seasonal_history, "cac", current_period_month):
-                        sev = _assign_severity(pct, thresholds["cpl"])
-                        anomalies.append(_make_anomaly(
-                            client_id, current_upload_id, name, platform,
-                            "cpl",
-                            c["cac"], baseline["mean_7d"], pct,
-                            "spike", sev,
-                            f"CPL spiked {pct*100:.0f}% above 7-day avg "
-                            f"({c['cac']:,.0f} vs {baseline['mean_7d']:,.0f})"
-                        ))
+                    is_seasonal = _is_seasonal_pattern(c["cac"], seasonal_history, "cac", current_period_month)
+                    sev = _assign_severity(pct, thresholds["cpl"])
+                    anomalies.append(_make_anomaly(
+                        client_id, current_upload_id, name, platform,
+                        "cpl",
+                        c["cac"], baseline["mean_7d"], pct,
+                        "spike", sev,
+                        f"CPL spiked {pct*100:.0f}% above 7-day avg "
+                        f"({c['cac']:,.0f} vs {baseline['mean_7d']:,.0f})",
+                        seasonal=is_seasonal,
+                    ))
 
         # --- ROAS check (vs baseline) ---
         if c.get("roas") is not None:
@@ -298,16 +301,17 @@ def detect_anomalies(current_upload_id: int, client_id: int,
             if baseline:
                 pct = _pct_diff(c["roas"], baseline["mean_7d"])
                 if pct < -thresholds["roas"]:
-                    if not _is_seasonal_pattern(c["roas"], seasonal_history, "roas", current_period_month):
-                        sev = _assign_severity(abs(pct), thresholds["roas"])
-                        anomalies.append(_make_anomaly(
-                            client_id, current_upload_id, name, platform,
-                            "roas",
-                            c["roas"], baseline["mean_7d"], pct,
-                            "drop", sev,
-                            f"ROAS dropped {abs(pct)*100:.0f}% below 7-day avg "
-                            f"({c['roas']:.2f}x vs {baseline['mean_7d']:.2f}x)"
-                        ))
+                    is_seasonal = _is_seasonal_pattern(c["roas"], seasonal_history, "roas", current_period_month)
+                    sev = _assign_severity(abs(pct), thresholds["roas"])
+                    anomalies.append(_make_anomaly(
+                        client_id, current_upload_id, name, platform,
+                        "roas",
+                        c["roas"], baseline["mean_7d"], pct,
+                        "drop", sev,
+                        f"ROAS dropped {abs(pct)*100:.0f}% below 7-day avg "
+                        f"({c['roas']:.2f}x vs {baseline['mean_7d']:.2f}x)",
+                        seasonal=is_seasonal,
+                    ))
 
         # --- CTR check (vs baseline) ---
         if c.get("ctr") and c["ctr"] > 0:
@@ -315,16 +319,17 @@ def detect_anomalies(current_upload_id: int, client_id: int,
             if baseline:
                 pct = _pct_diff(c["ctr"], baseline["mean_7d"])
                 if pct < -thresholds["ctr"]:
-                    if not _is_seasonal_pattern(c["ctr"], seasonal_history, "ctr", current_period_month):
-                        sev = _assign_severity(abs(pct), thresholds["ctr"])
-                        anomalies.append(_make_anomaly(
-                            client_id, current_upload_id, name, platform,
-                            "ctr",
-                            c["ctr"], baseline["mean_7d"], pct,
-                            "drop", sev,
-                            f"CTR dropped {abs(pct)*100:.0f}% below 7-day avg "
-                            f"({c['ctr']:.2f}% vs {baseline['mean_7d']:.2f}%)"
-                        ))
+                    is_seasonal = _is_seasonal_pattern(c["ctr"], seasonal_history, "ctr", current_period_month)
+                    sev = _assign_severity(abs(pct), thresholds["ctr"])
+                    anomalies.append(_make_anomaly(
+                        client_id, current_upload_id, name, platform,
+                        "ctr",
+                        c["ctr"], baseline["mean_7d"], pct,
+                        "drop", sev,
+                        f"CTR dropped {abs(pct)*100:.0f}% below 7-day avg "
+                        f"({c['ctr']:.2f}% vs {baseline['mean_7d']:.2f}%)",
+                        seasonal=is_seasonal,
+                    ))
 
         # --- Spend pacing check ---
         if c.get("spend") and c["spend"] > 0:
@@ -332,17 +337,18 @@ def detect_anomalies(current_upload_id: int, client_id: int,
             if baseline:
                 pct = _pct_diff(c["spend"], baseline["mean_7d"])
                 if abs(pct) > thresholds["pacing"]:
-                    if not _is_seasonal_pattern(c["spend"], seasonal_history, "spend", current_period_month):
-                        direction = "spike" if pct > 0 else "drop"
-                        sev = _assign_severity(abs(pct), thresholds["pacing"])
-                        anomalies.append(_make_anomaly(
-                            client_id, current_upload_id, name, platform,
-                            "spend_pacing",
-                            c["spend"], baseline["mean_7d"], pct,
-                            direction, sev,
-                            f"Spend {direction} {abs(pct)*100:.0f}% vs 7-day avg "
-                            f"({c['spend']:,.0f} vs {baseline['mean_7d']:,.0f})"
-                        ))
+                    is_seasonal = _is_seasonal_pattern(c["spend"], seasonal_history, "spend", current_period_month)
+                    direction = "spike" if pct > 0 else "drop"
+                    sev = _assign_severity(abs(pct), thresholds["pacing"])
+                    anomalies.append(_make_anomaly(
+                        client_id, current_upload_id, name, platform,
+                        "spend_pacing",
+                        c["spend"], baseline["mean_7d"], pct,
+                        direction, sev,
+                        f"Spend {direction} {abs(pct)*100:.0f}% vs 7-day avg "
+                        f"({c['spend']:,.0f} vs {baseline['mean_7d']:,.0f})",
+                        seasonal=is_seasonal,
+                    ))
 
         # --- Creative fatigue check ---
         fatigue = _check_creative_fatigue(
