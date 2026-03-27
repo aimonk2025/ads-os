@@ -12,7 +12,8 @@ from .claude_client import stream_prompt
 
 
 # Weights for WMA: most recent period gets highest weight
-WMA_WEIGHTS = [1, 2, 3, 4, 5, 6]  # oldest to newest, trimmed to available periods
+# 12 weights supports up to 12 periods (1 full year of monthly data)
+WMA_WEIGHTS = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 7]  # oldest to newest, trimmed to available periods
 
 
 def _wma(values: list[float], weights: list[int]) -> float:
@@ -76,13 +77,58 @@ def _seasonality_factor(conn, client_id: int, target_month: int) -> float:
     return max(0.5, min(2.0, factor))
 
 
+def _avg_period_days(periods: list) -> float:
+    """
+    Detect the average duration of uploaded periods in days.
+
+    Uses period_start/period_end when available. Falls back to the gap between
+    consecutive period_start dates. Returns 30.0 if nothing can be determined.
+    This ensures forecast scaling is correct whether data is weekly, monthly,
+    quarterly, or yearly.
+    """
+    from datetime import datetime as _dt
+
+    def _to_date(val):
+        if val is None:
+            return None
+        if hasattr(val, "toordinal"):
+            return val
+        try:
+            return _dt.fromisoformat(str(val)[:10]).date()
+        except (ValueError, TypeError):
+            return None
+
+    # Try period_start / period_end pairs first
+    durations = []
+    for p in periods:
+        ps = _to_date(p.get("period_start"))
+        pe = _to_date(p.get("period_end"))
+        if ps and pe and pe > ps:
+            durations.append((pe - ps).days)
+
+    if durations:
+        return sum(durations) / len(durations)
+
+    # Fall back to gaps between consecutive period_start dates
+    starts = [_to_date(p.get("period_start") or p.get("sort_date")) for p in periods]
+    starts = [s for s in starts if s is not None]
+    starts.sort()
+    if len(starts) >= 2:
+        gaps = [(starts[i] - starts[i - 1]).days for i in range(1, len(starts))]
+        avg = sum(gaps) / len(gaps)
+        if avg > 0:
+            return avg
+
+    return 30.0  # safe default
+
+
 def run_forecast(conn, client_id: int, horizon_days: int = 30) -> dict:
     """
     Generate forward projections for all campaigns.
     horizon_days: 7, 30, or 60.
     Returns full forecast payload.
     """
-    # Get historical periods ordered oldest to newest (up to 6)
+    # Get historical periods ordered oldest to newest (up to 12 for full-year coverage)
     periods = _q(conn, """
         SELECT
             u.id AS upload_id,
@@ -102,7 +148,7 @@ def run_forecast(conn, client_id: int, horizon_days: int = 30) -> dict:
         WHERE c.client_id = ?
         GROUP BY u.id, u.period_label, u.period_start, u.period_end, u.uploaded_at
         ORDER BY sort_date ASC
-        LIMIT 6
+        LIMIT 12
     """, [client_id])
 
     if not periods:
@@ -147,8 +193,10 @@ def run_forecast(conn, client_id: int, horizon_days: int = 30) -> dict:
     slope_spend   = _trend_slope(spends)
     slope_revenue = _trend_slope(revenues)
 
-    # Scale to horizon (assume each period ~ 30 days)
-    scale = horizon_days / 30.0
+    # Detect average period duration from period_start/period_end pairs
+    # Falls back to 30 days if periods have no date info (e.g. upload-date only)
+    avg_period_days = _avg_period_days(periods)
+    scale = horizon_days / avg_period_days
     proj_spend   = max(0, (base_spend + slope_spend) * scale * season_factor)
     proj_revenue = max(0, (base_revenue + slope_revenue) * scale * season_factor)
     proj_roas    = round(proj_revenue / proj_spend, 2) if proj_spend else base_roas
@@ -167,15 +215,16 @@ def run_forecast(conn, client_id: int, horizon_days: int = 30) -> dict:
         return "flat"
 
     account_forecast = {
-        "horizon_days":    horizon_days,
-        "proj_spend":      round(proj_spend, 0),
-        "proj_revenue":    round(proj_revenue, 0),
-        "proj_roas":       proj_roas,
-        "proj_conversions": round(proj_conv, 0),
-        "spend_trend":     trend_dir(spends),
-        "roas_trend":      trend_dir(roas_vals),
-        "season_factor":   round(season_factor, 2),
-        "periods_used":    len(periods),
+        "horizon_days":      horizon_days,
+        "proj_spend":        round(proj_spend, 0),
+        "proj_revenue":      round(proj_revenue, 0),
+        "proj_roas":         proj_roas,
+        "proj_conversions":  round(proj_conv, 0),
+        "spend_trend":       trend_dir(spends),
+        "roas_trend":        trend_dir(roas_vals),
+        "season_factor":     round(season_factor, 2),
+        "periods_used":      len(periods),
+        "avg_period_days":   round(avg_period_days, 0),
     }
 
     # Campaign-level forecasts

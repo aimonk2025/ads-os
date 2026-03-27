@@ -207,8 +207,15 @@ def _check_creative_fatigue(client_id, upload_id, campaign_name, platform,
 
 
 def detect_anomalies(current_upload_id: int, client_id: int,
-                     conn, lookback_days: int = 30,
+                     conn, lookback_days: int = None,
                      client_context: dict = None) -> list:
+    """
+    Detect anomalies by comparing the current upload against recent period history.
+
+    Uses period-count-based history (last N uploads by period_start) rather than
+    wall-clock days, so historical imports all uploaded on the same day are handled
+    correctly. The legacy `lookback_days` param is accepted but ignored.
+    """
     from src.db import get_campaigns_for_upload, get_campaign_history, get_upload
 
     current_campaigns = get_campaigns_for_upload(conn, current_upload_id)
@@ -260,12 +267,13 @@ def detect_anomalies(current_upload_id: int, client_id: int,
         if tag in ("test", "brand"):
             continue
 
-        history = get_campaign_history(conn, client_id, name, platform, lookback_days)
+        # Last 6 periods for baseline (period-ordered, not wall-clock days)
+        history = get_campaign_history(conn, client_id, name, platform, periods=6)
         # Exclude the current upload from history baseline
         history = [h for h in history if h["upload_id"] != current_upload_id]
 
-        # Extended history (up to 400 days) used only for seasonal pattern detection
-        seasonal_history = get_campaign_history(conn, client_id, name, platform, 400)
+        # Last 13 periods for seasonal pattern detection (covers ~1yr of monthly data)
+        seasonal_history = get_campaign_history(conn, client_id, name, platform, periods=13)
         seasonal_history = [h for h in seasonal_history if h["upload_id"] != current_upload_id]
 
         # --- Target goal checks (fire against user-defined targets first) ---
@@ -290,7 +298,7 @@ def detect_anomalies(current_upload_id: int, client_id: int,
                         "cpl",
                         c["cac"], baseline["mean_7d"], pct,
                         "spike", sev,
-                        f"CPL spiked {pct*100:.0f}% above 7-day avg "
+                        f"CPL spiked {pct*100:.0f}% above recent avg "
                         f"({c['cac']:,.0f} vs {baseline['mean_7d']:,.0f})",
                         seasonal=is_seasonal,
                     ))
@@ -308,7 +316,7 @@ def detect_anomalies(current_upload_id: int, client_id: int,
                         "roas",
                         c["roas"], baseline["mean_7d"], pct,
                         "drop", sev,
-                        f"ROAS dropped {abs(pct)*100:.0f}% below 7-day avg "
+                        f"ROAS dropped {abs(pct)*100:.0f}% below recent avg "
                         f"({c['roas']:.2f}x vs {baseline['mean_7d']:.2f}x)",
                         seasonal=is_seasonal,
                     ))
@@ -326,7 +334,7 @@ def detect_anomalies(current_upload_id: int, client_id: int,
                         "ctr",
                         c["ctr"], baseline["mean_7d"], pct,
                         "drop", sev,
-                        f"CTR dropped {abs(pct)*100:.0f}% below 7-day avg "
+                        f"CTR dropped {abs(pct)*100:.0f}% below recent avg "
                         f"({c['ctr']:.2f}% vs {baseline['mean_7d']:.2f}%)",
                         seasonal=is_seasonal,
                     ))
@@ -345,7 +353,7 @@ def detect_anomalies(current_upload_id: int, client_id: int,
                         "spend_pacing",
                         c["spend"], baseline["mean_7d"], pct,
                         direction, sev,
-                        f"Spend {direction} {abs(pct)*100:.0f}% vs 7-day avg "
+                        f"Spend {direction} {abs(pct)*100:.0f}% vs recent avg "
                         f"({c['spend']:,.0f} vs {baseline['mean_7d']:,.0f})",
                         seasonal=is_seasonal,
                     ))

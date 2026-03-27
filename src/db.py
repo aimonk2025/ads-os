@@ -649,8 +649,16 @@ def get_campaigns_for_upload(conn, upload_id: int) -> list:
 
 
 def get_campaign_history(conn, client_id: int, campaign_name: str,
-                         platform: str, days: int = 30) -> list:
-    since = datetime.now() - timedelta(days=days)
+                         platform: str, periods: int = 6,
+                         days: int = None) -> list:
+    """
+    Return the last N periods of campaign history ordered by period_start ASC.
+
+    Uses period count (not wall-clock days) so historical imports -- where all
+    uploads land on the same uploaded_at -- are handled correctly.
+
+    The legacy `days` param is accepted but ignored; callers should migrate to `periods`.
+    """
     return _q(conn, """
         SELECT c.*,
                COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) AS period_date,
@@ -662,14 +670,24 @@ def get_campaign_history(conn, client_id: int, campaign_name: str,
         WHERE c.client_id = ?
           AND c.campaign_name = ?
           AND c.platform = ?
-          AND COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) >= ?
+          AND u.id IN (
+              SELECT id FROM uploads
+              WHERE client_id = ?
+              ORDER BY COALESCE(period_start, CAST(uploaded_at AS DATE)) DESC
+              LIMIT ?
+          )
         ORDER BY COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) ASC
-    """, [client_id, campaign_name, platform, since.isoformat()])
+    """, [client_id, campaign_name, platform, client_id, periods])
 
 
 def get_platform_history(conn, client_id: int, platform: str,
-                         days: int = 30) -> list:
-    since = datetime.now() - timedelta(days=days)
+                         periods: int = 6,
+                         days: int = None) -> list:
+    """
+    Return the last N periods of platform-level history ordered by period_start ASC.
+
+    Uses period count not wall-clock days. Legacy `days` param accepted but ignored.
+    """
     return _q(conn, """
         SELECT c.*,
                COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) AS period_date,
@@ -680,9 +698,14 @@ def get_platform_history(conn, client_id: int, platform: str,
         FROM campaigns c
         JOIN uploads u ON c.upload_id = u.id
         WHERE c.client_id = ? AND c.platform = ?
-          AND COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) >= ?
+          AND u.id IN (
+              SELECT id FROM uploads
+              WHERE client_id = ?
+              ORDER BY COALESCE(period_start, CAST(uploaded_at AS DATE)) DESC
+              LIMIT ?
+          )
         ORDER BY COALESCE(u.period_start, CAST(u.uploaded_at AS DATE)) ASC
-    """, [client_id, platform, since.isoformat()])
+    """, [client_id, platform, client_id, periods])
 
 
 def get_latest_upload_campaigns(conn, client_id: int) -> list:
