@@ -2512,7 +2512,18 @@
         <!-- Morning Brief -->
         <div id="morning-brief-wrap" style="display:none;">
           <div id="morning-brief-card" class="morning-brief">
-            <div class="morning-brief-title" id="morning-brief-title">Morning Brief</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <div class="morning-brief-title" id="morning-brief-title">Morning Brief</div>
+              <div class="claude-live-tokens" id="brief-live-tokens" style="display:none;"></div>
+            </div>
+            <!-- Live panel (shown while Claude writes) -->
+            <div id="brief-live-panel" style="display:none;border-radius:8px;overflow:hidden;margin-bottom:8px;">
+              <div class="claude-live-header" style="padding:8px 12px;">
+                <div class="claude-live-dot running" id="brief-live-dot"></div>
+                <div class="claude-live-title" id="brief-live-title" style="font-size:11px;">Claude is writing...</div>
+              </div>
+              <div class="claude-live-output" id="brief-live-output" style="max-height:200px;font-size:12px;padding:12px;"></div>
+            </div>
             <div class="morning-brief-text" id="morning-brief-text"></div>
           </div>
         </div>
@@ -5338,21 +5349,39 @@ function renderAnomalyList() {
 async function generateMorningBrief() {
   if (!currentClientId) { showToast('Select a client first', 'error'); return; }
 
-  const wrap = document.getElementById('morning-brief-wrap');
-  const card = document.getElementById('morning-brief-card');
-  const titleEl = document.getElementById('morning-brief-title');
-  const textEl  = document.getElementById('morning-brief-text');
+  const wrap        = document.getElementById('morning-brief-wrap');
+  const card        = document.getElementById('morning-brief-card');
+  const titleEl     = document.getElementById('morning-brief-title');
+  const textEl      = document.getElementById('morning-brief-text');
+  const livePanel   = document.getElementById('brief-live-panel');
+  const liveDot     = document.getElementById('brief-live-dot');
+  const liveTitle   = document.getElementById('brief-live-title');
+  const liveOutput  = document.getElementById('brief-live-output');
+  const liveTokens  = document.getElementById('brief-live-tokens');
 
-  // Show card immediately in loading state
+  // Reset and show
   card.className = 'morning-brief info';
-  titleEl.textContent = 'Morning Brief - writing...';
+  titleEl.textContent = 'Morning Brief';
   textEl.textContent = '';
+  liveOutput.textContent = '';
+  liveDot.className = 'claude-live-dot running';
+  liveTitle.textContent = 'Claude is writing...';
+  liveTokens.textContent = '0 tokens';
+  livePanel.style.display = '';
+  liveTokens.style.display = '';
   wrap.style.display = '';
   wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
+  let briefTokenCount = 0;
+
   try {
     const res = await fetch(`/api/morning-brief/${currentClientId}`, { method: 'POST' });
-    if (!res.ok) { showToast('Failed to generate brief', 'error'); return; }
+    if (!res.ok) {
+      livePanel.style.display = 'none';
+      liveTokens.style.display = 'none';
+      showToast('Failed to generate brief', 'error');
+      return;
+    }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -5371,19 +5400,29 @@ async function generateMorningBrief() {
         try { evt = JSON.parse(line.slice(6)); } catch { continue; }
 
         if (evt.type === 'chunk') {
-          textEl.textContent += evt.text;
+          liveOutput.textContent += evt.text;
+          liveOutput.scrollTop = liveOutput.scrollHeight;
+          briefTokenCount += Math.max(1, Math.round(evt.text.length / 4));
+          liveTokens.textContent = briefTokenCount.toLocaleString() + ' tokens';
         } else if (evt.type === 'done') {
-          const usedClaude = evt.used_claude;
+          liveDot.className = 'claude-live-dot done';
+          liveTitle.textContent = 'Claude finished';
           card.className = 'morning-brief ' + (evt.severity || 'info');
-          titleEl.textContent =
-            (usedClaude ? 'Morning Brief (Claude)' : 'Morning Brief') +
-            ' - ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          titleEl.textContent = 'Morning Brief - ' +
+            new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           textEl.textContent = evt.brief;
+        } else if (evt.type === 'error') {
+          livePanel.style.display = 'none';
+          liveTokens.style.display = 'none';
+          showToast(evt.error || 'Failed to generate brief', 'error');
+          return;
         }
       }
     }
   } catch(e) {
-    showToast('Failed to generate brief', 'error');
+    livePanel.style.display = 'none';
+    liveTokens.style.display = 'none';
+    showToast('Failed to generate brief: ' + e.message, 'error');
   }
 }
 

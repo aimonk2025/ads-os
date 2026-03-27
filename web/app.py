@@ -1789,14 +1789,17 @@ Data:
         prompt = BRIEF_PROMPT + json.dumps(payload, indent=2)
         full_text = []
 
-        for event_type, text in stream_prompt(prompt):
-            if event_type == 'chunk':
-                full_text.append(text)
-                yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
-            elif event_type == 'done':
-                brief = text or "".join(full_text)
-                yield f"data: {json.dumps({'type': 'done', 'brief': brief, 'severity': severity, 'summary': summary})}\n\n"
-                return
+        try:
+            for event_type, text in stream_prompt(prompt):
+                if event_type == 'chunk':
+                    full_text.append(text)
+                    yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
+                elif event_type == 'done':
+                    brief = text or "".join(full_text)
+                    yield f"data: {json.dumps({'type': 'done', 'brief': brief, 'severity': severity, 'summary': summary})}\n\n"
+                    return
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
 
     return Response(generate(), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
